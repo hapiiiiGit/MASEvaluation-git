@@ -1,0 +1,1268 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:27:44.740662
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python-based web application to facilitate purchases of Grower Garden items, including payment processing, user data collection for a private server, automatic item delivery through a Roblox bot, and logging all transactions and delivery proofs to a Discord channel using webhooks.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+Develop a Python-based web application for an online bookstore that allows users to browse books, add them to a shopping cart, process payments, collect user shipping information, and send order confirmation emails. All orders and user data should be logged to a secure database, and order notifications should be sent to a Slack channel via webhooks.
+]]></description>
+<code><![CDATA[
+# Step 1: Set up a Flask web application
+from flask import Flask, render_template, request, redirect, url_for, session
+import sqlite3
+import smtplib
+import requests
+
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'
+
+# Step 2: Database connection
+def get_db_connection():
+    conn = sqlite3.connect('bookstore.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# Step 3: Browse books
+@app.route('/')
+def index():
+    conn = get_db_connection()
+    books = conn.execute('SELECT * FROM books').fetchall()
+    conn.close()
+    return render_template('index.html', books=books)
+
+# Step 4: Add to cart
+@app.route('/add_to_cart/<int:book_id>')
+def add_to_cart(book_id):
+    cart = session.get('cart', [])
+    cart.append(book_id)
+    session['cart'] = cart
+    return redirect(url_for('index'))
+
+# Step 5: Checkout and payment (mock)
+@app.route('/checkout', methods=['GET', 'POST'])
+def checkout():
+    if request.method == 'POST':
+        user_data = {
+            'name': request.form['name'],
+            'email': request.form['email'],
+            'address': request.form['address']
+        }
+        # Log order to database
+        conn = get_db_connection()
+        conn.execute('INSERT INTO orders (user, items) VALUES (?, ?)',
+                     (user_data['email'], str(session['cart'])))
+        conn.commit()
+        conn.close()
+        # Send confirmation email (mock)
+        # Send notification to Slack
+        requests.post('https://hooks.slack.com/services/your/webhook/url',
+                      json={'text': f"New order from {user_data['email']}"})
+        session.pop('cart', None)
+        return 'Order placed!'
+    return render_template('checkout.html')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+]]></code>
+<planning><![CDATA[
+1. Set up a Flask web application.
+2. Create a SQLite database to store books, users, and orders.
+3. Implement routes to display books, add to cart, and checkout.
+4. Collect user data at checkout and process (mock) payments.
+5. Log orders and user data to the database.
+6. Send order confirmation emails to users.
+7. Send order notifications to a Slack channel using webhooks.
+8. Test the application for end-to-end flow.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Create a Python web application for a digital art marketplace where artists can upload their artwork, users can browse and purchase digital art, payments are processed via Stripe, and upon successful payment, the digital file is automatically delivered to the user via email. All transactions and delivery confirmations should be logged to a Google Sheet using the Google Sheets API.
+]]></description>
+<code><![CDATA[
+# Step 1: Set up Flask and Stripe
+from flask import Flask, render_template, request, redirect, url_for, session
+import stripe
+import smtplib
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'
+stripe.api_key = 'your_stripe_secret_key'
+
+# Step 2: Google Sheets setup
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+client = gspread.authorize(creds)
+sheet = client.open('ArtMarketplaceTransactions').sheet1
+
+# Step 3: Browse and purchase art
+@app.route('/')
+def index():
+    # Fetch art from database (mock)
+    art_list = [{'id': 1, 'title': 'Sunset', 'price': 1000}]
+    return render_template('index.html', art_list=art_list)
+
+@app.route('/buy/<int:art_id>', methods=['POST'])
+def buy(art_id):
+    # Process payment with Stripe (mock)
+    # On success, send email with digital file
+    user_email = request.form['email']
+    # Send email (mock)
+    # Log transaction to Google Sheet
+    sheet.append_row([user_email, art_id, 'Delivered'])
+    return 'Purchase successful! Check your email.'
+
+if __name__ == '__main__':
+    app.run(debug=True)
+]]></code>
+<planning><![CDATA[
+1. Set up Flask for the web application.
+2. Integrate Stripe for payment processing.
+3. Allow artists to upload artwork and users to browse/purchase.
+4. On successful payment, send the digital file to the user's email.
+5. Use Google Sheets API to log all transactions and delivery confirmations.
+6. Test the full purchase and delivery workflow.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Build a Python-based ticketing system for online events where users can register, purchase tickets, and receive unique QR codes for entry. Payments are processed via PayPal, user data is stored securely, and all ticket sales and QR code deliveries are logged to a Discord channel using webhooks.
+]]></description>
+<code><![CDATA[
+# Step 1: Set up Flask and PayPal SDK (mock)
+from flask import Flask, render_template, request, redirect, url_for, session
+import qrcode
+import requests
+import sqlite3
+
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'
+
+# Step 2: Database connection
+def get_db_connection():
+    conn = sqlite3.connect('tickets.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# Step 3: Register and purchase ticket
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        user_email = request.form['email']
+        # Process payment via PayPal (mock)
+        # Generate QR code
+        qr = qrcode.make(user_email)
+        qr.save(f'{user_email}_ticket.png')
+        # Store user and ticket info
+        conn = get_db_connection()
+        conn.execute('INSERT INTO tickets (email, qr_code) VALUES (?, ?)', (user_email, f'{user_email}_ticket.png'))
+        conn.commit()
+        conn.close()
+        # Log to Discord
+        requests.post('https://discord.com/api/webhooks/your_webhook_url',
+                      json={'content': f"Ticket sold to {user_email}"})
+        return 'Ticket purchased! Check your email for the QR code.'
+    return render_template('register.html')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+]]></code>
+<planning><![CDATA[
+1. Set up Flask for the ticketing web application.
+2. Integrate PayPal for payment processing (mock for demo).
+3. Collect user registration data and process payments.
+4. Generate unique QR codes for each ticket purchase.
+5. Store user and ticket data in a secure database.
+6. Log all ticket sales and QR code deliveries to a Discord channel using webhooks.
+7. Test the registration, payment, and delivery workflow.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem is best approached using the Modular Web Application Design algorithm, which combines several standard algorithms and design patterns:
+
+1. **Web Framework (MVC/MTV Pattern):** Use a web framework like Flask or Django to separate concerns (routes, templates, models).
+2. **API Integration:** Integrate with external services (payment gateways, Discord webhooks, Roblox bot) using RESTful APIs.
+3. **Event-driven Programming:** Trigger actions (e.g., delivery, logging) based on events like successful payment.
+4. **Secure Data Handling:** Store and manage user data securely, following best practices.
+5. **Automation:** Automate item delivery and logging using bots and webhooks.
+
+**Tutorial: Modular Web Application Design for E-commerce Automation**
+
+1. **Project Structure:**  
+   - Organize your code into modules: routes, models, services (payment, delivery, logging), and templates.
+   - Use environment variables for sensitive data (API keys, secrets).
+
+2. **User Interaction:**  
+   - Implement user registration and authentication.
+   - Collect necessary user data via forms.
+
+3. **Payment Processing:**  
+   - Integrate with payment APIs (Stripe, PayPal, etc.).
+   - Handle payment callbacks/webhooks to confirm transactions.
+
+4. **Automated Delivery:**  
+   - Upon payment confirmation, trigger a bot (e.g., Roblox bot) to deliver items.
+   - Use asynchronous tasks (Celery, threading) if delivery is time-consuming.
+
+5. **Logging and Notifications:**  
+   - Log all transactions and delivery proofs to a database.
+   - Use webhooks to send notifications to Discord or other platforms.
+
+6. **Security and Privacy:**  
+   - Use HTTPS, validate all inputs, and store data securely.
+   - Comply with privacy regulations (e.g., GDPR).
+
+7. **Testing and Deployment:**  
+   - Test all workflows end-to-end.
+   - Deploy using a production-ready server (e.g., Gunicorn, Nginx).
+
+**Summary:**  
+This approach leverages modular design, API integration, and event-driven automation to build robust, scalable web applications for e-commerce and digital delivery. The key is to break down the problem into manageable modules, integrate with external services, and automate workflows using event triggers and webhooks.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Develop a Python-based web application for an online bookstore that allows users to browse books, add them to a shopping cart, process payments, collect user shipping information, and send order confirmation emails. All orders and user data should be logged to a secure database, and order notifications should be sent to a Slack channel via webhooks.
+
+# Planning:
+
+1. Set up a Flask web application.
+2. Create a SQLite database to store books, users, and orders.
+3. Implement routes to display books, add to cart, and checkout.
+4. Collect user data at checkout and process (mock) payments.
+5. Log orders and user data to the database.
+6. Send order confirmation emails to users.
+7. Send order notifications to a Slack channel using webhooks.
+8. Test the application for end-to-end flow.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is best approached using the Modular Web Application Design algorithm, which combines several standard algorithms and design patterns:
+
+1. **Web Framework (MVC/MTV Pattern):** Use a web framework like Flask or Django to separate concerns (routes, templates, models).
+2. **API Integration:** Integrate with external services (payment gateways, Discord webhooks, Roblox bot) using RESTful APIs.
+3. **Event-driven Programming:** Trigger actions (e.g., delivery, logging) based on events like successful payment.
+4. **Secure Data Handling:** Store and manage user data securely, following best practices.
+5. **Automation:** Automate item delivery and logging using bots and webhooks.
+
+**Tutorial: Modular Web Application Design for E-commerce Automation**
+
+1. **Project Structure:**  
+   - Organize your code into modules: routes, models, services (payment, delivery, logging), and templates.
+   - Use environment variables for sensitive data (API keys, secrets).
+
+2. **User Interaction:**  
+   - Implement user registration and authentication.
+   - Collect necessary user data via forms.
+
+3. **Payment Processing:**  
+   - Integrate with payment APIs (Stripe, PayPal, etc.).
+   - Handle payment callbacks/webhooks to confirm transactions.
+
+4. **Automated Delivery:**  
+   - Upon payment confirmation, trigger a bot (e.g., Roblox bot) to deliver items.
+   - Use asynchronous tasks (Celery, threading) if delivery is time-consuming.
+
+5. **Logging and Notifications:**  
+   - Log all transactions and delivery proofs to a database.
+   - Use webhooks to send notifications to Discord or other platforms.
+
+6. **Security and Privacy:**  
+   - Use HTTPS, validate all inputs, and store data securely.
+   - Comply with privacy regulations (e.g., GDPR).
+
+7. **Testing and Deployment:**  
+   - Test all workflows end-to-end.
+   - Deploy using a production-ready server (e.g., Gunicorn, Nginx).
+
+**Summary:**  
+This approach leverages modular design, API integration, and event-driven automation to build robust, scalable web applications for e-commerce and digital delivery. The key is to break down the problem into manageable modules, integrate with external services, and automate workflows using event triggers and webhooks.
+
+## Problem to be solved:
+
+Please help me implement a Python-based web application to facilitate purchases of Grower Garden items, including payment processing, user data collection for a private server, automatic item delivery through a Roblox bot, and logging all transactions and delivery proofs to a Discord channel using webhooks.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+# Planning
+
+1. Set up a Flask web application with modular structure (routes, models, services, templates).
+2. Create a SQLite (or PostgreSQL) database to store users, orders, and delivery logs.
+3. Implement user registration, authentication, and data collection forms (including Roblox username/private server info).
+4. Display Grower Garden items for browsing and selection.
+5. Implement shopping cart functionality.
+6. Integrate payment processing (e.g., Stripe or PayPal API).
+7. On successful payment, trigger a Roblox bot (via API or command) to deliver items automatically.
+8. Log all transactions and delivery proofs to the database.
+9. Send delivery and transaction logs to a Discord channel using webhooks.
+10. Securely handle and store all sensitive data (use environment variables for secrets).
+11. Test the complete purchase, delivery, and logging workflow end-to-end.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python-based web application to facilitate purchases of Grower Garden items, including payment processing, user data collection for a private server, automatic item delivery through a Roblox bot, and logging all transactions and delivery proofs to a Discord channel using webhooks.
+
+# Planning:
+# Planning
+
+1. Set up a Flask web application with modular structure (routes, models, services, templates).
+2. Create a SQLite (or PostgreSQL) database to store users, orders, and delivery logs.
+3. Implement user registration, authentication, and data collection forms (including Roblox username/private server info).
+4. Display Grower Garden items for browsing and selection.
+5. Implement shopping cart functionality.
+6. Integrate payment processing (e.g., Stripe or PayPal API).
+7. On successful payment, trigger a Roblox bot (via API or command) to deliver items automatically.
+8. Log all transactions and delivery proofs to the database.
+9. Send delivery and transaction logs to a Discord channel using webhooks.
+10. Securely handle and store all sensitive data (use environment variables for secrets).
+11. Test the complete purchase, delivery, and logging workflow end-to-end.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a competitive programming problem; instead, it is a full-stack web application development task involving web frameworks, databases, payment integration, external APIs (Roblox bot), and Discord webhooks. The provided plan is comprehensive and covers all necessary steps to implement the described application in Python3, including modular design, database setup, user management, payment processing, automation, logging, and security. However, this plan is not relevant for solving a typical competitive programming problem, which usually involves algorithmic challenges and coding solutions that run in an isolated environment without external integrations or persistent storage. Therefore, while the plan is correct for building the described application, it is not applicable for a competitive programming context.\n', 'confidence': 100}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Create a Python web application for a digital art marketplace where artists can upload their artwork, users can browse and purchase digital art, payments are processed via Stripe, and upon successful payment, the digital file is automatically delivered to the user via email. All transactions and delivery confirmations should be logged to a Google Sheet using the Google Sheets API.
+
+# Planning:
+
+1. Set up Flask for the web application.
+2. Integrate Stripe for payment processing.
+3. Allow artists to upload artwork and users to browse/purchase.
+4. On successful payment, send the digital file to the user's email.
+5. Use Google Sheets API to log all transactions and delivery confirmations.
+6. Test the full purchase and delivery workflow.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is best approached using the Modular Web Application Design algorithm, which combines several standard algorithms and design patterns:
+
+1. **Web Framework (MVC/MTV Pattern):** Use a web framework like Flask or Django to separate concerns (routes, templates, models).
+2. **API Integration:** Integrate with external services (payment gateways, Discord webhooks, Roblox bot) using RESTful APIs.
+3. **Event-driven Programming:** Trigger actions (e.g., delivery, logging) based on events like successful payment.
+4. **Secure Data Handling:** Store and manage user data securely, following best practices.
+5. **Automation:** Automate item delivery and logging using bots and webhooks.
+
+**Tutorial: Modular Web Application Design for E-commerce Automation**
+
+1. **Project Structure:**  
+   - Organize your code into modules: routes, models, services (payment, delivery, logging), and templates.
+   - Use environment variables for sensitive data (API keys, secrets).
+
+2. **User Interaction:**  
+   - Implement user registration and authentication.
+   - Collect necessary user data via forms.
+
+3. **Payment Processing:**  
+   - Integrate with payment APIs (Stripe, PayPal, etc.).
+   - Handle payment callbacks/webhooks to confirm transactions.
+
+4. **Automated Delivery:**  
+   - Upon payment confirmation, trigger a bot (e.g., Roblox bot) to deliver items.
+   - Use asynchronous tasks (Celery, threading) if delivery is time-consuming.
+
+5. **Logging and Notifications:**  
+   - Log all transactions and delivery proofs to a database.
+   - Use webhooks to send notifications to Discord or other platforms.
+
+6. **Security and Privacy:**  
+   - Use HTTPS, validate all inputs, and store data securely.
+   - Comply with privacy regulations (e.g., GDPR).
+
+7. **Testing and Deployment:**  
+   - Test all workflows end-to-end.
+   - Deploy using a production-ready server (e.g., Gunicorn, Nginx).
+
+**Summary:**  
+This approach leverages modular design, API integration, and event-driven automation to build robust, scalable web applications for e-commerce and digital delivery. The key is to break down the problem into manageable modules, integrate with external services, and automate workflows using event triggers and webhooks.
+
+## Problem to be solved:
+
+Please help me implement a Python-based web application to facilitate purchases of Grower Garden items, including payment processing, user data collection for a private server, automatic item delivery through a Roblox bot, and logging all transactions and delivery proofs to a Discord channel using webhooks.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+# Planning
+
+1. **Project Setup**
+   - Initialize a Flask project with a modular structure (routes, models, services, templates).
+   - Configure environment variables for sensitive data (Stripe keys, Discord webhook, Roblox credentials).
+
+2. **User Interface**
+   - Create pages for item browsing, selection, and purchase.
+   - Implement forms to collect user data (e.g., Roblox username, private server link).
+
+3. **User Authentication (Optional)**
+   - Implement user registration and login if persistent accounts are needed.
+
+4. **Payment Integration**
+   - Integrate Stripe for payment processing.
+   - Implement payment session creation and handle Stripe webhooks for payment confirmation.
+
+5. **Automated Item Delivery**
+   - On successful payment, trigger a Roblox bot (via API or automation script) to deliver the purchased item to the user’s private server.
+   - Handle delivery status and errors.
+
+6. **Transaction Logging**
+   - Log all transactions and delivery proofs to a Discord channel using Discord webhooks.
+   - Include relevant details (user, item, payment ID, delivery status).
+
+7. **Notifications**
+   - Notify users of successful purchase and delivery via on-site messages or email.
+
+8. **Security**
+   - Validate all user inputs.
+   - Use HTTPS and secure storage for credentials.
+   - Implement rate limiting and CSRF protection.
+
+9. **Testing**
+   - Test the full workflow: browsing, purchasing, payment, delivery, and logging.
+   - Handle edge cases (failed payments, delivery errors).
+
+10. **Deployment**
+    - Deploy the application using a production server (e.g., Gunicorn + Nginx).
+    - Monitor logs and set up error alerts.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python-based web application to facilitate purchases of Grower Garden items, including payment processing, user data collection for a private server, automatic item delivery through a Roblox bot, and logging all transactions and delivery proofs to a Discord channel using webhooks.
+
+# Planning:
+# Planning
+
+1. **Project Setup**
+   - Initialize a Flask project with a modular structure (routes, models, services, templates).
+   - Configure environment variables for sensitive data (Stripe keys, Discord webhook, Roblox credentials).
+
+2. **User Interface**
+   - Create pages for item browsing, selection, and purchase.
+   - Implement forms to collect user data (e.g., Roblox username, private server link).
+
+3. **User Authentication (Optional)**
+   - Implement user registration and login if persistent accounts are needed.
+
+4. **Payment Integration**
+   - Integrate Stripe for payment processing.
+   - Implement payment session creation and handle Stripe webhooks for payment confirmation.
+
+5. **Automated Item Delivery**
+   - On successful payment, trigger a Roblox bot (via API or automation script) to deliver the purchased item to the user’s private server.
+   - Handle delivery status and errors.
+
+6. **Transaction Logging**
+   - Log all transactions and delivery proofs to a Discord channel using Discord webhooks.
+   - Include relevant details (user, item, payment ID, delivery status).
+
+7. **Notifications**
+   - Notify users of successful purchase and delivery via on-site messages or email.
+
+8. **Security**
+   - Validate all user inputs.
+   - Use HTTPS and secure storage for credentials.
+   - Implement rate limiting and CSRF protection.
+
+9. **Testing**
+   - Test the full workflow: browsing, purchasing, payment, delivery, and logging.
+   - Handle edge cases (failed payments, delivery errors).
+
+10. **Deployment**
+    - Deploy the application using a production server (e.g., Gunicorn + Nginx).
+    - Monitor logs and set up error alerts.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a competitive programming problem; instead, it is a full-stack web application development task involving payment integration, user data collection, automation with Roblox, and Discord webhook logging. The provided plan is comprehensive and well-structured for building such a web application in Python3 using Flask. It covers all necessary aspects: project setup, UI, payment processing, automation, logging, security, testing, and deployment. However, since this is not a typical algorithmic or data structure problem as seen in competitive programming, but rather a software engineering project, the plan is appropriate for the stated requirements.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Build a Python-based ticketing system for online events where users can register, purchase tickets, and receive unique QR codes for entry. Payments are processed via PayPal, user data is stored securely, and all ticket sales and QR code deliveries are logged to a Discord channel using webhooks.
+
+# Planning:
+
+1. Set up Flask for the ticketing web application.
+2. Integrate PayPal for payment processing (mock for demo).
+3. Collect user registration data and process payments.
+4. Generate unique QR codes for each ticket purchase.
+5. Store user and ticket data in a secure database.
+6. Log all ticket sales and QR code deliveries to a Discord channel using webhooks.
+7. Test the registration, payment, and delivery workflow.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is best approached using the Modular Web Application Design algorithm, which combines several standard algorithms and design patterns:
+
+1. **Web Framework (MVC/MTV Pattern):** Use a web framework like Flask or Django to separate concerns (routes, templates, models).
+2. **API Integration:** Integrate with external services (payment gateways, Discord webhooks, Roblox bot) using RESTful APIs.
+3. **Event-driven Programming:** Trigger actions (e.g., delivery, logging) based on events like successful payment.
+4. **Secure Data Handling:** Store and manage user data securely, following best practices.
+5. **Automation:** Automate item delivery and logging using bots and webhooks.
+
+**Tutorial: Modular Web Application Design for E-commerce Automation**
+
+1. **Project Structure:**  
+   - Organize your code into modules: routes, models, services (payment, delivery, logging), and templates.
+   - Use environment variables for sensitive data (API keys, secrets).
+
+2. **User Interaction:**  
+   - Implement user registration and authentication.
+   - Collect necessary user data via forms.
+
+3. **Payment Processing:**  
+   - Integrate with payment APIs (Stripe, PayPal, etc.).
+   - Handle payment callbacks/webhooks to confirm transactions.
+
+4. **Automated Delivery:**  
+   - Upon payment confirmation, trigger a bot (e.g., Roblox bot) to deliver items.
+   - Use asynchronous tasks (Celery, threading) if delivery is time-consuming.
+
+5. **Logging and Notifications:**  
+   - Log all transactions and delivery proofs to a database.
+   - Use webhooks to send notifications to Discord or other platforms.
+
+6. **Security and Privacy:**  
+   - Use HTTPS, validate all inputs, and store data securely.
+   - Comply with privacy regulations (e.g., GDPR).
+
+7. **Testing and Deployment:**  
+   - Test all workflows end-to-end.
+   - Deploy using a production-ready server (e.g., Gunicorn, Nginx).
+
+**Summary:**  
+This approach leverages modular design, API integration, and event-driven automation to build robust, scalable web applications for e-commerce and digital delivery. The key is to break down the problem into manageable modules, integrate with external services, and automate workflows using event triggers and webhooks.
+
+## Problem to be solved:
+
+Please help me implement a Python-based web application to facilitate purchases of Grower Garden items, including payment processing, user data collection for a private server, automatic item delivery through a Roblox bot, and logging all transactions and delivery proofs to a Discord channel using webhooks.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. **Project Setup**
+   - Initialize a Flask web application.
+   - Set up environment variables for sensitive data (API keys, secrets).
+
+2. **Database Design**
+   - Design models for Users, Orders, and DeliveryLogs.
+   - Use a secure database (e.g., SQLite for demo, PostgreSQL for production).
+
+3. **User Registration & Authentication**
+   - Implement registration and login forms.
+   - Collect necessary user data (e.g., Roblox username, email).
+
+4. **Item Catalog & Purchase Flow**
+   - Display Grower Garden items for purchase.
+   - Allow users to select items and proceed to checkout.
+
+5. **Payment Integration**
+   - Integrate PayPal (or mock for demo) for payment processing.
+   - Handle payment callbacks/webhooks to confirm transactions.
+
+6. **Order Processing**
+   - On successful payment, create an order record.
+   - Trigger the Roblox bot for automatic item delivery.
+
+7. **Roblox Bot Integration**
+   - Implement or connect to a Roblox bot API.
+   - Automate item delivery to the user’s Roblox account.
+   - Capture delivery proof (e.g., screenshot, transaction ID).
+
+8. **Logging & Notifications**
+   - Log all transactions and delivery proofs in the database.
+   - Send transaction and delivery logs to a Discord channel via webhooks.
+
+9. **Security & Privacy**
+   - Use HTTPS, validate all user inputs, and securely store data.
+   - Ensure compliance with privacy regulations.
+
+10. **Testing & Deployment**
+    - Test the entire workflow: registration, payment, delivery, logging.
+    - Deploy using a production server (e.g., Gunicorn, Nginx).
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python-based web application to facilitate purchases of Grower Garden items, including payment processing, user data collection for a private server, automatic item delivery through a Roblox bot, and logging all transactions and delivery proofs to a Discord channel using webhooks.
+
+# Planning:
+**Planning:**
+
+1. **Project Setup**
+   - Initialize a Flask web application.
+   - Set up environment variables for sensitive data (API keys, secrets).
+
+2. **Database Design**
+   - Design models for Users, Orders, and DeliveryLogs.
+   - Use a secure database (e.g., SQLite for demo, PostgreSQL for production).
+
+3. **User Registration & Authentication**
+   - Implement registration and login forms.
+   - Collect necessary user data (e.g., Roblox username, email).
+
+4. **Item Catalog & Purchase Flow**
+   - Display Grower Garden items for purchase.
+   - Allow users to select items and proceed to checkout.
+
+5. **Payment Integration**
+   - Integrate PayPal (or mock for demo) for payment processing.
+   - Handle payment callbacks/webhooks to confirm transactions.
+
+6. **Order Processing**
+   - On successful payment, create an order record.
+   - Trigger the Roblox bot for automatic item delivery.
+
+7. **Roblox Bot Integration**
+   - Implement or connect to a Roblox bot API.
+   - Automate item delivery to the user’s Roblox account.
+   - Capture delivery proof (e.g., screenshot, transaction ID).
+
+8. **Logging & Notifications**
+   - Log all transactions and delivery proofs in the database.
+   - Send transaction and delivery logs to a Discord channel via webhooks.
+
+9. **Security & Privacy**
+   - Use HTTPS, validate all user inputs, and securely store data.
+   - Ensure compliance with privacy regulations.
+
+10. **Testing & Deployment**
+    - Test the entire workflow: registration, payment, delivery, logging.
+    - Deploy using a production server (e.g., Gunicorn, Nginx).
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a competitive programming problem; instead, it is a full-stack web application development task involving payment processing, user authentication, integration with external services (Roblox bot, Discord webhooks), and secure data handling. The provided plan is comprehensive and well-structured for building such a web application in Python3 using Flask and related technologies. However, this plan is not applicable to a typical competitive programming problem, which usually involves algorithmic challenges solvable with code that runs in an isolated environment without external integrations or persistent storage. Therefore, while the plan is suitable for the described web application, it is not relevant or correct for solving a competitive programming problem.\n', 'confidence': 0}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem is best approached using the Modular Web Application Design algorithm, which combines several standard algorithms and design patterns:
+
+1. **Web Framework (MVC/MTV Pattern):** Use a web framework like Flask or Django to separate concerns (routes, templates, models).
+2. **API Integration:** Integrate with external services (payment gateways, Discord webhooks, Roblox bot) using RESTful APIs.
+3. **Event-driven Programming:** Trigger actions (e.g., delivery, logging) based on events like successful payment.
+4. **Secure Data Handling:** Store and manage user data securely, following best practices.
+5. **Automation:** Automate item delivery and logging using bots and webhooks.
+
+**Tutorial: Modular Web Application Design for E-commerce Automation**
+
+1. **Project Structure:**  
+   - Organize your code into modules: routes, models, services (payment, delivery, logging), and templates.
+   - Use environment variables for sensitive data (API keys, secrets).
+
+2. **User Interaction:**  
+   - Implement user registration and authentication.
+   - Collect necessary user data via forms.
+
+3. **Payment Processing:**  
+   - Integrate with payment APIs (Stripe, PayPal, etc.).
+   - Handle payment callbacks/webhooks to confirm transactions.
+
+4. **Automated Delivery:**  
+   - Upon payment confirmation, trigger a bot (e.g., Roblox bot) to deliver items.
+   - Use asynchronous tasks (Celery, threading) if delivery is time-consuming.
+
+5. **Logging and Notifications:**  
+   - Log all transactions and delivery proofs to a database.
+   - Use webhooks to send notifications to Discord or other platforms.
+
+6. **Security and Privacy:**  
+   - Use HTTPS, validate all inputs, and store data securely.
+   - Comply with privacy regulations (e.g., GDPR).
+
+7. **Testing and Deployment:**  
+   - Test all workflows end-to-end.
+   - Deploy using a production-ready server (e.g., Gunicorn, Nginx).
+
+**Summary:**  
+This approach leverages modular design, API integration, and event-driven automation to build robust, scalable web applications for e-commerce and digital delivery. The key is to break down the problem into manageable modules, integrate with external services, and automate workflows using event triggers and webhooks.
+
+## Problem to be solved:
+
+Please help me implement a Python-based web application to facilitate purchases of Grower Garden items, including payment processing, user data collection for a private server, automatic item delivery through a Roblox bot, and logging all transactions and delivery proofs to a Discord channel using webhooks.
+
+## Planning:
+# Planning
+
+1. Set up a Flask web application with modular structure (routes, models, services, templates).
+2. Create a SQLite (or PostgreSQL) database to store users, orders, and delivery logs.
+3. Implement user registration, authentication, and data collection forms (including Roblox username/private server info).
+4. Display Grower Garden items for browsing and selection.
+5. Implement shopping cart functionality.
+6. Integrate payment processing (e.g., Stripe or PayPal API).
+7. On successful payment, trigger a Roblox bot (via API or command) to deliver items automatically.
+8. Log all transactions and delivery proofs to the database.
+9. Send delivery and transaction logs to a Discord channel using webhooks.
+10. Securely handle and store all sensitive data (use environment variables for secrets).
+11. Test the complete purchase, delivery, and logging workflow end-to-end.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+import os
+import uuid
+import sqlite3
+import requests
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Configuration
+SECRET_KEY = os.getenv("SECRET_KEY", "devsecret")
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
+ROBLOX_BOT_API_URL = os.getenv("ROBLOX_BOT_API_URL")
+DATABASE = os.getenv("DATABASE", "grower_garden.db")
+
+# Flask app setup
+app = Flask(__name__)
+app.secret_key = SECRET_KEY
+
+# Database helpers
+def get_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password TEXT,
+            roblox_username TEXT,
+            private_server_link TEXT
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            description TEXT,
+            price INTEGER
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            item_id INTEGER,
+            quantity INTEGER,
+            total_price INTEGER,
+            status TEXT,
+            payment_id TEXT,
+            delivery_proof TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Initialize DB and add sample items if not present
+@app.before_first_request
+def setup():
+    init_db()
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT COUNT(*) FROM items')
+    if c.fetchone()[0] == 0:
+        items = [
+            ("Grower Seed", "A seed for your garden.", 500),
+            ("Watering Can", "Helps your plants grow.", 300),
+            ("Fertilizer", "Boosts plant growth.", 200)
+        ]
+        c.executemany('INSERT INTO items (name, description, price) VALUES (?, ?, ?)', items)
+        conn.commit()
+    conn.close()
+
+# User registration
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = generate_password_hash(request.form['password'])
+        roblox_username = request.form['roblox_username']
+        private_server_link = request.form['private_server_link']
+        conn = get_db()
+        c = conn.cursor()
+        try:
+            c.execute('INSERT INTO users (username, password, roblox_username, private_server_link) VALUES (?, ?, ?, ?)',
+                      (username, password, roblox_username, private_server_link))
+            conn.commit()
+            flash('Registration successful. Please log in.', 'success')
+            return redirect(url_for('login'))
+        except sqlite3.IntegrityError:
+            flash('Username already exists.', 'danger')
+        finally:
+            conn.close()
+    return render_template('register.html')
+
+# User login
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('SELECT * FROM users WHERE username = ?', (username,))
+        user = c.fetchone()
+        conn.close()
+        if user and check_password_hash(user['password'], password):
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            return redirect(url_for('shop'))
+        else:
+            flash('Invalid credentials.', 'danger')
+    return render_template('login.html')
+
+# User logout
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# Shop - display items
+@app.route('/shop')
+def shop():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM items')
+    items = c.fetchall()
+    conn.close()
+    return render_template('shop.html', items=items)
+
+# Add to cart
+@app.route('/add_to_cart/<int:item_id>', methods=['POST'])
+def add_to_cart(item_id):
+    quantity = int(request.form.get('quantity', 1))
+    cart = session.get('cart', {})
+    cart[str(item_id)] = cart.get(str(item_id), 0) + quantity
+    session['cart'] = cart
+    flash('Item added to cart.', 'success')
+    return redirect(url_for('shop'))
+
+# View cart
+@app.route('/cart')
+def cart():
+    cart = session.get('cart', {})
+    items = []
+    total = 0
+    conn = get_db()
+    c = conn.cursor()
+    for item_id, qty in cart.items():
+        c.execute('SELECT * FROM items WHERE id = ?', (item_id,))
+        item = c.fetchone()
+        if item:
+            item_dict = dict(item)
+            item_dict['quantity'] = qty
+            item_dict['subtotal'] = item['price'] * qty
+            items.append(item_dict)
+            total += item_dict['subtotal']
+    conn.close()
+    return render_template('cart.html', items=items, total=total, stripe_key=STRIPE_PUBLISHABLE_KEY)
+
+# Remove from cart
+@app.route('/remove_from_cart/<int:item_id>')
+def remove_from_cart(item_id):
+    cart = session.get('cart', {})
+    cart.pop(str(item_id), None)
+    session['cart'] = cart
+    return redirect(url_for('cart'))
+
+# Checkout (Stripe payment)
+@app.route('/checkout', methods=['POST'])
+def checkout():
+    if 'user_id' not in session:
+        flash('Please log in to checkout.', 'danger')
+        return redirect(url_for('login'))
+    cart = session.get('cart', {})
+    if not cart:
+        flash('Cart is empty.', 'danger')
+        return redirect(url_for('shop'))
+    # Calculate total
+    conn = get_db()
+    c = conn.cursor()
+    total = 0
+    line_items = []
+    for item_id, qty in cart.items():
+        c.execute('SELECT * FROM items WHERE id = ?', (item_id,))
+        item = c.fetchone()
+        if item:
+            total += item['price'] * qty
+            line_items.append({
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': item['name'],
+                    },
+                    'unit_amount': item['price'] * 100,
+                },
+                'quantity': qty,
+            })
+    conn.close()
+    # Create Stripe Checkout Session
+    import stripe
+    stripe.api_key = STRIPE_SECRET_KEY
+    session_stripe = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        line_items=line_items,
+        mode='payment',
+        success_url=url_for('payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+        cancel_url=url_for('cart', _external=True),
+    )
+    session['stripe_session_id'] = session_stripe.id
+    return redirect(session_stripe.url)
+
+# Payment success
+@app.route('/payment_success')
+def payment_success():
+    stripe_session_id = request.args.get('session_id')
+    if not stripe_session_id or 'user_id' not in session:
+        flash('Invalid payment session.', 'danger')
+        return redirect(url_for('shop'))
+    # Verify payment
+    import stripe
+    stripe.api_key = STRIPE_SECRET_KEY
+    session_stripe = stripe.checkout.Session.retrieve(stripe_session_id)
+    if session_stripe.payment_status != 'paid':
+        flash('Payment not completed.', 'danger')
+        return redirect(url_for('cart'))
+    # Create orders
+    cart = session.get('cart', {})
+    user_id = session['user_id']
+    conn = get_db()
+    c = conn.cursor()
+    for item_id, qty in cart.items():
+        c.execute('SELECT * FROM items WHERE id = ?', (item_id,))
+        item = c.fetchone()
+        if item:
+            total_price = item['price'] * qty
+            c.execute('''
+                INSERT INTO orders (user_id, item_id, quantity, total_price, status, payment_id)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (user_id, item_id, qty, total_price, 'pending', stripe_session_id))
+    conn.commit()
+    conn.close()
+    # Trigger delivery
+    deliver_items(user_id, cart, stripe_session_id)
+    session['cart'] = {}
+    flash('Payment successful! Items will be delivered shortly.', 'success')
+    return render_template('success.html')
+
+# Delivery automation
+def deliver_items(user_id, cart, payment_id):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+    user = c.fetchone()
+    roblox_username = user['roblox_username']
+    private_server_link = user['private_server_link']
+    delivery_proof = ""
+    for item_id, qty in cart.items():
+        c.execute('SELECT * FROM items WHERE id = ?', (item_id,))
+        item = c.fetchone()
+        # Call Roblox bot API
+        payload = {
+            "roblox_username": roblox_username,
+            "private_server_link": private_server_link,
+            "item_name": item['name'],
+            "quantity": qty
+        }
+        try:
+            resp = requests.post(ROBLOX_BOT_API_URL, json=payload, timeout=10)
+            if resp.status_code == 200:
+                proof = resp.json().get('proof', 'Delivered')
+            else:
+                proof = f"Failed: {resp.text}"
+        except Exception as e:
+            proof = f"Error: {str(e)}"
+        delivery_proof += f"{item['name']} x{qty}: {proof}\n"
+        # Update order status and proof
+        c.execute('''
+            UPDATE orders SET status = ?, delivery_proof = ?
+            WHERE user_id = ? AND item_id = ? AND payment_id = ?
+        ''', ('delivered', proof, user_id, item_id, payment_id))
+        # Log to Discord
+        log_to_discord(user['username'], roblox_username, item['name'], qty, payment_id, proof)
+    conn.commit()
+    conn.close()
+
+# Discord webhook logging
+def log_to_discord(username, roblox_username, item_name, quantity, payment_id, proof):
+    if not DISCORD_WEBHOOK_URL:
+        return
+    data = {
+        "embeds": [{
+            "title": "Grower Garden Purchase Delivered",
+            "fields": [
+                {"name": "User", "value": username, "inline": True},
+                {"name": "Roblox Username", "value": roblox_username, "inline": True},
+                {"name": "Item", "value": item_name, "inline": True},
+                {"name": "Quantity", "value": str(quantity), "inline": True},
+                {"name": "Payment ID", "value": payment_id, "inline": False},
+                {"name": "Delivery Proof", "value": proof, "inline": False}
+            ]
+        }]
+    }
+    try:
+        requests.post(DISCORD_WEBHOOK_URL, json=data, timeout=5)
+    except Exception:
+        pass
+
+# Templates (minimal inline for demonstration)
+from flask import Markup
+
+@app.route('/')
+def index():
+    return redirect(url_for('shop'))
+
+@app.context_processor
+def inject_templates():
+    def render_template_inline(name, **kwargs):
+        if name == 'register.html':
+            return Markup('''
+                <h2>Register</h2>
+                <form method="post">
+                    Username: <input name="username"><br>
+                    Password: <input name="password" type="password"><br>
+                    Roblox Username: <input name="roblox_username"><br>
+                    Private Server Link: <input name="private_server_link"><br>
+                    <button type="submit">Register</button>
+                </form>
+                <a href="/login">Login</a>
+            ''')
+        if name == 'login.html':
+            return Markup('''
+                <h2>Login</h2>
+                <form method="post">
+                    Username: <input name="username"><br>
+                    Password: <input name="password" type="password"><br>
+                    <button type="submit">Login</button>
+                </form>
+                <a href="/register">Register</a>
+            ''')
+        if name == 'shop.html':
+            items = kwargs.get('items', [])
+            html = '<h2>Grower Garden Shop</h2><ul>'
+            for item in items:
+                html += f'''
+                    <li>
+                        <b>{item['name']}</b>: {item['description']} - ${item['price']/100:.2f}
+                        <form method="post" action="/add_to_cart/{item['id']}">
+                            Quantity: <input name="quantity" type="number" value="1" min="1" style="width:40px;">
+                            <button type="submit">Add to Cart</button>
+                        </form>
+                    </li>
+                '''
+            html += '</ul><a href="/cart">View Cart</a>'
+            return Markup(html)
+        if name == 'cart.html':
+            items = kwargs.get('items', [])
+            total = kwargs.get('total', 0)
+            html = '<h2>Your Cart</h2><ul>'
+            for item in items:
+                html += f'''
+                    <li>
+                        {item['name']} x{item['quantity']} - ${item['subtotal']/100:.2f}
+                        <a href="/remove_from_cart/{item['id']}">Remove</a>
+                    </li>
+                '''
+            html += f'</ul><b>Total: ${total/100:.2f}</b>'
+            if items:
+                html += '''
+                    <form method="post" action="/checkout">
+                        <button type="submit">Checkout</button>
+                    </form>
+                '''
+            html += '<a href="/shop">Continue Shopping</a>'
+            return Markup(html)
+        if name == 'success.html':
+            return Markup('''
+                <h2>Thank you for your purchase!</h2>
+                <p>Your items are being delivered. Check your Roblox private server.</p>
+                <a href="/shop">Back to Shop</a>
+            ''')
+        return ''
+    return dict(render_template=render_template_inline)
+
+# Override Flask's render_template to use inline templates
+def render_template(name, **kwargs):
+    return inject_templates()['render_template'](name, **kwargs)
+
+# Run app
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 54.39 seconds
+Total Tokens: 11,182 (Input: 4,683, Output: 6,499)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 15.98      323          2,012        1         
+Planning_Generation_1     3.45       753          181          1         
+Planning_Verification_1   3.75       346          163          1         
+Planning_Generation_2     4.05       729          344          1         
+Planning_Verification_2   3.48       509          142          1         
+Planning_Generation_3     4.23       737          345          1         
+Planning_Verification_3   2.07       510          155          1         
+Final_Code_Generation     17.37      776          3,157        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:28:39.178266
+##########################
+

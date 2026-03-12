@@ -1,0 +1,38 @@
+sequenceDiagram
+    participant U as User (Customer)
+    participant WB as WhatsAppBot
+    participant MA as MetaAPI
+    participant CG as ChatGPTAPI
+    participant DB as Database
+    participant AD as Admin
+    participant DA as DashboardApp
+    participant NS as Notification
+    participant EM as EmailSender
+
+    U->>MA: Send WhatsApp message (registration/booking)
+    MA->>WB: Forward webhook event
+    WB->>DB: Check customer registration
+    alt Not registered
+        WB->>U: Prompt registration
+        U->>WB: Send registration info
+        WB->>DB: Add customer
+        WB->>U: Confirm registration
+    else Registered
+        WB->>CG: Get ChatGPT response (conversation/booking intent)
+        CG-->>WB: Return response
+        WB->>DB: Create booking (if booking intent)
+        WB->>U: Send booking confirmation
+    end
+    WB->>NS: Send notification (WhatsApp/email)
+    NS->>MA: Send WhatsApp notification
+    NS->>EM: Send email notification
+
+    AD->>DA: Login to dashboard
+    DA->>DB: Authenticate admin
+    DA->>DB: Fetch bookings/notifications
+    DA->>AD: Show bookings/notifications
+    AD->>DA: Update booking status/send notification
+    DA->>DB: Update booking status
+    DA->>NS: Send notification
+    NS->>MA: Send WhatsApp notification
+    NS->>EM: Send email notification

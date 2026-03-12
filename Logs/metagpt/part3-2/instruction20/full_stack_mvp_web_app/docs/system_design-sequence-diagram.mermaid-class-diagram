@@ -1,0 +1,63 @@
+classDiagram
+    class User {
+        +id: UUID
+        +username: str
+        +email: str
+        +password_hash: str
+        +role: str
+        +created_at: datetime
+        +verify_password(password: str): bool
+    }
+    class Metric {
+        +id: UUID
+        +name: str
+        +value: float
+        +timestamp: datetime
+        +user_id: UUID
+    }
+    class Report {
+        +id: UUID
+        +title: str
+        +data: dict
+        +created_by: UUID
+        +created_at: datetime
+        +export(format: str): bytes
+    }
+    class AuthController {
+        +register(data: dict): User
+        +login(data: dict): str
+        +logout(token: str): bool
+    }
+    class DashboardController {
+        +get_metrics(user_id: UUID): list[Metric]
+        +get_reports(user_id: UUID): list[Report]
+        +realtime_updates(user_id: UUID): Metric
+    }
+    class ReportController {
+        +generate_report(params: dict): Report
+        +export_report(report_id: UUID, format: str): bytes
+    }
+    class DB {
+        +connect()
+        +query(sql: str): list[dict]
+        +insert(table: str, data: dict): bool
+        +update(table: str, id: UUID, data: dict): bool
+        +delete(table: str, id: UUID): bool
+    }
+    class JWT {
+        +encode(payload: dict): str
+        +decode(token: str): dict
+    }
+    class WebSocket {
+        +connect(user_id: UUID)
+        +send(data: dict)
+        +receive(): dict
+    }
+    User <|-- AuthController
+    Metric <|-- DashboardController
+    Report <|-- ReportController
+    DB <|-- AuthController
+    DB <|-- DashboardController
+    DB <|-- ReportController
+    JWT <|-- AuthController
+    WebSocket <|-- DashboardController

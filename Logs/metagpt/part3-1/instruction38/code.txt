@@ -1,0 +1,57 @@
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+import time
+
+class QuizAutomationTool:
+    def __init__(self):
+        self.driver = webdriver.Chrome()
+
+    def process_quiz(self, url):
+        self.driver.get(url)
+        time.sleep(2)  # Allowing time for the page to load
+
+        questions = self.extract_questions()
+        if not questions:
+            questions = self.extract_questions_with_ocr()
+
+        correct_answers = self.extract_correct_answers()
+
+        self.highlight_correct_answers(questions, correct_answers)
+
+    def extract_questions(self):
+        questions = []
+        question_elements = self.driver.find_elements(By.CLASS_NAME, 'question')  # Assuming questions have a 'question' class
+        for question_element in question_elements:
+            questions.append(question_element.text)
+        return questions
+
+    def extract_questions_with_ocr(self):
+        # Implement OCR logic here to extract questions if DOM parsing fails
+        pass
+
+    def extract_correct_answers(self):
+        correct_answers = {}
+        answer_elements = self.driver.find_elements(By.CLASS_NAME, 'answer')  # Assuming answers have an 'answer' class
+        for answer_element in answer_elements:
+            if answer_element.get_attribute('data-correct') == 'true':
+                question_id = answer_element.get_attribute('data-question-id')
+                correct_answers[question_id] = answer_element.text
+        return correct_answers
+
+    def highlight_correct_answers(self, questions, correct_answers):
+        for question_id, correct_answer in correct_answers.items():
+            for question in questions:
+                if question_id in question:
+                    # Highlighting correct answer in the question text
+                    highlighted_question = question.replace(correct_answer, f"**{correct_answer}**")
+                    print(highlighted_question)
+
+    def close(self):
+        self.driver.quit()
+
+# Example Usage
+if __name__ == "__main__":
+    quiz_tool = QuizAutomationTool()
+    quiz_tool.process_quiz("https://example.com/quiz")
+    quiz_tool.close()

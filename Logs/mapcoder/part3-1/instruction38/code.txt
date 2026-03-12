@@ -1,0 +1,75 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+import time
+import pytesseract
+from PIL import Image
+
+# Set up Selenium WebDriver
+def setup_driver():
+    options = Options()
+    options.add_argument("--headless")  # Run in headless mode
+    service = Service('path/to/chromedriver')  # Update with your chromedriver path
+    driver = webdriver.Chrome(service=service, options=options)
+    return driver
+
+# Function to extract questions and choices
+def extract_questions(driver):
+    questions = []
+    choices = []
+    
+    # Locate all visible questions and choices
+    question_elements = driver.find_elements(By.CSS_SELECTOR, ".question-class")  # Update with actual class
+    choice_elements = driver.find_elements(By.CSS_SELECTOR, ".choice-class")  # Update with actual class
+    
+    for question in question_elements:
+        questions.append(question.text)
+    
+    for choice in choice_elements:
+        choices.append(choice.text)
+    
+    return questions, choices
+
+# Function to use OCR as fallback
+def ocr_fallback(image_path):
+    image = Image.open(image_path)
+    text = pytesseract.image_to_string(image)
+    return text
+
+# Function to highlight correct answers
+def highlight_correct_answers(driver, correct_answers):
+    for answer in correct_answers:
+        element = driver.find_element(By.XPATH, f"//span[text()='{answer}']")  # Update with actual selector
+        driver.execute_script("arguments[0].style.backgroundColor = 'yellow';", element)
+
+# Main function to run the quiz automation
+def main():
+    driver = setup_driver()
+    driver.get("URL_OF_THE_QUIZ")  # Update with the actual quiz URL
+    time.sleep(2)  # Wait for the page to load
+
+    try:
+        questions, choices = extract_questions(driver)
+        # Assume we have a way to determine correct answers
+        correct_answers = ["Correct Answer 1", "Correct Answer 2"]  # Update with actual logic
+        
+        highlight_correct_answers(driver, correct_answers)
+        
+        # Process each question and choice
+        for question in questions:
+            print(f"Question: {question}")
+            for choice in choices:
+                print(f"Choice: {choice}")
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        # Implement OCR fallback if needed
+        # ocr_text = ocr_fallback("screenshot.png")  # Update with actual screenshot path
+        # print(ocr_text)
+
+    finally:
+        driver.quit()
+
+if __name__ == "__main__":
+    main()

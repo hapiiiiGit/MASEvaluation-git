@@ -1,0 +1,83 @@
+import os
+import subprocess
+import zipfile
+
+# Step 1: Identify Dependencies
+dependencies = [
+    'keybert',
+    'keyphrase-vectorizers'
+]
+
+# Step 2: Set Up Environment
+def create_docker_environment():
+    dockerfile_content = """
+    FROM public.ecr.aws/lambda/python:3.8
+
+    # Install necessary packages
+    RUN yum install -y python3-pip
+
+    # Set the working directory
+    WORKDIR /var/task
+
+    # Copy requirements and install
+    COPY requirements.txt .
+    RUN pip3 install -r requirements.txt -t .
+
+    # Clean up unnecessary files
+    RUN find . -name "*.pyc" -exec rm -f {} +
+    """
+    
+    with open('Dockerfile', 'w') as f:
+        f.write(dockerfile_content)
+
+    with open('requirements.txt', 'w') as f:
+        f.write('\n'.join(dependencies))
+
+    # Build Docker image
+    subprocess.run(['docker', 'build', '-t', 'lambda-layer', '.'])
+
+# Step 3: Create Virtual Environment
+def create_virtual_environment():
+    create_docker_environment()
+    subprocess.run(['docker', 'run', '--name', 'lambda-layer-container', 'lambda-layer'])
+    subprocess.run(['docker', 'cp', 'lambda-layer-container:/var/task', './lambda_layer'])
+    subprocess.run(['docker', 'rm', 'lambda-layer-container'])
+
+# Step 4: Package Dependencies
+def package_dependencies():
+    with zipfile.ZipFile('lambda_layer.zip', 'w') as zipf:
+        for root, dirs, files in os.walk('./lambda_layer'):
+            for file in files:
+                zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), './lambda_layer'))
+
+# Step 5: Create Sample Lambda Function
+def create_sample_lambda_function():
+    lambda_function_code = """
+    import json
+    from keybert import KeyBERT
+    from keyphrase_vectorizers import KeyphraseVectorizer
+
+    def lambda_handler(event, context):
+        text = event.get('text', '')
+        kw_model = KeyBERT()
+        keywords = kw_model.extract_keywords(text)
+        return {
+            'statusCode': 200,
+            'body': json.dumps(keywords)
+        }
+    """
+    
+    with open('./lambda_layer/lambda_function.py', 'w') as f:
+        f.write(lambda_function_code)
+
+# Step 6: Zip the Package
+def zip_package():
+    package_dependencies()
+    create_sample_lambda_function()
+    package_dependencies()
+
+# Step 7: Main Execution
+if __name__ == "__main__":
+    create_virtual_environment()
+    zip_package()
+    print("Lambda Layer package created as 'lambda_layer.zip'")

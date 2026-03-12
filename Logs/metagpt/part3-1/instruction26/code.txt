@@ -1,0 +1,191 @@
+import os
+import requests
+from flask import Flask, render_template, request, redirect, url_for, flash
+
+# Initialize Flask app
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # Change this to a random secret key
+
+# Backend service URL
+BACKEND_URL = 'http://localhost:5000'
+
+@app.route('/')
+def index():
+    """Render the main page."""
+    return render_template('index.html')
+
+@app.route('/annotate', methods=['POST'])
+def annotate():
+    """Send text to the backend for annotation."""
+    text = request.form.get('text')
+    if not text:
+        flash('Please provide text for annotation.')
+        return redirect(url_for('index'))
+
+    response = requests.post(f'{BACKEND_URL}/annotate', json={'text': text})
+    
+    if response.status_code == 200:
+        annotations = response.json().get('annotations', [])
+        return render_template('result.html', annotations=annotations, text=text)
+    else:
+        flash('Error annotating text: ' + response.json().get('error', 'Unknown error'))
+        return redirect(url_for('index'))
+
+@app.route('/annotations')
+def annotations():
+    """Retrieve all annotations from the backend."""
+    response = requests.get(f'{BACKEND_URL}/annotations')
+    
+    if response.status_code == 200:
+        annotations_list = response.json()
+        return render_template('annotations.html', annotations=annotations_list)
+    else:
+        flash('Error retrieving annotations: ' + response.json().get('error', 'Unknown error'))
+        return redirect(url_for('index'))
+
+@app.route('/delete_annotation/<int:annotation_id>', methods=['POST'])
+def delete_annotation(annotation_id):
+    """Delete an annotation by ID."""
+    response = requests.delete(f'{BACKEND_URL}/annotations/{annotation_id}')
+    
+    if response.status_code == 200:
+        flash('Annotation deleted successfully.')
+    else:
+        flash('Error deleting annotation: ' + response.json().get('error', 'Unknown error'))
+    
+    return redirect(url_for('annotations'))
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5001)
+
+import sqlite3
+
+# Define the database name
+DATABASE = 'annotations.db'
+
+def init_db():
+    """Initialize the database and create the annotations table if it doesn't exist."""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS annotations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT NOT NULL,
+                annotations TEXT NOT NULL
+            )
+        ''')
+        conn.commit()
+
+if __name__ == '__main__':
+    init_db()
+    print("Database initialized and annotations table created.")
+
+import os
+import sqlite3
+from flask import Flask, request, jsonify
+from transformers import pipeline
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Initialize Hugging Face model for Arabic text annotation
+model_name = "akhooli/arabic-ner"
+nlp = pipeline("ner", model=model_name)
+
+# Database setup
+DATABASE = 'annotations.db'
+
+def init_db():
+    """Initialize the database and create the annotations table if it doesn't exist."""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS annotations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT NOT NULL,
+                annotations TEXT NOT NULL
+            )
+        ''')
+        conn.commit()
+
+@app.route('/annotate', methods=['POST'])
+def annotate_text():
+    """Annotate Arabic text using the Hugging Face model."""
+    data = request.json
+    text = data.get('text', '')
+
+    if not text:
+        return jsonify({"error": "No text provided"}), 400
+
+    # Annotate text
+    annotations = nlp(text)
+    
+    # Save to database
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO annotations (text, annotations) VALUES (?, ?)', (text, str(annotations)))
+        conn.commit()
+
+    return jsonify({"annotations": annotations}), 200
+
+@app.route('/annotations', methods=['GET'])
+def get_annotations():
+    """Retrieve all annotations from the database."""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM annotations')
+        rows = cursor.fetchall()
+
+    annotations_list = [{"id": row[0], "text": row[1], "annotations": row[2]} for row in rows]
+    return jsonify(annotations_list), 200
+
+@app.route('/annotations/<int:annotation_id>', methods=['DELETE'])
+def delete_annotation(annotation_id):
+    """Delete an annotation by ID."""
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM annotations WHERE id = ?', (annotation_id,))
+        conn.commit()
+
+    return jsonify({"message": "Annotation deleted"}), 200
+
+if __name__ == '__main__':
+    init_db()
+    app.run(host='0.0.0.0', port=5000)
+
+# Backend Service Implementation Plan
+
+## Tasks:
+1. Read and understand the requirements for the backend service.
+2. Implement a Python program to utilize a Hugging Face model for annotating Arabic text.
+3. Develop a web interface for user uploads and corrections.
+4. Set up persistent storage for all annotation data.
+5. Ensure the code is well-documented.
+6. Create Dockerfile or requirements file for local deployment.
+
+
+FROM python:3.8-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the requirements file
+COPY requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application code
+COPY . .
+
+# Expose the port the app runs on
+EXPOSE 5000
+
+# Command to run the application
+CMD ["python", "backend_service.py"]
+
+
+Flask==2.0.1
+transformers==4.6.1
+sqlite3
+requests==2.25.1

@@ -1,0 +1,1149 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 14:31:44.044040
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python program to create a fully automated, self-service SaaS platform on Frappe/ERPNext that provisions multi-tenant sites based on subscription plans, integrates with the Telr payment gateway, automates site setup tasks post-payment, and includes custom modules, workflows, and a REST/GraphQL API for external integrations.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+You are tasked with building a Python-based automated user registration and onboarding system for a SaaS platform. The system should handle user sign-up, email verification, and initial workspace setup, including assigning default roles and permissions. The process must be asynchronous to handle high traffic and provide REST API endpoints for integration with external services.
+]]></description>
+<code><![CDATA[
+# Step 1: Define the user registration endpoint using Flask
+from flask import Flask, request, jsonify
+import threading
+import smtplib
+
+app = Flask(__name__)
+
+users_db = {}
+
+def send_verification_email(email, token):
+    # Simulate sending email (in production, use a real email service)
+    print(f"Sending verification email to {email} with token {token}")
+
+def setup_workspace(user_id):
+    # Simulate workspace setup
+    print(f"Setting up workspace for user {user_id}")
+    users_db[user_id]['workspace'] = 'default_workspace'
+    users_db[user_id]['roles'] = ['user']
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    user_id = data['email']
+    token = 'random_token'  # In production, generate a secure token
+    users_db[user_id] = {'email': data['email'], 'verified': False, 'token': token}
+    threading.Thread(target=send_verification_email, args=(data['email'], token)).start()
+    return jsonify({'message': 'Registration successful. Please verify your email.'})
+
+@app.route('/verify', methods=['POST'])
+def verify():
+    data = request.json
+    user_id = data['email']
+    token = data['token']
+    if user_id in users_db and users_db[user_id]['token'] == token:
+        users_db[user_id]['verified'] = True
+        threading.Thread(target=setup_workspace, args=(user_id,)).start()
+        return jsonify({'message': 'Email verified and workspace setup started.'})
+    return jsonify({'error': 'Invalid token or user.'}), 400
+
+# To run: app.run(debug=True)
+]]></code>
+<planning><![CDATA[
+1. Design REST API endpoints for registration and verification.
+2. Store user data in a simple in-memory database (dictionary).
+3. Implement asynchronous email sending and workspace setup using threading.
+4. On registration, send a verification email with a token.
+5. On verification, mark user as verified and asynchronously set up their workspace and roles.
+6. Ensure endpoints are ready for integration with external services.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Develop a Python program to automate the provisioning and management of cloud resources (e.g., AWS EC2 instances) for different customers based on their subscription plans. The system should handle resource allocation, scaling, and deprovisioning, and expose a REST API for external control. It should also integrate with a payment gateway to trigger provisioning only after successful payment.
+]]></description>
+<code><![CDATA[
+# Step 1: Define the REST API using Flask
+from flask import Flask, request, jsonify
+import boto3
+
+app = Flask(__name__)
+
+# Simulated database
+customers = {}
+
+def provision_resources(customer_id, plan):
+    # Simulate AWS EC2 provisioning (in production, use boto3 to create instances)
+    print(f"Provisioning resources for {customer_id} with plan {plan}")
+    customers[customer_id]['resources'] = f"EC2 instance for {plan}"
+
+def deprovision_resources(customer_id):
+    print(f"Deprovisioning resources for {customer_id}")
+    customers[customer_id]['resources'] = None
+
+@app.route('/subscribe', methods=['POST'])
+def subscribe():
+    data = request.json
+    customer_id = data['customer_id']
+    plan = data['plan']
+    payment_status = data['payment_status']  # Simulate payment gateway callback
+    if payment_status == 'success':
+        customers[customer_id] = {'plan': plan}
+        provision_resources(customer_id, plan)
+        return jsonify({'message': 'Resources provisioned.'})
+    else:
+        return jsonify({'error': 'Payment failed.'}), 400
+
+@app.route('/unsubscribe', methods=['POST'])
+def unsubscribe():
+    data = request.json
+    customer_id = data['customer_id']
+    if customer_id in customers:
+        deprovision_resources(customer_id)
+        return jsonify({'message': 'Resources deprovisioned.'})
+    return jsonify({'error': 'Customer not found.'}), 404
+
+# To run: app.run(debug=True)
+]]></code>
+<planning><![CDATA[
+1. Design REST API endpoints for subscription and unsubscription.
+2. Integrate with a payment gateway to verify payment status.
+3. On successful payment, provision cloud resources (simulate with print statements or use boto3 for AWS).
+4. Store customer and resource allocation data in a simple database.
+5. Implement deprovisioning logic for resource cleanup.
+6. Ensure the system is ready for external API integration.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Create a Python-based automated workflow engine for a business process management system. The engine should allow users to define custom workflows with multiple steps, conditions, and actions. It should execute workflows based on triggers (e.g., new user registration, payment received) and provide a REST API for managing workflows and monitoring their execution status.
+]]></description>
+<code><![CDATA[
+# Step 1: Define the workflow engine and REST API using Flask
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+workflows = {}
+workflow_executions = {}
+
+def execute_workflow(workflow_id, context):
+    workflow = workflows[workflow_id]
+    steps = workflow['steps']
+    execution_log = []
+    for step in steps:
+        condition = step.get('condition', lambda ctx: True)
+        if condition(context):
+            action = step['action']
+            result = action(context)
+            execution_log.append({'step': step['name'], 'result': result})
+    return execution_log
+
+@app.route('/workflow', methods=['POST'])
+def create_workflow():
+    data = request.json
+    workflow_id = data['id']
+    workflows[workflow_id] = data
+    return jsonify({'message': 'Workflow created.'})
+
+@app.route('/workflow/execute', methods=['POST'])
+def run_workflow():
+    data = request.json
+    workflow_id = data['workflow_id']
+    context = data.get('context', {})
+    if workflow_id in workflows:
+        log = execute_workflow(workflow_id, context)
+        workflow_executions[workflow_id] = log
+        return jsonify({'execution_log': log})
+    return jsonify({'error': 'Workflow not found.'}), 404
+
+# Example workflow definition (to be sent via POST):
+# {
+#   "id": "user_onboarding",
+#   "steps": [
+#     {"name": "send_welcome_email", "action": lambda ctx: f"Email sent to {ctx['email']}"},
+#     {"name": "assign_role", "action": lambda ctx: f"Role {ctx['role']} assigned"}
+#   ]
+# }
+]]></code>
+<planning><![CDATA[
+1. Design a data structure to represent workflows, steps, conditions, and actions.
+2. Implement REST API endpoints to create and execute workflows.
+3. Implement the workflow execution engine to process steps based on conditions and actions.
+4. Store workflow definitions and execution logs.
+5. Allow external triggers to start workflow execution via API.
+6. Provide monitoring and status endpoints for workflow executions.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem is a complex orchestration of multiple automation tasks: multi-tenant site provisioning, payment integration, post-payment automation, custom modules, workflows, and API exposure. The underlying algorithmic approach is primarily an "Orchestration/Workflow Automation" pattern, which combines event-driven programming, asynchronous task execution, and RESTful API design.
+
+**Tutorial: Orchestration/Workflow Automation Algorithm**
+
+1. **Decompose the Problem**: Break down the overall process into discrete, manageable tasks (e.g., payment processing, site provisioning, module installation, workflow setup, API exposure).
+
+2. **Define Triggers and Events**: Identify what events (e.g., payment success, user registration) trigger which tasks. Use event-driven programming to react to these triggers.
+
+3. **Design Task Flows (Workflows)**: Model the sequence and dependencies of tasks. Some tasks may run in parallel, others sequentially, and some may depend on the outcome of previous steps.
+
+4. **Implement Asynchronous Execution**: Use asynchronous programming (e.g., Python's threading, asyncio, or task queues like Celery) to handle long-running or I/O-bound tasks without blocking the main application.
+
+5. **Expose REST/GraphQL APIs**: Design and implement APIs for external systems to interact with your platform, trigger workflows, or query status.
+
+6. **Integrate External Services**: Use SDKs or HTTP APIs to interact with payment gateways, cloud providers, or other third-party services.
+
+7. **Error Handling and Rollback**: Implement robust error handling and, where possible, rollback mechanisms to maintain system consistency in case of failures.
+
+8. **Monitoring and Logging**: Track the status of each workflow and task, log important events, and provide monitoring endpoints for external systems.
+
+**Summary**: 
+Workflow automation is about orchestrating a series of tasks in response to events, often across multiple systems. The key is to model your business processes as workflows, define clear triggers and actions, and use asynchronous execution to ensure scalability and responsiveness. REST/GraphQL APIs provide integration points for external systems, while robust error handling and monitoring ensure reliability and maintainability.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+You are tasked with building a Python-based automated user registration and onboarding system for a SaaS platform. The system should handle user sign-up, email verification, and initial workspace setup, including assigning default roles and permissions. The process must be asynchronous to handle high traffic and provide REST API endpoints for integration with external services.
+
+# Planning:
+
+1. Design REST API endpoints for registration and verification.
+2. Store user data in a simple in-memory database (dictionary).
+3. Implement asynchronous email sending and workspace setup using threading.
+4. On registration, send a verification email with a token.
+5. On verification, mark user as verified and asynchronously set up their workspace and roles.
+6. Ensure endpoints are ready for integration with external services.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is a complex orchestration of multiple automation tasks: multi-tenant site provisioning, payment integration, post-payment automation, custom modules, workflows, and API exposure. The underlying algorithmic approach is primarily an "Orchestration/Workflow Automation" pattern, which combines event-driven programming, asynchronous task execution, and RESTful API design.
+
+**Tutorial: Orchestration/Workflow Automation Algorithm**
+
+1. **Decompose the Problem**: Break down the overall process into discrete, manageable tasks (e.g., payment processing, site provisioning, module installation, workflow setup, API exposure).
+
+2. **Define Triggers and Events**: Identify what events (e.g., payment success, user registration) trigger which tasks. Use event-driven programming to react to these triggers.
+
+3. **Design Task Flows (Workflows)**: Model the sequence and dependencies of tasks. Some tasks may run in parallel, others sequentially, and some may depend on the outcome of previous steps.
+
+4. **Implement Asynchronous Execution**: Use asynchronous programming (e.g., Python's threading, asyncio, or task queues like Celery) to handle long-running or I/O-bound tasks without blocking the main application.
+
+5. **Expose REST/GraphQL APIs**: Design and implement APIs for external systems to interact with your platform, trigger workflows, or query status.
+
+6. **Integrate External Services**: Use SDKs or HTTP APIs to interact with payment gateways, cloud providers, or other third-party services.
+
+7. **Error Handling and Rollback**: Implement robust error handling and, where possible, rollback mechanisms to maintain system consistency in case of failures.
+
+8. **Monitoring and Logging**: Track the status of each workflow and task, log important events, and provide monitoring endpoints for external systems.
+
+**Summary**: 
+Workflow automation is about orchestrating a series of tasks in response to events, often across multiple systems. The key is to model your business processes as workflows, define clear triggers and actions, and use asynchronous execution to ensure scalability and responsiveness. REST/GraphQL APIs provide integration points for external systems, while robust error handling and monitoring ensure reliability and maintainability.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a fully automated, self-service SaaS platform on Frappe/ERPNext that provisions multi-tenant sites based on subscription plans, integrates with the Telr payment gateway, automates site setup tasks post-payment, and includes custom modules, workflows, and a REST/GraphQL API for external integrations.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. **Requirements Analysis**
+   - List all features: multi-tenant provisioning, subscription plans, Telr payment integration, post-payment automation, custom modules, workflows, REST/GraphQL API.
+
+2. **System Architecture Design**
+   - Choose Frappe/ERPNext as the base.
+   - Define service boundaries: site provisioning, payment, automation, API.
+
+3. **Database Schema Design**
+   - Model tenants, users, subscription plans, payment records, site metadata.
+
+4. **REST/GraphQL API Design**
+   - Define endpoints for registration, subscription, payment, site status, workflow triggers.
+
+5. **Payment Integration**
+   - Integrate Telr payment gateway.
+   - Implement payment initiation, callback, and verification endpoints.
+
+6. **Multi-Tenant Site Provisioning**
+   - Automate site creation per tenant post-payment.
+   - Assign resources, domain, and initial configuration.
+
+7. **Post-Payment Automation**
+   - Trigger site setup tasks: install custom modules, configure workflows, assign roles.
+   - Use asynchronous task execution (Celery, Frappe background jobs).
+
+8. **Custom Modules and Workflow Setup**
+   - Develop/install required custom modules.
+   - Define and configure workflows per subscription plan.
+
+9. **API Exposure**
+   - Implement REST/GraphQL endpoints for external integrations.
+   - Secure endpoints with authentication and authorization.
+
+10. **Error Handling and Rollback**
+    - Implement error tracking, retries, and rollback for failed provisioning or payment.
+
+11. **Monitoring and Logging**
+    - Log all events and actions.
+    - Provide monitoring endpoints and dashboards.
+
+12. **Testing**
+    - Write unit, integration, and end-to-end tests for all components.
+    - Validate with sample test cases.
+
+13. **Deployment and Documentation**
+    - Prepare deployment scripts.
+    - Document API and onboarding process for external developers.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to create a fully automated, self-service SaaS platform on Frappe/ERPNext that provisions multi-tenant sites based on subscription plans, integrates with the Telr payment gateway, automates site setup tasks post-payment, and includes custom modules, workflows, and a REST/GraphQL API for external integrations.
+
+# Planning:
+**Planning:**
+
+1. **Requirements Analysis**
+   - List all features: multi-tenant provisioning, subscription plans, Telr payment integration, post-payment automation, custom modules, workflows, REST/GraphQL API.
+
+2. **System Architecture Design**
+   - Choose Frappe/ERPNext as the base.
+   - Define service boundaries: site provisioning, payment, automation, API.
+
+3. **Database Schema Design**
+   - Model tenants, users, subscription plans, payment records, site metadata.
+
+4. **REST/GraphQL API Design**
+   - Define endpoints for registration, subscription, payment, site status, workflow triggers.
+
+5. **Payment Integration**
+   - Integrate Telr payment gateway.
+   - Implement payment initiation, callback, and verification endpoints.
+
+6. **Multi-Tenant Site Provisioning**
+   - Automate site creation per tenant post-payment.
+   - Assign resources, domain, and initial configuration.
+
+7. **Post-Payment Automation**
+   - Trigger site setup tasks: install custom modules, configure workflows, assign roles.
+   - Use asynchronous task execution (Celery, Frappe background jobs).
+
+8. **Custom Modules and Workflow Setup**
+   - Develop/install required custom modules.
+   - Define and configure workflows per subscription plan.
+
+9. **API Exposure**
+   - Implement REST/GraphQL endpoints for external integrations.
+   - Secure endpoints with authentication and authorization.
+
+10. **Error Handling and Rollback**
+    - Implement error tracking, retries, and rollback for failed provisioning or payment.
+
+11. **Monitoring and Logging**
+    - Log all events and actions.
+    - Provide monitoring endpoints and dashboards.
+
+12. **Testing**
+    - Write unit, integration, and end-to-end tests for all components.
+    - Validate with sample test cases.
+
+13. **Deployment and Documentation**
+    - Prepare deployment scripts.
+    - Document API and onboarding process for external developers.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a large-scale software engineering and system integration task involving SaaS platform development, multi-tenancy, payment gateway integration, automation, and API development on Frappe/ERPNext. The provided plan is comprehensive and covers all necessary steps for designing and implementing such a platform, including requirements analysis, architecture, database design, API design, payment integration, automation, error handling, monitoring, testing, and deployment. However, this plan is not directly translatable into a single Python3 program as expected in competitive programming, but rather outlines a full software development lifecycle for a complex system. Thus, while the plan is correct for building the described SaaS platform, it is not suitable for a competitive programming context.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Develop a Python program to automate the provisioning and management of cloud resources (e.g., AWS EC2 instances) for different customers based on their subscription plans. The system should handle resource allocation, scaling, and deprovisioning, and expose a REST API for external control. It should also integrate with a payment gateway to trigger provisioning only after successful payment.
+
+# Planning:
+
+1. Design REST API endpoints for subscription and unsubscription.
+2. Integrate with a payment gateway to verify payment status.
+3. On successful payment, provision cloud resources (simulate with print statements or use boto3 for AWS).
+4. Store customer and resource allocation data in a simple database.
+5. Implement deprovisioning logic for resource cleanup.
+6. Ensure the system is ready for external API integration.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is a complex orchestration of multiple automation tasks: multi-tenant site provisioning, payment integration, post-payment automation, custom modules, workflows, and API exposure. The underlying algorithmic approach is primarily an "Orchestration/Workflow Automation" pattern, which combines event-driven programming, asynchronous task execution, and RESTful API design.
+
+**Tutorial: Orchestration/Workflow Automation Algorithm**
+
+1. **Decompose the Problem**: Break down the overall process into discrete, manageable tasks (e.g., payment processing, site provisioning, module installation, workflow setup, API exposure).
+
+2. **Define Triggers and Events**: Identify what events (e.g., payment success, user registration) trigger which tasks. Use event-driven programming to react to these triggers.
+
+3. **Design Task Flows (Workflows)**: Model the sequence and dependencies of tasks. Some tasks may run in parallel, others sequentially, and some may depend on the outcome of previous steps.
+
+4. **Implement Asynchronous Execution**: Use asynchronous programming (e.g., Python's threading, asyncio, or task queues like Celery) to handle long-running or I/O-bound tasks without blocking the main application.
+
+5. **Expose REST/GraphQL APIs**: Design and implement APIs for external systems to interact with your platform, trigger workflows, or query status.
+
+6. **Integrate External Services**: Use SDKs or HTTP APIs to interact with payment gateways, cloud providers, or other third-party services.
+
+7. **Error Handling and Rollback**: Implement robust error handling and, where possible, rollback mechanisms to maintain system consistency in case of failures.
+
+8. **Monitoring and Logging**: Track the status of each workflow and task, log important events, and provide monitoring endpoints for external systems.
+
+**Summary**: 
+Workflow automation is about orchestrating a series of tasks in response to events, often across multiple systems. The key is to model your business processes as workflows, define clear triggers and actions, and use asynchronous execution to ensure scalability and responsiveness. REST/GraphQL APIs provide integration points for external systems, while robust error handling and monitoring ensure reliability and maintainability.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a fully automated, self-service SaaS platform on Frappe/ERPNext that provisions multi-tenant sites based on subscription plans, integrates with the Telr payment gateway, automates site setup tasks post-payment, and includes custom modules, workflows, and a REST/GraphQL API for external integrations.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. **Requirements Analysis**
+   - Identify user roles (admin, customer).
+   - Define subscription plans and associated resources.
+   - List custom modules and workflows to be installed per site.
+   - Specify REST/GraphQL API endpoints and their functions.
+
+2. **System Architecture Design**
+   - Choose Frappe/ERPNext as the core platform.
+   - Design a multi-tenant architecture (one site per customer).
+   - Plan integration points for Telr payment gateway.
+   - Define automation triggers and workflow steps.
+
+3. **Database Schema Design**
+   - Model customers, subscriptions, sites, payments, and resource allocations.
+   - Track site status (pending, active, failed, deprovisioned).
+
+4. **API Design**
+   - Define REST/GraphQL endpoints for:
+     - User registration and authentication.
+     - Subscription management (create, upgrade, cancel).
+     - Site status and details.
+     - Webhooks for payment notifications.
+
+5. **Payment Integration**
+   - Integrate Telr payment gateway.
+   - Implement payment initiation and callback handling.
+   - Securely verify payment status before provisioning.
+
+6. **Site Provisioning Automation**
+   - On payment success, trigger site creation using Frappe commands.
+   - Automate installation of required modules and workflows.
+   - Configure site settings based on subscription plan.
+   - Send notifications on completion or failure.
+
+7. **Custom Module and Workflow Installation**
+   - Automate installation of custom apps/modules per plan.
+   - Set up predefined workflows and permissions.
+
+8. **Resource Management**
+   - Track and allocate resources per subscription.
+   - Implement scaling and deprovisioning logic.
+   - Clean up resources on subscription cancellation or expiry.
+
+9. **Asynchronous Task Execution**
+   - Use background jobs (e.g., Frappe’s background jobs or Celery) for long-running tasks.
+   - Ensure non-blocking API responses.
+
+10. **Error Handling and Rollback**
+    - Implement error detection at each step.
+    - Rollback partial site setups on failure.
+    - Log errors and notify admins.
+
+11. **Monitoring and Logging**
+    - Log all provisioning, payment, and API events.
+    - Provide admin dashboards for monitoring site and payment statuses.
+
+12. **Security and Compliance**
+    - Secure API endpoints (authentication, authorization).
+    - Protect sensitive data (e.g., payment info).
+    - Ensure compliance with relevant standards (e.g., PCI DSS for payments).
+
+13. **Testing**
+    - Write unit and integration tests for all components.
+    - Simulate payment and provisioning flows.
+    - Test API endpoints and error scenarios.
+
+14. **Documentation**
+    - Document API endpoints, workflows, and setup instructions.
+    - Provide onboarding guides for customers and admins.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to create a fully automated, self-service SaaS platform on Frappe/ERPNext that provisions multi-tenant sites based on subscription plans, integrates with the Telr payment gateway, automates site setup tasks post-payment, and includes custom modules, workflows, and a REST/GraphQL API for external integrations.
+
+# Planning:
+**Planning:**
+
+1. **Requirements Analysis**
+   - Identify user roles (admin, customer).
+   - Define subscription plans and associated resources.
+   - List custom modules and workflows to be installed per site.
+   - Specify REST/GraphQL API endpoints and their functions.
+
+2. **System Architecture Design**
+   - Choose Frappe/ERPNext as the core platform.
+   - Design a multi-tenant architecture (one site per customer).
+   - Plan integration points for Telr payment gateway.
+   - Define automation triggers and workflow steps.
+
+3. **Database Schema Design**
+   - Model customers, subscriptions, sites, payments, and resource allocations.
+   - Track site status (pending, active, failed, deprovisioned).
+
+4. **API Design**
+   - Define REST/GraphQL endpoints for:
+     - User registration and authentication.
+     - Subscription management (create, upgrade, cancel).
+     - Site status and details.
+     - Webhooks for payment notifications.
+
+5. **Payment Integration**
+   - Integrate Telr payment gateway.
+   - Implement payment initiation and callback handling.
+   - Securely verify payment status before provisioning.
+
+6. **Site Provisioning Automation**
+   - On payment success, trigger site creation using Frappe commands.
+   - Automate installation of required modules and workflows.
+   - Configure site settings based on subscription plan.
+   - Send notifications on completion or failure.
+
+7. **Custom Module and Workflow Installation**
+   - Automate installation of custom apps/modules per plan.
+   - Set up predefined workflows and permissions.
+
+8. **Resource Management**
+   - Track and allocate resources per subscription.
+   - Implement scaling and deprovisioning logic.
+   - Clean up resources on subscription cancellation or expiry.
+
+9. **Asynchronous Task Execution**
+   - Use background jobs (e.g., Frappe’s background jobs or Celery) for long-running tasks.
+   - Ensure non-blocking API responses.
+
+10. **Error Handling and Rollback**
+    - Implement error detection at each step.
+    - Rollback partial site setups on failure.
+    - Log errors and notify admins.
+
+11. **Monitoring and Logging**
+    - Log all provisioning, payment, and API events.
+    - Provide admin dashboards for monitoring site and payment statuses.
+
+12. **Security and Compliance**
+    - Secure API endpoints (authentication, authorization).
+    - Protect sensitive data (e.g., payment info).
+    - Ensure compliance with relevant standards (e.g., PCI DSS for payments).
+
+13. **Testing**
+    - Write unit and integration tests for all components.
+    - Simulate payment and provisioning flows.
+    - Test API endpoints and error scenarios.
+
+14. **Documentation**
+    - Document API endpoints, workflows, and setup instructions.
+    - Provide onboarding guides for customers and admins.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a large-scale software engineering and system integration task involving SaaS platform development, multi-tenancy, payment gateway integration, automation, and API design on Frappe/ERPNext. The provided plan is comprehensive and covers all necessary aspects for building such a platform, including requirements analysis, architecture, payment integration, automation, error handling, and more. However, this plan is not directly implementable as a single Python3 program, nor is it suitable for a competitive programming context, which usually involves algorithmic challenges solvable within a few hours and with a single script. The plan is correct for a real-world software project but not for a competitive programming problem.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Create a Python-based automated workflow engine for a business process management system. The engine should allow users to define custom workflows with multiple steps, conditions, and actions. It should execute workflows based on triggers (e.g., new user registration, payment received) and provide a REST API for managing workflows and monitoring their execution status.
+
+# Planning:
+
+1. Design a data structure to represent workflows, steps, conditions, and actions.
+2. Implement REST API endpoints to create and execute workflows.
+3. Implement the workflow execution engine to process steps based on conditions and actions.
+4. Store workflow definitions and execution logs.
+5. Allow external triggers to start workflow execution via API.
+6. Provide monitoring and status endpoints for workflow executions.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is a complex orchestration of multiple automation tasks: multi-tenant site provisioning, payment integration, post-payment automation, custom modules, workflows, and API exposure. The underlying algorithmic approach is primarily an "Orchestration/Workflow Automation" pattern, which combines event-driven programming, asynchronous task execution, and RESTful API design.
+
+**Tutorial: Orchestration/Workflow Automation Algorithm**
+
+1. **Decompose the Problem**: Break down the overall process into discrete, manageable tasks (e.g., payment processing, site provisioning, module installation, workflow setup, API exposure).
+
+2. **Define Triggers and Events**: Identify what events (e.g., payment success, user registration) trigger which tasks. Use event-driven programming to react to these triggers.
+
+3. **Design Task Flows (Workflows)**: Model the sequence and dependencies of tasks. Some tasks may run in parallel, others sequentially, and some may depend on the outcome of previous steps.
+
+4. **Implement Asynchronous Execution**: Use asynchronous programming (e.g., Python's threading, asyncio, or task queues like Celery) to handle long-running or I/O-bound tasks without blocking the main application.
+
+5. **Expose REST/GraphQL APIs**: Design and implement APIs for external systems to interact with your platform, trigger workflows, or query status.
+
+6. **Integrate External Services**: Use SDKs or HTTP APIs to interact with payment gateways, cloud providers, or other third-party services.
+
+7. **Error Handling and Rollback**: Implement robust error handling and, where possible, rollback mechanisms to maintain system consistency in case of failures.
+
+8. **Monitoring and Logging**: Track the status of each workflow and task, log important events, and provide monitoring endpoints for external systems.
+
+**Summary**: 
+Workflow automation is about orchestrating a series of tasks in response to events, often across multiple systems. The key is to model your business processes as workflows, define clear triggers and actions, and use asynchronous execution to ensure scalability and responsiveness. REST/GraphQL APIs provide integration points for external systems, while robust error handling and monitoring ensure reliability and maintainability.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a fully automated, self-service SaaS platform on Frappe/ERPNext that provisions multi-tenant sites based on subscription plans, integrates with the Telr payment gateway, automates site setup tasks post-payment, and includes custom modules, workflows, and a REST/GraphQL API for external integrations.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning to Solve the Problem:**
+
+1. **Requirements Analysis**
+   - Identify all features: multi-tenant site provisioning, subscription management, Telr payment integration, automated site setup, custom modules, workflow engine, REST/GraphQL API.
+
+2. **System Architecture Design**
+   - Choose Frappe/ERPNext as the base platform.
+   - Define microservices/components: Site Provisioner, Payment Handler, Workflow Engine, API Gateway.
+
+3. **Database Schema Design**
+   - Design models for tenants, subscription plans, payments, workflow definitions, execution logs, custom modules.
+
+4. **Multi-Tenant Site Provisioning**
+   - Implement automated site creation using Frappe’s site provisioning tools.
+   - Isolate tenant data and resources.
+
+5. **Subscription and Payment Integration**
+   - Integrate Telr payment gateway for subscription payments.
+   - Implement payment verification and webhook handling.
+
+6. **Automated Post-Payment Site Setup**
+   - Trigger site provisioning and setup tasks upon successful payment.
+   - Install custom modules and configure site based on subscription plan.
+
+7. **Custom Modules and Workflows**
+   - Develop custom Frappe/ERPNext modules as required.
+   - Implement a workflow engine to automate business processes per tenant.
+
+8. **REST/GraphQL API Development**
+   - Expose endpoints for site provisioning, subscription management, workflow execution, and monitoring.
+   - Implement authentication and authorization.
+
+9. **Monitoring and Logging**
+   - Track workflow execution, payment status, and site health.
+   - Provide API endpoints for status and logs.
+
+10. **Error Handling and Rollback**
+    - Implement robust error handling for all automation steps.
+    - Design rollback mechanisms for failed provisioning or payment issues.
+
+11. **Testing**
+    - Write unit, integration, and end-to-end tests for all components.
+    - Prepare sample test cases for workflows, payments, and site provisioning.
+
+12. **Deployment and Documentation**
+    - Automate deployment using CI/CD.
+    - Document API endpoints, workflows, and setup instructions.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to create a fully automated, self-service SaaS platform on Frappe/ERPNext that provisions multi-tenant sites based on subscription plans, integrates with the Telr payment gateway, automates site setup tasks post-payment, and includes custom modules, workflows, and a REST/GraphQL API for external integrations.
+
+# Planning:
+**Planning to Solve the Problem:**
+
+1. **Requirements Analysis**
+   - Identify all features: multi-tenant site provisioning, subscription management, Telr payment integration, automated site setup, custom modules, workflow engine, REST/GraphQL API.
+
+2. **System Architecture Design**
+   - Choose Frappe/ERPNext as the base platform.
+   - Define microservices/components: Site Provisioner, Payment Handler, Workflow Engine, API Gateway.
+
+3. **Database Schema Design**
+   - Design models for tenants, subscription plans, payments, workflow definitions, execution logs, custom modules.
+
+4. **Multi-Tenant Site Provisioning**
+   - Implement automated site creation using Frappe’s site provisioning tools.
+   - Isolate tenant data and resources.
+
+5. **Subscription and Payment Integration**
+   - Integrate Telr payment gateway for subscription payments.
+   - Implement payment verification and webhook handling.
+
+6. **Automated Post-Payment Site Setup**
+   - Trigger site provisioning and setup tasks upon successful payment.
+   - Install custom modules and configure site based on subscription plan.
+
+7. **Custom Modules and Workflows**
+   - Develop custom Frappe/ERPNext modules as required.
+   - Implement a workflow engine to automate business processes per tenant.
+
+8. **REST/GraphQL API Development**
+   - Expose endpoints for site provisioning, subscription management, workflow execution, and monitoring.
+   - Implement authentication and authorization.
+
+9. **Monitoring and Logging**
+   - Track workflow execution, payment status, and site health.
+   - Provide API endpoints for status and logs.
+
+10. **Error Handling and Rollback**
+    - Implement robust error handling for all automation steps.
+    - Design rollback mechanisms for failed provisioning or payment issues.
+
+11. **Testing**
+    - Write unit, integration, and end-to-end tests for all components.
+    - Prepare sample test cases for workflows, payments, and site provisioning.
+
+12. **Deployment and Documentation**
+    - Automate deployment using CI/CD.
+    - Document API endpoints, workflows, and setup instructions.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a large-scale software engineering and system integration task involving SaaS platform development, multi-tenancy, payment gateway integration, automation, and API development on Frappe/ERPNext. The provided plan is comprehensive and covers all necessary steps for designing and implementing such a platform, including requirements analysis, architecture, database design, integration, automation, error handling, testing, and deployment. However, this plan is not directly applicable to competitive programming, which usually involves algorithmic challenges solvable by writing a single Python3 program within a short time frame. The plan is suitable for real-world software development but not for a competitive programming context.\n', 'confidence': 10}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem is a complex orchestration of multiple automation tasks: multi-tenant site provisioning, payment integration, post-payment automation, custom modules, workflows, and API exposure. The underlying algorithmic approach is primarily an "Orchestration/Workflow Automation" pattern, which combines event-driven programming, asynchronous task execution, and RESTful API design.
+
+**Tutorial: Orchestration/Workflow Automation Algorithm**
+
+1. **Decompose the Problem**: Break down the overall process into discrete, manageable tasks (e.g., payment processing, site provisioning, module installation, workflow setup, API exposure).
+
+2. **Define Triggers and Events**: Identify what events (e.g., payment success, user registration) trigger which tasks. Use event-driven programming to react to these triggers.
+
+3. **Design Task Flows (Workflows)**: Model the sequence and dependencies of tasks. Some tasks may run in parallel, others sequentially, and some may depend on the outcome of previous steps.
+
+4. **Implement Asynchronous Execution**: Use asynchronous programming (e.g., Python's threading, asyncio, or task queues like Celery) to handle long-running or I/O-bound tasks without blocking the main application.
+
+5. **Expose REST/GraphQL APIs**: Design and implement APIs for external systems to interact with your platform, trigger workflows, or query status.
+
+6. **Integrate External Services**: Use SDKs or HTTP APIs to interact with payment gateways, cloud providers, or other third-party services.
+
+7. **Error Handling and Rollback**: Implement robust error handling and, where possible, rollback mechanisms to maintain system consistency in case of failures.
+
+8. **Monitoring and Logging**: Track the status of each workflow and task, log important events, and provide monitoring endpoints for external systems.
+
+**Summary**: 
+Workflow automation is about orchestrating a series of tasks in response to events, often across multiple systems. The key is to model your business processes as workflows, define clear triggers and actions, and use asynchronous execution to ensure scalability and responsiveness. REST/GraphQL APIs provide integration points for external systems, while robust error handling and monitoring ensure reliability and maintainability.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a fully automated, self-service SaaS platform on Frappe/ERPNext that provisions multi-tenant sites based on subscription plans, integrates with the Telr payment gateway, automates site setup tasks post-payment, and includes custom modules, workflows, and a REST/GraphQL API for external integrations.
+
+## Planning:
+**Planning:**
+
+1. **Requirements Analysis**
+   - List all features: multi-tenant provisioning, subscription plans, Telr payment integration, post-payment automation, custom modules, workflows, REST/GraphQL API.
+
+2. **System Architecture Design**
+   - Choose Frappe/ERPNext as the base.
+   - Define service boundaries: site provisioning, payment, automation, API.
+
+3. **Database Schema Design**
+   - Model tenants, users, subscription plans, payment records, site metadata.
+
+4. **REST/GraphQL API Design**
+   - Define endpoints for registration, subscription, payment, site status, workflow triggers.
+
+5. **Payment Integration**
+   - Integrate Telr payment gateway.
+   - Implement payment initiation, callback, and verification endpoints.
+
+6. **Multi-Tenant Site Provisioning**
+   - Automate site creation per tenant post-payment.
+   - Assign resources, domain, and initial configuration.
+
+7. **Post-Payment Automation**
+   - Trigger site setup tasks: install custom modules, configure workflows, assign roles.
+   - Use asynchronous task execution (Celery, Frappe background jobs).
+
+8. **Custom Modules and Workflow Setup**
+   - Develop/install required custom modules.
+   - Define and configure workflows per subscription plan.
+
+9. **API Exposure**
+   - Implement REST/GraphQL endpoints for external integrations.
+   - Secure endpoints with authentication and authorization.
+
+10. **Error Handling and Rollback**
+    - Implement error tracking, retries, and rollback for failed provisioning or payment.
+
+11. **Monitoring and Logging**
+    - Log all events and actions.
+    - Provide monitoring endpoints and dashboards.
+
+12. **Testing**
+    - Write unit, integration, and end-to-end tests for all components.
+    - Validate with sample test cases.
+
+13. **Deployment and Documentation**
+    - Prepare deployment scripts.
+    - Document API and onboarding process for external developers.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+import uuid
+import threading
+import time
+from flask import Flask, request, jsonify
+from enum import Enum
+
+app = Flask(__name__)
+
+# --- In-memory DB simulation ---
+USERS = {}
+TENANTS = {}
+SUBSCRIPTION_PLANS = {
+    "basic": {"price": 10, "modules": ["crm"], "workflows": ["basic_onboarding"]},
+    "pro": {"price": 30, "modules": ["crm", "accounts"], "workflows": ["pro_onboarding"]},
+}
+PAYMENTS = {}
+SITES = {}
+
+# --- Enums ---
+class SiteStatus(Enum):
+    PENDING = "pending"
+    PROVISIONING = "provisioning"
+    ACTIVE = "active"
+    FAILED = "failed"
+
+# --- Utilities ---
+def generate_id():
+    return str(uuid.uuid4())
+
+def log(msg):
+    print(f"[LOG] {time.strftime('%Y-%m-%d %H:%M:%S')} - {msg}")
+
+# --- Models ---
+class User:
+    def __init__(self, email, password):
+        self.id = generate_id()
+        self.email = email
+        self.password = password
+        self.tenant_id = None
+
+class Tenant:
+    def __init__(self, user_id, plan):
+        self.id = generate_id()
+        self.user_id = user_id
+        self.plan = plan
+        self.site_id = None
+
+class Payment:
+    def __init__(self, tenant_id, amount):
+        self.id = generate_id()
+        self.tenant_id = tenant_id
+        self.amount = amount
+        self.status = "pending"
+        self.telr_ref = generate_id()
+
+class Site:
+    def __init__(self, tenant_id, plan):
+        self.id = generate_id()
+        self.tenant_id = tenant_id
+        self.plan = plan
+        self.status = SiteStatus.PENDING
+        self.domain = f"{self.id}.saas.example.com"
+        self.modules = []
+        self.workflows = []
+
+# --- API Endpoints ---
+
+@app.route("/api/register", methods=["POST"])
+def register():
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
+    plan = data.get("plan")
+    if not email or not password or plan not in SUBSCRIPTION_PLANS:
+        return jsonify({"error": "Invalid input"}), 400
+    user = User(email, password)
+    USERS[user.id] = user
+    tenant = Tenant(user.id, plan)
+    TENANTS[tenant.id] = tenant
+    user.tenant_id = tenant.id
+    log(f"User registered: {email}, Tenant: {tenant.id}, Plan: {plan}")
+    return jsonify({"user_id": user.id, "tenant_id": tenant.id})
+
+@app.route("/api/subscribe", methods=["POST"])
+def subscribe():
+    data = request.json
+    tenant_id = data.get("tenant_id")
+    plan = data.get("plan")
+    if tenant_id not in TENANTS or plan not in SUBSCRIPTION_PLANS:
+        return jsonify({"error": "Invalid tenant or plan"}), 400
+    tenant = TENANTS[tenant_id]
+    tenant.plan = plan
+    amount = SUBSCRIPTION_PLANS[plan]["price"]
+    payment = Payment(tenant_id, amount)
+    PAYMENTS[payment.id] = payment
+    # Simulate Telr payment URL
+    telr_url = f"https://secure.telr.com/gateway/process?ref={payment.telr_ref}"
+    log(f"Payment initiated for Tenant {tenant_id}, Amount: {amount}, TelrRef: {payment.telr_ref}")
+    return jsonify({"payment_id": payment.id, "telr_url": telr_url})
+
+@app.route("/api/payment/callback", methods=["POST"])
+def payment_callback():
+    data = request.json
+    telr_ref = data.get("telr_ref")
+    status = data.get("status")  # "paid" or "failed"
+    payment = next((p for p in PAYMENTS.values() if p.telr_ref == telr_ref), None)
+    if not payment:
+        return jsonify({"error": "Invalid Telr reference"}), 400
+    payment.status = status
+    log(f"Payment callback: {telr_ref}, Status: {status}")
+    if status == "paid":
+        # Start site provisioning asynchronously
+        threading.Thread(target=provision_site, args=(payment.tenant_id,)).start()
+    return jsonify({"payment_id": payment.id, "status": status})
+
+@app.route("/api/site/status", methods=["GET"])
+def site_status():
+    tenant_id = request.args.get("tenant_id")
+    tenant = TENANTS.get(tenant_id)
+    if not tenant or not tenant.site_id:
+        return jsonify({"status": "not_provisioned"})
+    site = SITES.get(tenant.site_id)
+    return jsonify({
+        "site_id": site.id,
+        "status": site.status.value,
+        "domain": site.domain if site.status == SiteStatus.ACTIVE else None,
+        "modules": site.modules,
+        "workflows": site.workflows
+    })
+
+@app.route("/api/trigger_workflow", methods=["POST"])
+def trigger_workflow():
+    data = request.json
+    site_id = data.get("site_id")
+    workflow = data.get("workflow")
+    site = SITES.get(site_id)
+    if not site or workflow not in SUBSCRIPTION_PLANS[site.plan]["workflows"]:
+        return jsonify({"error": "Invalid site or workflow"}), 400
+    # Simulate workflow execution
+    log(f"Workflow '{workflow}' triggered for Site {site_id}")
+    return jsonify({"status": "workflow_triggered", "workflow": workflow})
+
+# --- Orchestration Logic ---
+
+def provision_site(tenant_id):
+    tenant = TENANTS.get(tenant_id)
+    if not tenant:
+        log(f"Provision failed: Tenant {tenant_id} not found")
+        return
+    plan = tenant.plan
+    site = Site(tenant_id, plan)
+    SITES[site.id] = site
+    tenant.site_id = site.id
+    site.status = SiteStatus.PROVISIONING
+    log(f"Provisioning site {site.id} for Tenant {tenant_id} (Plan: {plan})")
+    try:
+        # Simulate resource allocation
+        time.sleep(2)
+        # Install custom modules
+        modules = SUBSCRIPTION_PLANS[plan]["modules"]
+        for module in modules:
+            install_module(site, module)
+        # Configure workflows
+        workflows = SUBSCRIPTION_PLANS[plan]["workflows"]
+        for wf in workflows:
+            configure_workflow(site, wf)
+        site.status = SiteStatus.ACTIVE
+        log(f"Site {site.id} provisioned successfully. Domain: {site.domain}")
+    except Exception as e:
+        site.status = SiteStatus.FAILED
+        log(f"Site provisioning failed for {site.id}: {str(e)}")
+        # Rollback: remove site
+        del SITES[site.id]
+        tenant.site_id = None
+
+def install_module(site, module):
+    log(f"Installing module '{module}' on Site {site.id}")
+    time.sleep(1)
+    site.modules.append(module)
+
+def configure_workflow(site, workflow):
+    log(f"Configuring workflow '{workflow}' on Site {site.id}")
+    time.sleep(1)
+    site.workflows.append(workflow)
+
+# --- Monitoring Endpoint ---
+@app.route("/api/monitor", methods=["GET"])
+def monitor():
+    return jsonify({
+        "users": len(USERS),
+        "tenants": len(TENANTS),
+        "sites": len(SITES),
+        "payments": len(PAYMENTS),
+        "active_sites": len([s for s in SITES.values() if s.status == SiteStatus.ACTIVE])
+    })
+
+# --- Main ---
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 56.15 seconds
+Total Tokens: 10,932 (Input: 5,409, Output: 5,523)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 16.89      340          1,993        1         
+Planning_Generation_1     4.38       725          385          1         
+Planning_Verification_1   2.89       567          177          1         
+Planning_Generation_2     6.29       736          567          1         
+Planning_Verification_2   2.41       749          168          1         
+Planning_Generation_3     8.76       723          416          1         
+Planning_Verification_3   2.37       598          162          1         
+Final_Code_Generation     12.15      971          1,655        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 14:32:40.252190
+##########################
+

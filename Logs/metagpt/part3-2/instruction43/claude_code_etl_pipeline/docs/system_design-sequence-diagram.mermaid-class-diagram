@@ -1,0 +1,57 @@
+classDiagram
+    class Config {
+        +load(path: str) -> Config
+        +db_uri: str
+        +retry_policy: dict
+        +log_level: str
+    }
+    class ConversationRecord {
+        +__init__(data: dict)
+        +validate() -> bool
+        +conversation_id: str
+        +timestamp: datetime
+        +user_id: str
+        +messages: list[str]
+    }
+    class Ingestor {
+        +__init__(source: str)
+        +fetch() -> list[dict]
+    }
+    class Transformer {
+        +__init__()
+        +transform(raw: dict) -> ConversationRecord
+    }
+    class Loader {
+        +__init__(db_uri: str)
+        +insert(record: ConversationRecord) -> bool
+        +bulk_insert(records: list[ConversationRecord]) -> bool
+    }
+    class RetryHandler {
+        +__init__(policy: dict)
+        +retry(func: Callable, *args, **kwargs) -> Any
+    }
+    class Observability {
+        +__init__()
+        +log(event: str, level: str)
+        +record_metric(name: str, value: float)
+        +trace(operation: str)
+    }
+    class Pipeline {
+        +__init__(config: Config)
+        +run()
+        +stop()
+        +status() -> dict
+    }
+    class Dashboard {
+        +get_status() -> dict
+        +get_metrics() -> dict
+        +get_logs() -> list[str]
+        +set_alerts(config: dict)
+    }
+    Config <|-- Pipeline
+    Ingestor <|-- Pipeline
+    Transformer <|-- Pipeline
+    Loader <|-- Pipeline
+    RetryHandler <|-- Pipeline
+    Observability <|-- Pipeline
+    Dashboard <|-- Observability

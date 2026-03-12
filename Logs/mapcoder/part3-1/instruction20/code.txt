@@ -1,0 +1,82 @@
+import os
+import subprocess
+
+# Step 1: Install Required Tools
+def install_tools():
+    subprocess.run(["sudo", "apt", "update"])
+    subprocess.run(["sudo", "apt", "install", "-y", "swig", "cmake", "python3-dev"])
+
+# Step 2: Create C++ Source File
+def create_cpp_file():
+    os.makedirs("my_project", exist_ok=True)
+    cpp_code = """#include <iostream>
+
+    extern "C" {
+        void hello() {
+            std::cout << "Hello from C++!" << std::endl;
+        }
+    }
+    """
+    with open("my_project/example.cpp", "w") as f:
+        f.write(cpp_code)
+
+# Step 3: Write SWIG Interface File
+def create_swig_interface():
+    swig_interface = """%module example
+    %{
+    #include "example.cpp"
+    %}
+    extern void hello();
+    """
+    with open("my_project/example.i", "w") as f:
+        f.write(swig_interface)
+
+# Step 4: Create CMakeLists.txt
+def create_cmake_file():
+    cmake_content = """cmake_minimum_required(VERSION 3.0)
+    project(example)
+
+    find_package(SWIG REQUIRED)
+    find_package(PythonLibs REQUIRED)
+
+    include_directories(${PYTHON_INCLUDE_DIRS})
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+    set(CMAKE_CXX_STANDARD 11)
+
+    SWIG_ADD_MODULE(example python example.i example.cpp)
+    target_link_libraries(example ${PYTHON_LIBRARIES})
+    """
+    with open("my_project/CMakeLists.txt", "w") as f:
+        f.write(cmake_content)
+
+# Step 5: Generate Build Files with CMake
+def generate_build_files():
+    os.makedirs("my_project/build", exist_ok=True)
+    subprocess.run(["cmake", ".."], cwd="my_project/build")
+
+# Step 6: Compile the Project
+def compile_project():
+    subprocess.run(["make"], cwd="my_project/build")
+
+# Step 7: Test the Generated Python Module
+def test_python_module():
+    test_script = """import example
+    example.hello()
+    """
+    with open("my_project/test.py", "w") as f:
+        f.write(test_script)
+    subprocess.run(["python3", "test.py"], cwd="my_project")
+
+# Step 8: Main function to execute all steps
+def main():
+    install_tools()
+    create_cpp_file()
+    create_swig_interface()
+    create_cmake_file()
+    generate_build_files()
+    compile_project()
+    test_python_module()
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,68 @@
+import json
+import csv
+import os
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
+def read_data_from_json(file_path):
+    with open(file_path, 'r') as file:
+        return json.load(file)
+
+def read_data_from_csv(file_path):
+    with open(file_path, 'r') as file:
+        reader = csv.DictReader(file)
+        return [row for row in reader]
+
+def extract_relevant_data(data):
+    # Assuming the required fields are 'name', 'email', and 'password'
+    return [{'name': entry['name'], 'email': entry['email'], 'password': entry['password']} for entry in data]
+
+def setup_web_driver():
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service)
+    return driver
+
+def fill_registration_form(driver, registration_url, user_data):
+    driver.get(registration_url)
+    
+    for user in user_data:
+        driver.find_element(By.NAME, 'name').send_keys(user['name'])
+        driver.find_element(By.NAME, 'email').send_keys(user['email'])
+        driver.find_element(By.NAME, 'password').send_keys(user['password'])
+        driver.find_element(By.NAME, 'submit').click()  # Assuming the submit button has name 'submit'
+        
+        # Optionally, wait for a confirmation or reset the form if needed
+        driver.implicitly_wait(2)  # Adjust as necessary
+
+def main():
+    # Example file paths and URL
+    json_file_path = 'data.json'  # Change to your JSON file path
+    csv_file_path = 'data.csv'     # Change to your CSV file path
+    registration_url = 'http://example.com/register'  # Change to your registration form URL
+
+    # Read data from the chosen format
+    if os.path.exists(json_file_path):
+        data = read_data_from_json(json_file_path)
+    elif os.path.exists(csv_file_path):
+        data = read_data_from_csv(csv_file_path)
+    else:
+        print("No data file found.")
+        return
+
+    # Extract relevant data
+    user_data = extract_relevant_data(data)
+
+    # Set up web driver
+    driver = setup_web_driver()
+
+    try:
+        # Fill out the registration form
+        fill_registration_form(driver, registration_url, user_data)
+    finally:
+        driver.quit()
+
+if __name__ == "__main__":
+    main()

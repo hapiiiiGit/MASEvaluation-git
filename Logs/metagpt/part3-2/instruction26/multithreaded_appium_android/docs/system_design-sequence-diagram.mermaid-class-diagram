@@ -1,0 +1,58 @@
+classDiagram
+    class Config {
+        +devices: list[DeviceConfig]
+        +test_scripts: list[str]
+        +max_concurrent_sessions: int
+        +load(path: str) -> Config
+    }
+    class DeviceConfig {
+        +device_id: str
+        +platform_version: str
+        +model: str
+        +appium_url: str
+    }
+    class DeviceManager {
+        +devices: dict[str, DeviceConfig]
+        +discover_devices() -> None
+        +get_available_devices() -> list[DeviceConfig]
+    }
+    class SessionManager {
+        +sessions: dict[str, AppiumSession]
+        +start_session(device: DeviceConfig) -> AppiumSession
+        +stop_session(session_id: str) -> None
+        +restart_session(session_id: str) -> AppiumSession
+        +handle_failure(session_id: str, error: Exception) -> None
+    }
+    class AppiumSession {
+        +session_id: str
+        +device: DeviceConfig
+        +driver: WebDriver
+        +run_test(test_script: str) -> TestResult
+        +status: str
+    }
+    class TestRunner {
+        +run_tests(sessions: list[AppiumSession], test_scripts: list[str]) -> dict[str, TestResult]
+    }
+    class Monitor {
+        +collect_metrics() -> dict
+        +report_status() -> None
+        +log_event(event: str) -> None
+    }
+    class Logger {
+        +log(msg: str, level: str) -> None
+        +log_error(error: Exception) -> None
+    }
+    class TestResult {
+        +session_id: str
+        +success: bool
+        +details: str
+        +timestamp: datetime
+    }
+    Config <|-- DeviceConfig
+    DeviceManager o-- DeviceConfig
+    SessionManager o-- AppiumSession
+    AppiumSession o-- DeviceConfig
+    TestRunner o-- AppiumSession
+    Monitor o-- AppiumSession
+    Logger <.. AppiumSession
+    TestResult <.. AppiumSession

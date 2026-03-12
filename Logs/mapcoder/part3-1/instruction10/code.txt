@@ -1,0 +1,59 @@
+import requests
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+# Step 3: Obtain API Access
+API_KEY = 'your_api_key_here'
+LLM_API_URL = 'https://api.example.com/v1/chat/completions'
+
+# Step 6: Develop Backend
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    user_input = request.json.get('message')
+    response = get_llm_response(user_input)
+    return jsonify({'response': response})
+
+def get_llm_response(user_input):
+    headers = {
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'model': 'gpt-3.5-turbo',
+        'messages': [{'role': 'user', 'content': user_input}]
+    }
+    response = requests.post(LLM_API_URL, headers=headers, json=data)
+    return response.json().get('choices')[0].get('message').get('content')
+
+# Step 7: Develop Frontend (Placeholder)
+@app.route('/')
+def index():
+    return '''
+    <h1>AI Chatbot</h1>
+    <form id="chat-form">
+        <input type="text" id="message" placeholder="Type your message here" required>
+        <button type="submit">Send</button>
+    </form>
+    <div id="response"></div>
+    <script>
+        document.getElementById('chat-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const message = document.getElementById('message').value;
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message})
+            });
+            const data = await res.json();
+            document.getElementById('response').innerText = data.response;
+        };
+    </script>
+    '''
+
+# Step 10: Testing (Placeholder)
+def run_tests():
+    assert get_llm_response("Hello") is not None
+
+if __name__ == '__main__':
+    app.run(debug=True)

@@ -1,0 +1,92 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from statsmodels.tsa.arima.model import ARIMA
+from sklearn.ensemble import IsolationForest
+from mlxtend.frequent_patterns import apriori, association_rules
+import warnings
+warnings.filterwarnings("ignore")
+
+# Step 1: Data Collection
+def load_data(file_path):
+    return pd.read_csv(file_path)
+
+# Step 2: Data Cleaning
+def clean_data(df):
+    df.drop_duplicates(inplace=True)
+    df.fillna(df.mean(), inplace=True)
+    df = pd.get_dummies(df, drop_first=True)
+    return df
+
+# Step 3: Exploratory Data Analysis (EDA)
+def exploratory_data_analysis(df):
+    print(df.describe())
+    sns.histplot(df['target_variable'])
+    plt.show()
+    sns.heatmap(df.corr(), annot=True)
+    plt.show()
+
+# Step 4: Feature Engineering
+def feature_engineering(df):
+    df['total_purchase'] = df['quantity'] * df['price']
+    return df
+
+# Step 5: Clustering
+def clustering(df):
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(df)
+    kmeans = KMeans(n_clusters=3)
+    df['cluster'] = kmeans.fit_predict(scaled_data)
+    silhouette_avg = silhouette_score(scaled_data, df['cluster'])
+    print(f'Silhouette Score: {silhouette_avg}')
+    sns.scatterplot(x=df['feature1'], y=df['feature2'], hue=df['cluster'])
+    plt.show()
+
+# Step 6: Time-Series Forecasting
+def time_series_forecasting(df):
+    df['date'] = pd.to_datetime(df['date'])
+    df.set_index('date', inplace=True)
+    model = ARIMA(df['target_variable'], order=(1, 1, 1))
+    model_fit = model.fit()
+    forecast = model_fit.forecast(steps=10)
+    plt.plot(df['target_variable'], label='Historical')
+    plt.plot(forecast, label='Forecast', color='red')
+    plt.legend()
+    plt.show()
+
+# Step 7: Association Rule Mining
+def association_rule_mining(df):
+    basket = (df.groupby(['InvoiceNo', 'Description'])['Quantity']
+              .sum().unstack().reset_index().fillna(0)
+              .set_index('InvoiceNo'))
+    basket = basket.applymap(lambda x: 1 if x > 0 else 0)
+    frequent_itemsets = apriori(basket, min_support=0.01, use_colnames=True)
+    rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1)
+    print(rules)
+
+# Step 8: Anomaly Detection
+def anomaly_detection(df):
+    model = IsolationForest(contamination=0.1)
+    df['anomaly'] = model.fit_predict(df[['feature1', 'feature2']])
+    anomalies = df[df['anomaly'] == -1]
+    plt.scatter(df['feature1'], df['feature2'], color='blue')
+    plt.scatter(anomalies['feature1'], anomalies['feature2'], color='red')
+    plt.show()
+
+# Main function to execute the steps
+def main(file_path):
+    df = load_data(file_path)
+    df = clean_data(df)
+    exploratory_data_analysis(df)
+    df = feature_engineering(df)
+    clustering(df)
+    time_series_forecasting(df)
+    association_rule_mining(df)
+    anomaly_detection(df)
+
+# Example usage
+# main('customer_data.csv')

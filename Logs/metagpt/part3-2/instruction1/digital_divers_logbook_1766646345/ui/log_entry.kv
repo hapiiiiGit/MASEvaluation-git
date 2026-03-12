@@ -1,0 +1,212 @@
+#:kivy 2.1.0
+
+<LogEntryScreen>:
+    name: 'log_entry'
+    entry_id: None
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: dp(10)
+        padding: dp(16)
+
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(48)
+            Label:
+                text: "Dive Log Entry"
+                font_size: '20sp'
+                bold: True
+                color: 0, 0.5, 0.7, 1
+            Button:
+                text: "Cancel"
+                size_hint_x: None
+                width: dp(80)
+                on_release: app.open_dashboard()
+
+        # Form Fields
+        GridLayout:
+            cols: 2
+            spacing: dp(8)
+            size_hint_y: None
+            height: self.minimum_height
+
+            Label:
+                text: "Date"
+                font_size: '16sp'
+                color: 0.2, 0.2, 0.2, 1
+            TextInput:
+                id: date_input
+                hint_text: "YYYY-MM-DD"
+                multiline: False
+                write_tab: False
+
+            Label:
+                text: "Location"
+                font_size: '16sp'
+                color: 0.2, 0.2, 0.2, 1
+            TextInput:
+                id: location_input
+                hint_text: "Dive site/location"
+                multiline: False
+                write_tab: False
+
+            Label:
+                text: "Depth (m)"
+                font_size: '16sp'
+                color: 0.2, 0.2, 0.2, 1
+            TextInput:
+                id: depth_input
+                hint_text: "Max depth"
+                multiline: False
+                write_tab: False
+                input_filter: 'float'
+
+            Label:
+                text: "Duration (min)"
+                font_size: '16sp'
+                color: 0.2, 0.2, 0.2, 1
+            TextInput:
+                id: duration_input
+                hint_text: "Dive time"
+                multiline: False
+                write_tab: False
+                input_filter: 'int'
+
+            Label:
+                text: "Buddy"
+                font_size: '16sp'
+                color: 0.2, 0.2, 0.2, 1
+            TextInput:
+                id: buddy_input
+                hint_text: "Dive buddy name"
+                multiline: False
+                write_tab: False
+
+        # Notes & OCR Journal Entry
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: dp(120)
+            Label:
+                text: "Notes / Journal Entry"
+                font_size: '16sp'
+                color: 0.2, 0.2, 0.2, 1
+            TextInput:
+                id: notes_input
+                hint_text: "Enter notes or use OCR"
+                multiline: True
+                write_tab: False
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: dp(40)
+                Button:
+                    text: "Use OCR"
+                    size_hint_x: None
+                    width: dp(120)
+                    background_color: 0, 0.5, 0.7, 1
+                    color: 1, 1, 1, 1
+                    on_release: app.ocr_service.open_ocr_dialog(notes_input)
+
+        # Photo Upload
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(56)
+            Label:
+                text: "Photo"
+                font_size: '16sp'
+                color: 0.2, 0.2, 0.2, 1
+                size_hint_x: None
+                width: dp(80)
+            Image:
+                id: photo_preview
+                source: ''
+                size_hint_x: None
+                width: dp(80)
+                allow_stretch: True
+                keep_ratio: True
+            Button:
+                text: "Upload"
+                size_hint_x: None
+                width: dp(100)
+                background_color: 0, 0.5, 0.7, 1
+                color: 1, 1, 1, 1
+                on_release: app.cloud_service.open_photo_upload(photo_preview)
+
+        # Signature Capture
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: dp(100)
+            Label:
+                text: "Digital Signature"
+                font_size: '16sp'
+                color: 0.2, 0.2, 0.2, 1
+            SignaturePad:
+                id: signature_pad
+                size_hint_y: None
+                height: dp(60)
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: dp(40)
+                Button:
+                    text: "Clear"
+                    size_hint_x: None
+                    width: dp(80)
+                    on_release: signature_pad.clear()
+                Button:
+                    text: "Sign"
+                    size_hint_x: None
+                    width: dp(80)
+                    background_color: 0, 0.5, 0.7, 1
+                    color: 1, 1, 1, 1
+                    on_release: app.validation_service.sign_entry(signature_pad)
+
+        # Validation Status
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(32)
+            Label:
+                text: "Validation Status:"
+                font_size: '16sp'
+                color: 0.2, 0.2, 0.2, 1
+                size_hint_x: None
+                width: dp(140)
+            Label:
+                id: validation_status
+                text: app.validation_service.get_status(entry_id)
+                font_size: '16sp'
+                color: 0, 0.5, 0.7, 1
+
+        # Save/Cancel Buttons
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(56)
+            spacing: dp(10)
+            Button:
+                text: "Save"
+                background_color: 0, 0.5, 0.7, 1
+                color: 1, 1, 1, 1
+                font_size: '18sp'
+                on_release: app.logbook.save_entry(
+                    entry_id,
+                    date_input.text,
+                    location_input.text,
+                    depth_input.text,
+                    duration_input.text,
+                    buddy_input.text,
+                    notes_input.text,
+                    photo_preview.source,
+                    signature_pad.get_signature()
+                )
+            Button:
+                text: "Cancel"
+                background_color: 0.8, 0.9, 1, 1
+                color: 0, 0.5, 0.7, 1
+                font_size: '18sp'
+                on_release: app.open_dashboard()

@@ -1,0 +1,91 @@
+import nltk
+from nltk.tokenize import word_tokenize
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+import json
+import os
+
+# Ensure necessary NLTK resources are downloaded
+nltk.download('punkt')
+
+# Sample intents and actions
+intents = {
+    "install_tool": ["install", "setup", "add"],
+    "process_file": ["process", "analyze", "read"],
+    "preferences": ["remember", "save", "store"]
+}
+
+# User preferences and approved tools storage
+user_data = {
+    "preferences": {},
+    "approved_tools": []
+}
+
+# Sample training data for intent recognition
+training_data = [
+    ("install numpy", "install_tool"),
+    ("setup pandas", "install_tool"),
+    ("process csv file", "process_file"),
+    ("analyze json data", "process_file"),
+    ("remember my preference", "preferences")
+]
+
+# Prepare data for intent recognition
+X_train = [text for text, intent in training_data]
+y_train = [intent for text, intent in training_data]
+
+# Vectorization and model training
+vectorizer = CountVectorizer()
+X_train_vectorized = vectorizer.fit_transform(X_train)
+model = MultinomialNB()
+model.fit(X_train_vectorized, y_train)
+
+def tokenize_input(user_input):
+    return word_tokenize(user_input)
+
+def recognize_intent(user_input):
+    user_input_vectorized = vectorizer.transform([user_input])
+    intent = model.predict(user_input_vectorized)[0]
+    return intent
+
+def extract_entities(user_input):
+    tokens = tokenize_input(user_input)
+    entities = [token for token in tokens if token not in intents["install_tool"] + intents["process_file"] + intents["preferences"]]
+    return entities
+
+def update_preferences(preference_key, preference_value):
+    user_data["preferences"][preference_key] = preference_value
+
+def install_tool(tool_name):
+    if tool_name not in user_data["approved_tools"]:
+        user_data["approved_tools"].append(tool_name)
+        return f"{tool_name} has been installed."
+    return f"{tool_name} is already installed."
+
+def process_file(file_name):
+    return f"Processing {file_name}..."
+
+def handle_command(user_input):
+    intent = recognize_intent(user_input)
+    entities = extract_entities(user_input)
+
+    if intent == "install_tool" and entities:
+        return install_tool(entities[0])
+    elif intent == "process_file" and entities:
+        return process_file(entities[0])
+    elif intent == "preferences" and entities:
+        update_preferences(entities[0], "some_value")  # Example value
+        return f"Preference {entities[0]} has been saved."
+    return "Command not recognized."
+
+def main():
+    print("Welcome to the command interpreter. Type 'exit' to quit.")
+    while True:
+        user_input = input("Enter your command: ")
+        if user_input.lower() == 'exit':
+            break
+        response = handle_command(user_input)
+        print(response)
+
+if __name__ == "__main__":
+    main()

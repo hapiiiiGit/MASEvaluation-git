@@ -1,0 +1,71 @@
+import pandas as pd
+import numpy as np
+import yfinance as yf
+from datetime import datetime
+
+class Backtest:
+    def __init__(self, symbol, start_date, end_date):
+        self.symbol = symbol
+        self.start_date = start_date
+        self.end_date = end_date
+        self.data = self.get_data()
+        self.results = None
+
+    def get_data(self):
+        """Fetch historical data from Yahoo Finance."""
+        data = yf.download(self.symbol, start=self.start_date, end=self.end_date)
+        data = data[['Close']]
+        data.dropna(inplace=True)
+        return data
+
+    def calculate_returns(self):
+        """Calculate daily returns."""
+        self.data['Returns'] = self.data['Close'].pct_change()
+        return self.data['Returns']
+
+    def calculate_sharpe_ratio(self, risk_free_rate=0.01):
+        """Calculate the Sharpe Ratio."""
+        returns = self.calculate_returns()
+        excess_returns = returns - risk_free_rate / 252
+        sharpe_ratio = np.sqrt(252) * (excess_returns.mean() / excess_returns.std())
+        return sharpe_ratio
+
+    def calculate_drawdown(self):
+        """Calculate maximum drawdown."""
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = (self.data['Cumulative Returns'] - self.data['Peak']) / self.data['Peak']
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def backtest_strategy(self, entry_threshold=0.01, exit_threshold=-0.01):
+        """Simulate trading strategy based on entry and exit thresholds."""
+        self.data['Position'] = 0
+        self.data['Position'][self.data['Returns'] > entry_threshold] = 1
+        self.data['Position'][self.data['Returns'] < exit_threshold] = 0
+        self.data['Strategy Returns'] = self.data['Position'].shift(1) * self.data['Returns']
+        self.results = self.data
+        return self.results
+
+    def optimize_strategy(self):
+        """Optimize trading strategy parameters (placeholder for actual optimization)."""
+        # This is a placeholder for optimization logic (e.g., grid search)
+        best_sharpe = self.calculate_sharpe_ratio()
+        return best_sharpe
+
+    def run_backtest(self):
+        """Run the backtesting framework."""
+        self.backtest_strategy()
+        sharpe_ratio = self.calculate_sharpe_ratio()
+        max_drawdown = self.calculate_drawdown()
+        return {
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': max_drawdown,
+            'Results': self.results
+        }
+
+# Example usage
+if __name__ == "__main__":
+    backtest = Backtest('AAPL', '2020-01-01', '2023-01-01')
+    results = backtest.run_backtest()
+    print(results)

@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant M as Main
+    participant C as Config
+    participant D as DetectionEngine
+    participant R as CommunicationRelay
+    participant L as Logger
+    participant B as Benchmark
+    M->>C: load(config_file)
+    M->>D: initialize(model_path, threshold)
+    M->>R: initialize(config)
+    M->>L: initialize(log_path)
+    loop Real-time Data Processing
+        M->>D: process_stream(data)
+        D-->>M: DetectionResult
+        M->>L: log_event(DetectionResult)
+        M->>R: switch_link(signal_quality)
+        R-->>M: link_type
+        M->>R: send_data(data, link_type)
+        R-->>M: status
+    end
+    M->>B: run_tests(test_data)
+    B->>D: process_stream(test_data)
+    B->>R: switch_link(signal_quality)
+    B-->>M: report()
+    M->>L: log_event(report)

@@ -1,0 +1,43 @@
+import scrapy
+import pandas as pd
+from scrapy.crawler import CrawlerProcess
+from bs4 import BeautifulSoup
+
+class ProductSpider(scrapy.Spider):
+    name = "product_spider"
+    
+    # List of target URLs
+    start_urls = [
+        'https://example.com/product1',
+        'https://example.com/product2',
+        # Add more product URLs here
+    ]
+
+    def parse(self, response):
+        # Use BeautifulSoup to parse the HTML content
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Extract product information
+        product_name = soup.find('h1', class_='product-title').get_text(strip=True)
+        product_price = soup.find('span', class_='product-price').get_text(strip=True)
+        product_availability = soup.find('div', class_='availability').get_text(strip=True)
+
+        # Store the data in a dictionary
+        yield {
+            'name': product_name,
+            'price': product_price,
+            'availability': product_availability
+        }
+
+# Run the spider and save the data to a CSV file
+process = CrawlerProcess(settings={
+    'FEED_FORMAT': 'csv',
+    'FEED_URI': 'products.csv',
+})
+
+process.crawl(ProductSpider)
+process.start()
+
+# After running the spider, load the CSV into a DataFrame for further analysis
+df = pd.read_csv('products.csv')
+print(df)

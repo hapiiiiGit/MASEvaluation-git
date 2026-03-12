@@ -1,0 +1,83 @@
+import ast
+import os
+
+class ImportCleaner:
+    def __init__(self, source_code: str):
+        self.source_code = source_code
+        self.tree = ast.parse(source_code)
+        self.imports = self._get_imports()
+        self.used_names = self._get_used_names()
+
+    def _get_imports(self):
+        """Extract all import statements from the source code."""
+        imports = set()
+        for node in ast.walk(self.tree):
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        imports.add(alias.name)
+                elif isinstance(node, ast.ImportFrom):
+                    imports.add(node.module)
+        return imports
+
+    def _get_used_names(self):
+        """Extract all names that are used in the source code."""
+        used_names = set()
+        for node in ast.walk(self.tree):
+            if isinstance(node, ast.Name):
+                used_names.add(node.id)
+        return used_names
+
+    def remove_unused_imports(self):
+        """Remove unused imports from the source code."""
+        unused_imports = self.imports - self.used_names
+        print('Unused imports:', unused_imports)  # Debugging output
+        cleaned_code = self.source_code
+
+        for unused in unused_imports:
+            cleaned_code = self._remove_import_statement(cleaned_code, unused)
+
+        return cleaned_code
+
+    def _remove_import_statement(self, code: str, import_name: str) -> str:
+        """Remove a specific import statement from the code."""
+        lines = code.splitlines()
+        cleaned_lines = []
+
+        for line in lines:
+            if f'import {import_name}' in line or f'from {import_name}' in line:
+                continue
+            cleaned_lines.append(line)
+
+        return '\n'.join(cleaned_lines)
+
+def main(file_path: str):
+    """Main function to read a file, clean unused imports, and write back the cleaned code."""
+    with open(file_path, 'r') as file:
+        source_code = file.read()
+
+    cleaner = ImportCleaner(source_code)
+    cleaned_code = cleaner.remove_unused_imports()
+
+    with open(file_path, 'w') as file:
+        file.write(cleaned_code)
+
+if __name__ == "__main__":
+    main('/home/mas-metagpt/Desktop/MetaGPT/workspace/sample_code.py')
+
+# sample_code.py
+
+import math  # Unused import
+
+def calculate_area(radius):
+    """Calculate the area of a circle given its radius."""
+    return math.pi * (radius ** 2)
+
+def main():
+    """Main function to demonstrate the usage of calculate_area."""
+    radius = 5
+    area = calculate_area(radius)
+    print(f"The area of the circle with radius {radius} is: {area}")
+
+if __name__ == "__main__":
+    main()

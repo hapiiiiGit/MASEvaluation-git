@@ -1,0 +1,90 @@
+from flask import Flask, request, jsonify
+import random
+
+app = Flask(__name__)
+
+# Card deck
+suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
+ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace']
+deck = [(rank, suit) for suit in suits for rank in ranks]
+
+# Game state
+games = {}
+
+def calculate_score(hand):
+    score = 0
+    aces = 0
+    for card in hand:
+        rank = card[0]
+        if rank in ['Jack', 'Queen', 'King']:
+            score += 10
+        elif rank == 'Ace':
+            aces += 1
+            score += 11
+        else:
+            score += int(rank)
+    while score > 21 and aces:
+        score -= 10
+        aces -= 1
+    return score
+
+@app.route('/start_game', methods=['POST'])
+def start_game():
+    game_id = request.json.get('game_id')
+    games[game_id] = {
+        'deck': random.sample(deck, len(deck)),
+        'player_hand': [],
+        'dealer_hand': [],
+        'bet': request.json.get('bet', 0),
+        'status': 'ongoing'
+    }
+    return jsonify({'message': 'Game started', 'game_id': game_id})
+
+@app.route('/hit', methods=['POST'])
+def hit():
+    game_id = request.json.get('game_id')
+    game = games.get(game_id)
+    if not game or game['status'] != 'ongoing':
+        return jsonify({'error': 'Invalid game state'}), 400
+
+    game['player_hand'].append(game['deck'].pop())
+    player_score = calculate_score(game['player_hand'])
+
+    if player_score > 21:
+        game['status'] = 'lost'
+        return jsonify({'message': 'Player bust', 'player_hand': game['player_hand'], 'score': player_score})
+
+    return jsonify({'player_hand': game['player_hand'], 'score': player_score})
+
+@app.route('/stand', methods=['POST'])
+def stand():
+    game_id = request.json.get('game_id')
+    game = games.get(game_id)
+    if not game or game['status'] != 'ongoing':
+        return jsonify({'error': 'Invalid game state'}), 400
+
+    while calculate_score(game['dealer_hand']) < 17:
+        game['dealer_hand'].append(game['deck'].pop())
+
+    player_score = calculate_score(game['player_hand'])
+    dealer_score = calculate_score(game['dealer_hand'])
+
+    if dealer_score > 21 or player_score > dealer_score:
+        game['status'] = 'won'
+        return jsonify({'message': 'Player wins', 'dealer_hand': game['dealer_hand'], 'score': dealer_score})
+    elif player_score < dealer_score:
+        game['status'] = 'lost'
+        return jsonify({'message': 'Dealer wins', 'dealer_hand': game['dealer_hand'], 'score': dealer_score})
+    else:
+        game['status'] = 'tie'
+        return jsonify({'message': 'It\'s a tie', 'dealer_hand': game['dealer_hand'], 'score': dealer_score})
+
+@app.route('/reset_game', methods=['POST'])
+def reset_game():
+    game_id = request.json.get('game_id')
+    if game_id in games:
+        del games[game_id]
+    return jsonify({'message': 'Game reset'})
+
+if __name__ == '__main__':
+    app.run(debug=True)

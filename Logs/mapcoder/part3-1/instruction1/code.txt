@@ -1,0 +1,74 @@
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+from openpyxl import Workbook
+from datetime import datetime, timedelta
+
+def fetch_nse_data(index_basket, start_date, end_date):
+    url = f"https://www.nseindia.com/api/option-chain-indices?symbol={index_basket}"
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+    response = requests.get(url, headers=headers)
+    data = response.json()
+    return data['records']['data']
+
+def process_data(data):
+    records = []
+    for stock in data:
+        stock_data = stock['CE'] if 'CE' in stock else stock['PE']
+        if stock_data:
+            records.append({
+                'symbol': stock_data['symbol'],
+                'lastPrice': stock_data['lastPrice'],
+                'previousClose': stock_data['previousClose'],
+                'expiryDate': stock_data['expiryDate']
+            })
+    return pd.DataFrame(records)
+
+def calculate_metrics(df):
+    df['daily_return'] = (df['lastPrice'] - df['previousClose']) / df['previousClose']
+    df['average_return'] = df['daily_return'].mean()
+    df['std_dev'] = df['daily_return'].std()
+    df['momentum'] = df['lastPrice'] - df['lastPrice'].shift(5)  # 5-day momentum
+    return df
+
+def rank_stocks(df):
+    df['rank_return'] = df['daily_return'].rank(ascending=False)
+    df['rank_avg_return'] = df['average_return'].rank(ascending=False)
+    df['rank_std_dev'] = df['std_dev'].rank(ascending=True)
+    df['rank_momentum'] = df['momentum'].rank(ascending=False)
+    return df
+
+def export_to_excel(df, filename):
+    wb = Workbook()
+    ws1 = wb.active
+    ws1.title = "Raw Data"
+    
+    for r in dataframe_to_rows(df, index=False, header=True):
+        ws1.append(r)
+    
+    ws2 = wb.create_sheet(title="Ranking")
+    ranking_df = df[['symbol', 'rank_return', 'rank_avg_return', 'rank_std_dev', 'rank_momentum']]
+    
+    for r in dataframe_to_rows(ranking_df, index=False, header=True):
+        ws2.append(r)
+    
+    wb.save(filename)
+
+def main():
+    index_basket = input("Enter the index basket: ")
+    start_date = input("Enter the start date (YYYY-MM-DD): ")
+    end_date = input("Enter the end date (YYYY-MM-DD): ")
+    
+    data = fetch_nse_data(index_basket, start_date, end_date)
+    df = process_data(data)
+    df = calculate_metrics(df)
+    df = rank_stocks(df)
+    
+    export_to_excel(df, f"{index_basket}_data.xlsx")
+
+if __name__ == "__main__":
+    main()

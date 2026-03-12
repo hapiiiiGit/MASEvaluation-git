@@ -1,0 +1,91 @@
+import pandas as pd
+import psycopg2
+from sqlalchemy import create_engine
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime
+import os
+
+# Database connection parameters
+DB_HOST = 'your_host'
+DB_NAME = 'your_db'
+DB_USER = 'your_user'
+DB_PASS = 'your_password'
+
+# Connect to PostgreSQL database
+def connect_db():
+    conn = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS)
+    return conn
+
+# Ingest CSV data into PostgreSQL
+def ingest_csv_to_db(csv_file, table_name):
+    engine = create_engine(f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}')
+    df = pd.read_csv(csv_file)
+    df.to_sql(table_name, engine, if_exists='append', index=False)
+
+# Retrieve data from PostgreSQL
+def retrieve_data(query):
+    conn = connect_db()
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+    return df
+
+# Analyze bottlenecks
+def analyze_bottlenecks(df):
+    bottlenecks = df.groupby('stage')['time_spent'].sum().sort_values(ascending=False)
+    return bottlenecks
+
+# Analyze efficiency gaps
+def analyze_efficiency_gaps(df):
+    downtime = df[df['status'] == 'down'].groupby('equipment_id')['duration'].sum()
+    return downtime
+
+# Calculate potential savings
+def calculate_savings(bottlenecks, downtime):
+    savings = {}
+    for stage, time in bottlenecks.items():
+        savings[stage] = time * 100  # Example calculation
+    for equipment, down_time in downtime.items():
+        savings[equipment] = down_time * 50  # Example calculation
+    return savings
+
+# Generate report
+def generate_report(bottlenecks, downtime, savings):
+    report = pd.DataFrame({
+        'Bottlenecks': bottlenecks,
+        'Downtime': downtime,
+        'Potential Savings': savings
+    })
+    report.to_csv('efficiency_report.csv', index=False)
+
+    # Visualization
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=report.index, y='Potential Savings', data=report)
+    plt.title('Potential Savings from Efficiency Improvements')
+    plt.xlabel('Stages/Equipment')
+    plt.ylabel('Potential Savings ($)')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig('efficiency_report.png')
+    plt.show()
+
+# Main function
+def main():
+    # Ingest CSV data
+    csv_file = 'shop_floor_data.csv'
+    ingest_csv_to_db(csv_file, 'shop_floor_events')
+
+    # Retrieve data for analysis
+    query = 'SELECT * FROM shop_floor_events'
+    df = retrieve_data(query)
+
+    # Analyze data
+    bottlenecks = analyze_bottlenecks(df)
+    downtime = analyze_efficiency_gaps(df)
+    savings = calculate_savings(bottlenecks, downtime)
+
+    # Generate report
+    generate_report(bottlenecks, downtime, savings)
+
+if __name__ == "__main__":
+    main()

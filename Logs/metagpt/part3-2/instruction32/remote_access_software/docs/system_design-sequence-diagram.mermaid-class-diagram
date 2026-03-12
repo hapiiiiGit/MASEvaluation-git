@@ -1,0 +1,63 @@
+classDiagram
+    class RemoteAccessServer {
+        +__init__(config: dict)
+        +start()
+        +stop()
+        +authenticate(token: str) -> bool
+        +authorize(user_id: str, device_id: str) -> bool
+        +create_session(user_id: str, device_id: str) -> Session
+        +log_event(event: AuditEvent)
+    }
+    class Session {
+        +__init__(session_id: str, user: User, device: Device)
+        +start()
+        +end()
+        +transfer_file(file: File)
+        +stream_desktop()
+        +get_status() -> str
+    }
+    class User {
+        +__init__(user_id: str, roles: list[str], mfa_enabled: bool)
+        +authenticate(credentials: dict) -> bool
+        +enable_mfa()
+        +disable_mfa()
+    }
+    class Device {
+        +__init__(device_id: str, platform: str, authorized: bool)
+        +authorize(user: User) -> bool
+        +get_status() -> str
+    }
+    class FileTransfer {
+        +__init__(session: Session)
+        +send_file(file: File)
+        +receive_file(file_id: str) -> File
+    }
+    class AuditEvent {
+        +__init__(event_type: str, user_id: str, device_id: str, timestamp: datetime)
+    }
+    class Encryption {
+        +encrypt(data: bytes, key: bytes) -> bytes
+        +decrypt(data: bytes, key: bytes) -> bytes
+    }
+    class AuthProvider {
+        +authenticate_oauth(token: str) -> bool
+        +authenticate_mfa(user_id: str, code: str) -> bool
+    }
+    class RemoteAccessClient {
+        +__init__(user: User, device: Device)
+        +connect(server_addr: str)
+        +start_session(session_id: str)
+        +transfer_file(file: File)
+        +view_remote_desktop()
+        +disconnect()
+    }
+    RemoteAccessServer "1" -- "*" Session : manages
+    Session "1" -- "1" User : belongs to
+    Session "1" -- "1" Device : controls
+    Session "1" -- "*" FileTransfer : uses
+    RemoteAccessServer "1" -- "*" AuditEvent : logs
+    RemoteAccessServer "1" -- "1" AuthProvider : uses
+    RemoteAccessClient "1" -- "1" User : authenticates
+    RemoteAccessClient "1" -- "1" Device : runs on
+    RemoteAccessClient "1" -- "1" Encryption : secures
+    FileTransfer "1" -- "1" Encryption : secures

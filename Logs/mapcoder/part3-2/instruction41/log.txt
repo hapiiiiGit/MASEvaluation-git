@@ -1,0 +1,1123 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:25:50.716412
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python program to create a real-time Object Detection and Tracking system for an ISR drone on an NVIDIA Jetson Orin NX, utilizing YOLOv8 for detection and DeepSORT or ByteTrack for tracking, integrating with live camera feeds, outputting real-time metadata, and optimizing for efficiency with TensorRT.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+# Problem 1: Real-time Face Recognition and Attendance System
+Develop a Python program that uses a live camera feed to detect and recognize faces in real-time, marking attendance for recognized individuals. The system should use a pre-trained face detection model (e.g., Haar Cascades or MTCNN) and a face recognition model (e.g., FaceNet or DeepFace), and output attendance logs with timestamps.
+]]></description>
+<code><![CDATA[
+# Step 1: Import necessary libraries
+import cv2
+import face_recognition
+import numpy as np
+from datetime import datetime
+
+# Step 2: Load known faces and their encodings
+known_face_encodings = []
+known_face_names = []
+# Assume we have images of known people in a folder 'known_faces'
+import os
+for filename in os.listdir('known_faces'):
+    img = face_recognition.load_image_file(f'known_faces/{filename}')
+    encoding = face_recognition.face_encodings(img)[0]
+    known_face_encodings.append(encoding)
+    known_face_names.append(os.path.splitext(filename)[0])
+
+# Step 3: Initialize attendance log
+attendance_log = {}
+
+# Step 4: Start video capture
+video_capture = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = video_capture.read()
+    rgb_frame = frame[:, :, ::-1]
+    face_locations = face_recognition.face_locations(rgb_frame)
+    face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+    for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+        matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+        name = "Unknown"
+        if True in matches:
+            first_match_index = matches.index(True)
+            name = known_face_names[first_match_index]
+            if name not in attendance_log:
+                attendance_log[name] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+        cv2.putText(frame, name, (left, top-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255,255,255), 2)
+    cv2.imshow('Attendance System', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+video_capture.release()
+cv2.destroyAllWindows()
+
+# Step 5: Output attendance log
+for name, timestamp in attendance_log.items():
+    print(f"{name}: {timestamp}")
+]]></code>
+<planning><![CDATA[
+1. Collect and encode images of known individuals.
+2. Initialize video capture from the camera.
+3. For each frame, detect faces and compute their encodings.
+4. Compare detected faces with known encodings to recognize individuals.
+5. Mark attendance with timestamp for recognized faces.
+6. Display results in real-time and save attendance logs.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+# Problem 2: Vehicle Counting and Speed Estimation on Highway Video
+Create a Python program that processes a highway surveillance video to detect, track, and count vehicles passing through a virtual line, and estimate their speed. Use YOLOv8 for vehicle detection and DeepSORT for tracking. Output the vehicle count and estimated speed for each vehicle.
+]]></description>
+<code><![CDATA[
+# Step 1: Import libraries
+import cv2
+from ultralytics import YOLO
+from deep_sort_realtime.deepsort_tracker import DeepSort
+import numpy as np
+import time
+
+# Step 2: Load YOLOv8 model and DeepSORT tracker
+model = YOLO('yolov8n.pt')
+tracker = DeepSort(max_age=30)
+
+# Step 3: Define video capture and virtual line
+cap = cv2.VideoCapture('highway.mp4')
+line_position = 400
+vehicle_count = 0
+track_times = {}
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    results = model(frame)
+    detections = []
+    for result in results:
+        for box in result.boxes:
+            x1, y1, x2, y2 = box.xyxy[0]
+            conf = box.conf[0]
+            cls = int(box.cls[0])
+            if cls in [2, 3, 5, 7]:  # car, motorcycle, bus, truck
+                detections.append(([x1, y1, x2-x1, y2-y1], conf, 'vehicle'))
+    tracks = tracker.update_tracks(detections, frame=frame)
+    for track in tracks:
+        if not track.is_confirmed():
+            continue
+        track_id = track.track_id
+        ltrb = track.to_ltrb()
+        x1, y1, x2, y2 = map(int, ltrb)
+        centroid = ((x1 + x2)//2, (y1 + y2)//2)
+        if track_id not in track_times and centroid[1] > line_position:
+            track_times[track_id] = time.time()
+            vehicle_count += 1
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0,255,0), 2)
+        cv2.putText(frame, f'ID:{track_id}', (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
+    cv2.line(frame, (0, line_position), (frame.shape[1], line_position), (0,0,255), 2)
+    cv2.imshow('Vehicle Counting', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+print(f"Total vehicles counted: {vehicle_count}")
+]]></code>
+<planning><![CDATA[
+1. Load YOLOv8 model for vehicle detection.
+2. Initialize DeepSORT tracker for object tracking.
+3. Define a virtual line for counting vehicles.
+4. For each frame, detect vehicles and update tracker.
+5. When a tracked vehicle crosses the line, increment the count and record time.
+6. Optionally, estimate speed based on time and known distance.
+7. Display results and output final counts.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+# Problem 3: Real-time Social Distancing Monitoring in Public Spaces
+Design a Python program that uses a live camera feed to detect people and monitor social distancing in real-time. The system should use YOLOv8 for person detection, compute pairwise distances between detected people, and alert when the distance falls below a threshold.
+]]></description>
+<code><![CDATA[
+# Step 1: Import libraries
+import cv2
+from ultralytics import YOLO
+import numpy as np
+
+# Step 2: Load YOLOv8 model
+model = YOLO('yolov8n.pt')
+
+# Step 3: Start video capture
+cap = cv2.VideoCapture(0)
+DIST_THRESHOLD = 100  # pixels, for demonstration
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    results = model(frame)
+    person_boxes = []
+    for result in results:
+        for box in result.boxes:
+            cls = int(box.cls[0])
+            if cls == 0:  # person class
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                person_boxes.append(((x1+x2)//2, (y1+y2)//2))
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0,255,0), 2)
+    # Compute pairwise distances
+    for i in range(len(person_boxes)):
+        for j in range(i+1, len(person_boxes)):
+            dist = np.linalg.norm(np.array(person_boxes[i]) - np.array(person_boxes[j]))
+            if dist < DIST_THRESHOLD:
+                cv2.line(frame, person_boxes[i], person_boxes[j], (0,0,255), 2)
+    cv2.imshow('Social Distancing Monitor', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+]]></code>
+<planning><![CDATA[
+1. Load YOLOv8 model for person detection.
+2. Start capturing frames from the camera.
+3. For each frame, detect all people and extract their centroids.
+4. Compute pairwise distances between all detected people.
+5. If any pair is closer than the threshold, draw a red line and alert.
+6. Display the annotated frame in real-time.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem requires a combination of real-time object detection and tracking, optimized for edge devices (NVIDIA Jetson Orin NX) and integrated with live camera feeds. The main algorithms involved are:
+
+1. **Convolutional Neural Networks (CNNs) for Object Detection**: YOLOv8 is a state-of-the-art, real-time object detection algorithm based on CNNs. It processes images in a single pass, predicting bounding boxes and class probabilities directly from full images.
+
+2. **Multi-Object Tracking (MOT) Algorithms**: DeepSORT and ByteTrack are popular tracking algorithms. DeepSORT uses appearance features and Kalman filtering for robust tracking, while ByteTrack focuses on associating high and low confidence detections for improved tracking accuracy.
+
+3. **Hardware Acceleration (TensorRT)**: TensorRT is a high-performance deep learning inference optimizer and runtime library for NVIDIA GPUs, enabling efficient deployment of models on edge devices.
+
+# Tutorial: Real-time Object Detection and Tracking Pipeline
+
+## Step 1: Object Detection with YOLOv8
+- **Model Selection**: Choose a YOLOv8 variant (nano, small, medium, etc.) based on the device's compute capability.
+- **Preprocessing**: Resize and normalize input frames as required by the model.
+- **Inference**: Run the model on each frame to obtain bounding boxes, class labels, and confidence scores.
+- **Postprocessing**: Apply non-maximum suppression (NMS) to filter overlapping boxes.
+
+## Step 2: Multi-Object Tracking (DeepSORT/ByteTrack)
+- **Detection Input**: Pass YOLOv8 detections to the tracker.
+- **Feature Extraction**: For DeepSORT, extract appearance features (embeddings) for each detected object.
+- **Data Association**: Match current detections to existing tracks using metrics like IoU (Intersection over Union) and appearance similarity.
+- **Track Management**: Initialize new tracks, update existing ones, and remove lost tracks.
+
+## Step 3: Integration with Live Camera Feeds
+- **Video Capture**: Use OpenCV or GStreamer to capture frames from the camera.
+- **Real-time Processing**: Process each frame sequentially, ensuring minimal latency.
+- **Metadata Output**: For each frame, output object IDs, classes, bounding boxes, and optionally, tracking history.
+
+## Step 4: Optimization with TensorRT
+- **Model Conversion**: Convert the YOLOv8 model to ONNX, then to TensorRT engine.
+- **Inference Acceleration**: Use TensorRT runtime for fast inference on NVIDIA Jetson devices.
+- **Batching and Precision**: Experiment with FP16 or INT8 precision for further speedup.
+
+## Step 5: Efficiency Considerations
+- **Frame Skipping**: Optionally process every Nth frame to balance speed and accuracy.
+- **Model Size**: Use smaller models for faster inference if needed.
+- **Pipeline Parallelism**: Use threading or multiprocessing to overlap capture, inference, and display.
+
+## Step 6: Deployment
+- **Test on Target Device**: Profile and optimize the pipeline on the Jetson Orin NX.
+- **Resource Monitoring**: Monitor GPU/CPU usage and adjust parameters for stable real-time performance.
+
+This pipeline is modular and can be adapted for various real-time detection and tracking applications, especially on resource-constrained edge devices.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+# Problem 1: Real-time Face Recognition and Attendance System
+Develop a Python program that uses a live camera feed to detect and recognize faces in real-time, marking attendance for recognized individuals. The system should use a pre-trained face detection model (e.g., Haar Cascades or MTCNN) and a face recognition model (e.g., FaceNet or DeepFace), and output attendance logs with timestamps.
+
+# Planning:
+
+1. Collect and encode images of known individuals.
+2. Initialize video capture from the camera.
+3. For each frame, detect faces and compute their encodings.
+4. Compare detected faces with known encodings to recognize individuals.
+5. Mark attendance with timestamp for recognized faces.
+6. Display results in real-time and save attendance logs.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of real-time object detection and tracking, optimized for edge devices (NVIDIA Jetson Orin NX) and integrated with live camera feeds. The main algorithms involved are:
+
+1. **Convolutional Neural Networks (CNNs) for Object Detection**: YOLOv8 is a state-of-the-art, real-time object detection algorithm based on CNNs. It processes images in a single pass, predicting bounding boxes and class probabilities directly from full images.
+
+2. **Multi-Object Tracking (MOT) Algorithms**: DeepSORT and ByteTrack are popular tracking algorithms. DeepSORT uses appearance features and Kalman filtering for robust tracking, while ByteTrack focuses on associating high and low confidence detections for improved tracking accuracy.
+
+3. **Hardware Acceleration (TensorRT)**: TensorRT is a high-performance deep learning inference optimizer and runtime library for NVIDIA GPUs, enabling efficient deployment of models on edge devices.
+
+# Tutorial: Real-time Object Detection and Tracking Pipeline
+
+## Step 1: Object Detection with YOLOv8
+- **Model Selection**: Choose a YOLOv8 variant (nano, small, medium, etc.) based on the device's compute capability.
+- **Preprocessing**: Resize and normalize input frames as required by the model.
+- **Inference**: Run the model on each frame to obtain bounding boxes, class labels, and confidence scores.
+- **Postprocessing**: Apply non-maximum suppression (NMS) to filter overlapping boxes.
+
+## Step 2: Multi-Object Tracking (DeepSORT/ByteTrack)
+- **Detection Input**: Pass YOLOv8 detections to the tracker.
+- **Feature Extraction**: For DeepSORT, extract appearance features (embeddings) for each detected object.
+- **Data Association**: Match current detections to existing tracks using metrics like IoU (Intersection over Union) and appearance similarity.
+- **Track Management**: Initialize new tracks, update existing ones, and remove lost tracks.
+
+## Step 3: Integration with Live Camera Feeds
+- **Video Capture**: Use OpenCV or GStreamer to capture frames from the camera.
+- **Real-time Processing**: Process each frame sequentially, ensuring minimal latency.
+- **Metadata Output**: For each frame, output object IDs, classes, bounding boxes, and optionally, tracking history.
+
+## Step 4: Optimization with TensorRT
+- **Model Conversion**: Convert the YOLOv8 model to ONNX, then to TensorRT engine.
+- **Inference Acceleration**: Use TensorRT runtime for fast inference on NVIDIA Jetson devices.
+- **Batching and Precision**: Experiment with FP16 or INT8 precision for further speedup.
+
+## Step 5: Efficiency Considerations
+- **Frame Skipping**: Optionally process every Nth frame to balance speed and accuracy.
+- **Model Size**: Use smaller models for faster inference if needed.
+- **Pipeline Parallelism**: Use threading or multiprocessing to overlap capture, inference, and display.
+
+## Step 6: Deployment
+- **Test on Target Device**: Profile and optimize the pipeline on the Jetson Orin NX.
+- **Resource Monitoring**: Monitor GPU/CPU usage and adjust parameters for stable real-time performance.
+
+This pipeline is modular and can be adapted for various real-time detection and tracking applications, especially on resource-constrained edge devices.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a real-time Object Detection and Tracking system for an ISR drone on an NVIDIA Jetson Orin NX, utilizing YOLOv8 for detection and DeepSORT or ByteTrack for tracking, integrating with live camera feeds, outputting real-time metadata, and optimizing for efficiency with TensorRT.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. **Environment Setup**
+   - Install required libraries: ultralytics (YOLOv8), OpenCV, DeepSORT/ByteTrack dependencies, TensorRT, ONNX, PyCUDA.
+   - Set up Python environment on NVIDIA Jetson Orin NX.
+
+2. **Model Preparation**
+   - Download or train a YOLOv8 model (nano/small for edge).
+   - Export YOLOv8 model to ONNX format.
+   - Convert ONNX model to TensorRT engine for optimized inference.
+
+3. **Tracker Integration**
+   - Choose and set up DeepSORT or ByteTrack.
+   - Prepare feature extractor (for DeepSORT) or configure ByteTrack.
+   - Integrate tracker with detection pipeline.
+
+4. **Camera Integration**
+   - Initialize live camera feed using OpenCV or GStreamer.
+   - Set camera resolution and frame rate for optimal performance.
+
+5. **Real-time Detection and Tracking Pipeline**
+   - For each captured frame:
+     - Preprocess frame (resize, normalize).
+     - Run inference using TensorRT-accelerated YOLOv8.
+     - Postprocess detections (NMS, format for tracker).
+     - Pass detections to tracker (DeepSORT/ByteTrack).
+     - Update and manage object tracks.
+
+6. **Metadata Output**
+   - For each frame, extract and output:
+     - Object IDs, classes, bounding boxes, confidence scores.
+     - Optionally, tracking history and timestamps.
+   - Save or stream metadata as required (e.g., JSON, CSV, network).
+
+7. **Visualization (Optional)**
+   - Overlay bounding boxes, IDs, and classes on video frames.
+   - Display real-time video with annotations.
+
+8. **Efficiency Optimization**
+   - Use FP16/INT8 precision in TensorRT.
+   - Implement frame skipping or dynamic frame rate adjustment.
+   - Use threading/multiprocessing for parallel capture, inference, and display.
+   - Monitor and optimize GPU/CPU/memory usage.
+
+9. **Testing and Deployment**
+   - Test pipeline on Jetson Orin NX with live camera.
+   - Profile latency and throughput; adjust parameters for real-time performance.
+   - Ensure robustness and reliability for ISR drone deployment.
+
+10. **Documentation and Maintenance**
+    - Document code, configuration, and deployment steps.
+    - Prepare scripts for model conversion, pipeline launch, and monitoring.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to create a real-time Object Detection and Tracking system for an ISR drone on an NVIDIA Jetson Orin NX, utilizing YOLOv8 for detection and DeepSORT or ByteTrack for tracking, integrating with live camera feeds, outputting real-time metadata, and optimizing for efficiency with TensorRT.
+
+# Planning:
+**Planning:**
+
+1. **Environment Setup**
+   - Install required libraries: ultralytics (YOLOv8), OpenCV, DeepSORT/ByteTrack dependencies, TensorRT, ONNX, PyCUDA.
+   - Set up Python environment on NVIDIA Jetson Orin NX.
+
+2. **Model Preparation**
+   - Download or train a YOLOv8 model (nano/small for edge).
+   - Export YOLOv8 model to ONNX format.
+   - Convert ONNX model to TensorRT engine for optimized inference.
+
+3. **Tracker Integration**
+   - Choose and set up DeepSORT or ByteTrack.
+   - Prepare feature extractor (for DeepSORT) or configure ByteTrack.
+   - Integrate tracker with detection pipeline.
+
+4. **Camera Integration**
+   - Initialize live camera feed using OpenCV or GStreamer.
+   - Set camera resolution and frame rate for optimal performance.
+
+5. **Real-time Detection and Tracking Pipeline**
+   - For each captured frame:
+     - Preprocess frame (resize, normalize).
+     - Run inference using TensorRT-accelerated YOLOv8.
+     - Postprocess detections (NMS, format for tracker).
+     - Pass detections to tracker (DeepSORT/ByteTrack).
+     - Update and manage object tracks.
+
+6. **Metadata Output**
+   - For each frame, extract and output:
+     - Object IDs, classes, bounding boxes, confidence scores.
+     - Optionally, tracking history and timestamps.
+   - Save or stream metadata as required (e.g., JSON, CSV, network).
+
+7. **Visualization (Optional)**
+   - Overlay bounding boxes, IDs, and classes on video frames.
+   - Display real-time video with annotations.
+
+8. **Efficiency Optimization**
+   - Use FP16/INT8 precision in TensorRT.
+   - Implement frame skipping or dynamic frame rate adjustment.
+   - Use threading/multiprocessing for parallel capture, inference, and display.
+   - Monitor and optimize GPU/CPU/memory usage.
+
+9. **Testing and Deployment**
+   - Test pipeline on Jetson Orin NX with live camera.
+   - Profile latency and throughput; adjust parameters for real-time performance.
+   - Ensure robustness and reliability for ISR drone deployment.
+
+10. **Documentation and Maintenance**
+    - Document code, configuration, and deployment steps.
+    - Prepare scripts for model conversion, pipeline launch, and monitoring.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a complex real-world engineering task involving real-time object detection and tracking on embedded hardware (NVIDIA Jetson Orin NX) using YOLOv8 and DeepSORT/ByteTrack, with optimizations for efficiency (TensorRT). The provided plan is comprehensive and covers all necessary steps, including environment setup, model preparation, tracker integration, camera feed handling, real-time processing, metadata output, visualization, optimization, testing, and documentation. Each step logically follows from the requirements and addresses the challenges of deploying such a system on edge hardware. Therefore, the plan is correct and sufficient to solve the described problem, assuming the implementer has the required technical expertise and resources.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+# Problem 2: Vehicle Counting and Speed Estimation on Highway Video
+Create a Python program that processes a highway surveillance video to detect, track, and count vehicles passing through a virtual line, and estimate their speed. Use YOLOv8 for vehicle detection and DeepSORT for tracking. Output the vehicle count and estimated speed for each vehicle.
+
+# Planning:
+
+1. Load YOLOv8 model for vehicle detection.
+2. Initialize DeepSORT tracker for object tracking.
+3. Define a virtual line for counting vehicles.
+4. For each frame, detect vehicles and update tracker.
+5. When a tracked vehicle crosses the line, increment the count and record time.
+6. Optionally, estimate speed based on time and known distance.
+7. Display results and output final counts.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of real-time object detection and tracking, optimized for edge devices (NVIDIA Jetson Orin NX) and integrated with live camera feeds. The main algorithms involved are:
+
+1. **Convolutional Neural Networks (CNNs) for Object Detection**: YOLOv8 is a state-of-the-art, real-time object detection algorithm based on CNNs. It processes images in a single pass, predicting bounding boxes and class probabilities directly from full images.
+
+2. **Multi-Object Tracking (MOT) Algorithms**: DeepSORT and ByteTrack are popular tracking algorithms. DeepSORT uses appearance features and Kalman filtering for robust tracking, while ByteTrack focuses on associating high and low confidence detections for improved tracking accuracy.
+
+3. **Hardware Acceleration (TensorRT)**: TensorRT is a high-performance deep learning inference optimizer and runtime library for NVIDIA GPUs, enabling efficient deployment of models on edge devices.
+
+# Tutorial: Real-time Object Detection and Tracking Pipeline
+
+## Step 1: Object Detection with YOLOv8
+- **Model Selection**: Choose a YOLOv8 variant (nano, small, medium, etc.) based on the device's compute capability.
+- **Preprocessing**: Resize and normalize input frames as required by the model.
+- **Inference**: Run the model on each frame to obtain bounding boxes, class labels, and confidence scores.
+- **Postprocessing**: Apply non-maximum suppression (NMS) to filter overlapping boxes.
+
+## Step 2: Multi-Object Tracking (DeepSORT/ByteTrack)
+- **Detection Input**: Pass YOLOv8 detections to the tracker.
+- **Feature Extraction**: For DeepSORT, extract appearance features (embeddings) for each detected object.
+- **Data Association**: Match current detections to existing tracks using metrics like IoU (Intersection over Union) and appearance similarity.
+- **Track Management**: Initialize new tracks, update existing ones, and remove lost tracks.
+
+## Step 3: Integration with Live Camera Feeds
+- **Video Capture**: Use OpenCV or GStreamer to capture frames from the camera.
+- **Real-time Processing**: Process each frame sequentially, ensuring minimal latency.
+- **Metadata Output**: For each frame, output object IDs, classes, bounding boxes, and optionally, tracking history.
+
+## Step 4: Optimization with TensorRT
+- **Model Conversion**: Convert the YOLOv8 model to ONNX, then to TensorRT engine.
+- **Inference Acceleration**: Use TensorRT runtime for fast inference on NVIDIA Jetson devices.
+- **Batching and Precision**: Experiment with FP16 or INT8 precision for further speedup.
+
+## Step 5: Efficiency Considerations
+- **Frame Skipping**: Optionally process every Nth frame to balance speed and accuracy.
+- **Model Size**: Use smaller models for faster inference if needed.
+- **Pipeline Parallelism**: Use threading or multiprocessing to overlap capture, inference, and display.
+
+## Step 6: Deployment
+- **Test on Target Device**: Profile and optimize the pipeline on the Jetson Orin NX.
+- **Resource Monitoring**: Monitor GPU/CPU usage and adjust parameters for stable real-time performance.
+
+This pipeline is modular and can be adapted for various real-time detection and tracking applications, especially on resource-constrained edge devices.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a real-time Object Detection and Tracking system for an ISR drone on an NVIDIA Jetson Orin NX, utilizing YOLOv8 for detection and DeepSORT or ByteTrack for tracking, integrating with live camera feeds, outputting real-time metadata, and optimizing for efficiency with TensorRT.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Set up the NVIDIA Jetson Orin NX environment with necessary dependencies (PyTorch, OpenCV, YOLOv8, DeepSORT/ByteTrack, TensorRT).
+2. Convert the YOLOv8 model to ONNX format and optimize with TensorRT for accelerated inference.
+3. Initialize live camera feed capture using OpenCV or GStreamer.
+4. Load the optimized YOLOv8 model for real-time object detection.
+5. Initialize the DeepSORT or ByteTrack tracker for multi-object tracking.
+6. For each captured frame:
+    a. Preprocess the frame for YOLOv8 input requirements.
+    b. Run inference using the TensorRT-optimized YOLOv8 model to detect objects.
+    c. Filter detections for relevant classes (e.g., vehicles, persons).
+    d. Pass detections to the tracker to assign consistent IDs and track objects.
+    e. Collect and store metadata (object ID, class, bounding box, timestamp).
+    f. Optionally, visualize detections and tracks on the frame.
+7. Output real-time metadata (object ID, class, bounding box, track history) for each frame.
+8. Implement efficiency optimizations:
+    a. Use FP16/INT8 precision in TensorRT.
+    b. Skip frames if necessary to maintain real-time performance.
+    c. Use threading or multiprocessing for parallel capture, inference, and display.
+9. Continuously monitor system resource usage and adjust parameters for optimal performance.
+10. Test and validate the system on the Jetson Orin NX with live camera feeds.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to create a real-time Object Detection and Tracking system for an ISR drone on an NVIDIA Jetson Orin NX, utilizing YOLOv8 for detection and DeepSORT or ByteTrack for tracking, integrating with live camera feeds, outputting real-time metadata, and optimizing for efficiency with TensorRT.
+
+# Planning:
+**Planning:**
+
+1. Set up the NVIDIA Jetson Orin NX environment with necessary dependencies (PyTorch, OpenCV, YOLOv8, DeepSORT/ByteTrack, TensorRT).
+2. Convert the YOLOv8 model to ONNX format and optimize with TensorRT for accelerated inference.
+3. Initialize live camera feed capture using OpenCV or GStreamer.
+4. Load the optimized YOLOv8 model for real-time object detection.
+5. Initialize the DeepSORT or ByteTrack tracker for multi-object tracking.
+6. For each captured frame:
+    a. Preprocess the frame for YOLOv8 input requirements.
+    b. Run inference using the TensorRT-optimized YOLOv8 model to detect objects.
+    c. Filter detections for relevant classes (e.g., vehicles, persons).
+    d. Pass detections to the tracker to assign consistent IDs and track objects.
+    e. Collect and store metadata (object ID, class, bounding box, timestamp).
+    f. Optionally, visualize detections and tracks on the frame.
+7. Output real-time metadata (object ID, class, bounding box, track history) for each frame.
+8. Implement efficiency optimizations:
+    a. Use FP16/INT8 precision in TensorRT.
+    b. Skip frames if necessary to maintain real-time performance.
+    c. Use threading or multiprocessing for parallel capture, inference, and display.
+9. Continuously monitor system resource usage and adjust parameters for optimal performance.
+10. Test and validate the system on the Jetson Orin NX with live camera feeds.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a real-world systems engineering and computer vision task involving hardware (Jetson Orin NX), deep learning models (YOLOv8), tracking algorithms (DeepSORT/ByteTrack), and optimization (TensorRT). The provided plan is comprehensive and covers all necessary steps: environment setup, model conversion and optimization, live camera integration, detection and tracking pipeline, metadata output, efficiency improvements, and validation. Each step logically follows from the requirements and addresses both software and hardware constraints. While the plan is correct and feasible for implementation in Python3, it is not directly related to competitive programming, which usually involves algorithmic problem solving with well-defined inputs and outputs. However, if the task is interpreted as a systems integration and implementation challenge, the plan is well-suited to solve the problem as described.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+# Problem 3: Real-time Social Distancing Monitoring in Public Spaces
+Design a Python program that uses a live camera feed to detect people and monitor social distancing in real-time. The system should use YOLOv8 for person detection, compute pairwise distances between detected people, and alert when the distance falls below a threshold.
+
+# Planning:
+
+1. Load YOLOv8 model for person detection.
+2. Start capturing frames from the camera.
+3. For each frame, detect all people and extract their centroids.
+4. Compute pairwise distances between all detected people.
+5. If any pair is closer than the threshold, draw a red line and alert.
+6. Display the annotated frame in real-time.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of real-time object detection and tracking, optimized for edge devices (NVIDIA Jetson Orin NX) and integrated with live camera feeds. The main algorithms involved are:
+
+1. **Convolutional Neural Networks (CNNs) for Object Detection**: YOLOv8 is a state-of-the-art, real-time object detection algorithm based on CNNs. It processes images in a single pass, predicting bounding boxes and class probabilities directly from full images.
+
+2. **Multi-Object Tracking (MOT) Algorithms**: DeepSORT and ByteTrack are popular tracking algorithms. DeepSORT uses appearance features and Kalman filtering for robust tracking, while ByteTrack focuses on associating high and low confidence detections for improved tracking accuracy.
+
+3. **Hardware Acceleration (TensorRT)**: TensorRT is a high-performance deep learning inference optimizer and runtime library for NVIDIA GPUs, enabling efficient deployment of models on edge devices.
+
+# Tutorial: Real-time Object Detection and Tracking Pipeline
+
+## Step 1: Object Detection with YOLOv8
+- **Model Selection**: Choose a YOLOv8 variant (nano, small, medium, etc.) based on the device's compute capability.
+- **Preprocessing**: Resize and normalize input frames as required by the model.
+- **Inference**: Run the model on each frame to obtain bounding boxes, class labels, and confidence scores.
+- **Postprocessing**: Apply non-maximum suppression (NMS) to filter overlapping boxes.
+
+## Step 2: Multi-Object Tracking (DeepSORT/ByteTrack)
+- **Detection Input**: Pass YOLOv8 detections to the tracker.
+- **Feature Extraction**: For DeepSORT, extract appearance features (embeddings) for each detected object.
+- **Data Association**: Match current detections to existing tracks using metrics like IoU (Intersection over Union) and appearance similarity.
+- **Track Management**: Initialize new tracks, update existing ones, and remove lost tracks.
+
+## Step 3: Integration with Live Camera Feeds
+- **Video Capture**: Use OpenCV or GStreamer to capture frames from the camera.
+- **Real-time Processing**: Process each frame sequentially, ensuring minimal latency.
+- **Metadata Output**: For each frame, output object IDs, classes, bounding boxes, and optionally, tracking history.
+
+## Step 4: Optimization with TensorRT
+- **Model Conversion**: Convert the YOLOv8 model to ONNX, then to TensorRT engine.
+- **Inference Acceleration**: Use TensorRT runtime for fast inference on NVIDIA Jetson devices.
+- **Batching and Precision**: Experiment with FP16 or INT8 precision for further speedup.
+
+## Step 5: Efficiency Considerations
+- **Frame Skipping**: Optionally process every Nth frame to balance speed and accuracy.
+- **Model Size**: Use smaller models for faster inference if needed.
+- **Pipeline Parallelism**: Use threading or multiprocessing to overlap capture, inference, and display.
+
+## Step 6: Deployment
+- **Test on Target Device**: Profile and optimize the pipeline on the Jetson Orin NX.
+- **Resource Monitoring**: Monitor GPU/CPU usage and adjust parameters for stable real-time performance.
+
+This pipeline is modular and can be adapted for various real-time detection and tracking applications, especially on resource-constrained edge devices.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a real-time Object Detection and Tracking system for an ISR drone on an NVIDIA Jetson Orin NX, utilizing YOLOv8 for detection and DeepSORT or ByteTrack for tracking, integrating with live camera feeds, outputting real-time metadata, and optimizing for efficiency with TensorRT.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Set up the NVIDIA Jetson Orin NX environment with required dependencies (PyTorch, OpenCV, YOLOv8, DeepSORT/ByteTrack, TensorRT).
+2. Convert YOLOv8 model to ONNX format and optimize with TensorRT for accelerated inference.
+3. Initialize live camera feed using OpenCV or GStreamer.
+4. For each captured frame:
+    a. Preprocess frame for YOLOv8 input.
+    b. Run YOLOv8 inference to detect objects.
+    c. Apply non-maximum suppression to filter detections.
+    d. Extract bounding boxes, class labels, and confidence scores.
+    e. Pass detections to DeepSORT or ByteTrack tracker.
+    f. Update and manage object tracks (IDs, positions, history).
+    g. Overlay bounding boxes, track IDs, and metadata on frame.
+    h. Output real-time metadata (object ID, class, bounding box coordinates, timestamp).
+5. Display annotated frames in real-time.
+6. Implement frame skipping or batching for efficiency if needed.
+7. Monitor system resource usage and adjust pipeline parameters for optimal real-time performance.
+8. Test and validate the system on the Jetson Orin NX with live camera feeds.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to create a real-time Object Detection and Tracking system for an ISR drone on an NVIDIA Jetson Orin NX, utilizing YOLOv8 for detection and DeepSORT or ByteTrack for tracking, integrating with live camera feeds, outputting real-time metadata, and optimizing for efficiency with TensorRT.
+
+# Planning:
+**Planning:**
+
+1. Set up the NVIDIA Jetson Orin NX environment with required dependencies (PyTorch, OpenCV, YOLOv8, DeepSORT/ByteTrack, TensorRT).
+2. Convert YOLOv8 model to ONNX format and optimize with TensorRT for accelerated inference.
+3. Initialize live camera feed using OpenCV or GStreamer.
+4. For each captured frame:
+    a. Preprocess frame for YOLOv8 input.
+    b. Run YOLOv8 inference to detect objects.
+    c. Apply non-maximum suppression to filter detections.
+    d. Extract bounding boxes, class labels, and confidence scores.
+    e. Pass detections to DeepSORT or ByteTrack tracker.
+    f. Update and manage object tracks (IDs, positions, history).
+    g. Overlay bounding boxes, track IDs, and metadata on frame.
+    h. Output real-time metadata (object ID, class, bounding box coordinates, timestamp).
+5. Display annotated frames in real-time.
+6. Implement frame skipping or batching for efficiency if needed.
+7. Monitor system resource usage and adjust pipeline parameters for optimal real-time performance.
+8. Test and validate the system on the Jetson Orin NX with live camera feeds.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a real-world systems engineering and computer vision task involving hardware (NVIDIA Jetson Orin NX), deep learning models (YOLOv8), tracking algorithms (DeepSORT/ByteTrack), and optimization (TensorRT). The provided plan is comprehensive and covers all necessary steps to implement a real-time object detection and tracking system on the specified hardware. It includes environment setup, model optimization, live feed integration, detection, tracking, metadata output, efficiency considerations, and validation. While the plan is correct and feasible for the described task, it is not directly related to competitive programming, which usually involves algorithmic problem solving with well-defined input/output formats and constraints. However, if the goal is to implement the described system in Python3, the plan is appropriate and should lead to a successful solution.\n', 'confidence': 95}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of real-time object detection and tracking, optimized for edge devices (NVIDIA Jetson Orin NX) and integrated with live camera feeds. The main algorithms involved are:
+
+1. **Convolutional Neural Networks (CNNs) for Object Detection**: YOLOv8 is a state-of-the-art, real-time object detection algorithm based on CNNs. It processes images in a single pass, predicting bounding boxes and class probabilities directly from full images.
+
+2. **Multi-Object Tracking (MOT) Algorithms**: DeepSORT and ByteTrack are popular tracking algorithms. DeepSORT uses appearance features and Kalman filtering for robust tracking, while ByteTrack focuses on associating high and low confidence detections for improved tracking accuracy.
+
+3. **Hardware Acceleration (TensorRT)**: TensorRT is a high-performance deep learning inference optimizer and runtime library for NVIDIA GPUs, enabling efficient deployment of models on edge devices.
+
+# Tutorial: Real-time Object Detection and Tracking Pipeline
+
+## Step 1: Object Detection with YOLOv8
+- **Model Selection**: Choose a YOLOv8 variant (nano, small, medium, etc.) based on the device's compute capability.
+- **Preprocessing**: Resize and normalize input frames as required by the model.
+- **Inference**: Run the model on each frame to obtain bounding boxes, class labels, and confidence scores.
+- **Postprocessing**: Apply non-maximum suppression (NMS) to filter overlapping boxes.
+
+## Step 2: Multi-Object Tracking (DeepSORT/ByteTrack)
+- **Detection Input**: Pass YOLOv8 detections to the tracker.
+- **Feature Extraction**: For DeepSORT, extract appearance features (embeddings) for each detected object.
+- **Data Association**: Match current detections to existing tracks using metrics like IoU (Intersection over Union) and appearance similarity.
+- **Track Management**: Initialize new tracks, update existing ones, and remove lost tracks.
+
+## Step 3: Integration with Live Camera Feeds
+- **Video Capture**: Use OpenCV or GStreamer to capture frames from the camera.
+- **Real-time Processing**: Process each frame sequentially, ensuring minimal latency.
+- **Metadata Output**: For each frame, output object IDs, classes, bounding boxes, and optionally, tracking history.
+
+## Step 4: Optimization with TensorRT
+- **Model Conversion**: Convert the YOLOv8 model to ONNX, then to TensorRT engine.
+- **Inference Acceleration**: Use TensorRT runtime for fast inference on NVIDIA Jetson devices.
+- **Batching and Precision**: Experiment with FP16 or INT8 precision for further speedup.
+
+## Step 5: Efficiency Considerations
+- **Frame Skipping**: Optionally process every Nth frame to balance speed and accuracy.
+- **Model Size**: Use smaller models for faster inference if needed.
+- **Pipeline Parallelism**: Use threading or multiprocessing to overlap capture, inference, and display.
+
+## Step 6: Deployment
+- **Test on Target Device**: Profile and optimize the pipeline on the Jetson Orin NX.
+- **Resource Monitoring**: Monitor GPU/CPU usage and adjust parameters for stable real-time performance.
+
+This pipeline is modular and can be adapted for various real-time detection and tracking applications, especially on resource-constrained edge devices.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a real-time Object Detection and Tracking system for an ISR drone on an NVIDIA Jetson Orin NX, utilizing YOLOv8 for detection and DeepSORT or ByteTrack for tracking, integrating with live camera feeds, outputting real-time metadata, and optimizing for efficiency with TensorRT.
+
+## Planning:
+**Planning:**
+
+1. **Environment Setup**
+   - Install required libraries: ultralytics (YOLOv8), OpenCV, DeepSORT/ByteTrack dependencies, TensorRT, ONNX, PyCUDA.
+   - Set up Python environment on NVIDIA Jetson Orin NX.
+
+2. **Model Preparation**
+   - Download or train a YOLOv8 model (nano/small for edge).
+   - Export YOLOv8 model to ONNX format.
+   - Convert ONNX model to TensorRT engine for optimized inference.
+
+3. **Tracker Integration**
+   - Choose and set up DeepSORT or ByteTrack.
+   - Prepare feature extractor (for DeepSORT) or configure ByteTrack.
+   - Integrate tracker with detection pipeline.
+
+4. **Camera Integration**
+   - Initialize live camera feed using OpenCV or GStreamer.
+   - Set camera resolution and frame rate for optimal performance.
+
+5. **Real-time Detection and Tracking Pipeline**
+   - For each captured frame:
+     - Preprocess frame (resize, normalize).
+     - Run inference using TensorRT-accelerated YOLOv8.
+     - Postprocess detections (NMS, format for tracker).
+     - Pass detections to tracker (DeepSORT/ByteTrack).
+     - Update and manage object tracks.
+
+6. **Metadata Output**
+   - For each frame, extract and output:
+     - Object IDs, classes, bounding boxes, confidence scores.
+     - Optionally, tracking history and timestamps.
+   - Save or stream metadata as required (e.g., JSON, CSV, network).
+
+7. **Visualization (Optional)**
+   - Overlay bounding boxes, IDs, and classes on video frames.
+   - Display real-time video with annotations.
+
+8. **Efficiency Optimization**
+   - Use FP16/INT8 precision in TensorRT.
+   - Implement frame skipping or dynamic frame rate adjustment.
+   - Use threading/multiprocessing for parallel capture, inference, and display.
+   - Monitor and optimize GPU/CPU/memory usage.
+
+9. **Testing and Deployment**
+   - Test pipeline on Jetson Orin NX with live camera.
+   - Profile latency and throughput; adjust parameters for real-time performance.
+   - Ensure robustness and reliability for ISR drone deployment.
+
+10. **Documentation and Maintenance**
+    - Document code, configuration, and deployment steps.
+    - Prepare scripts for model conversion, pipeline launch, and monitoring.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+import cv2
+import numpy as np
+import time
+import threading
+import queue
+import json
+import os
+
+# --- YOLOv8 + TensorRT Inference ---
+import tensorrt as trt
+import pycuda.driver as cuda
+import pycuda.autoinit
+
+# --- DeepSORT ---
+from deep_sort_realtime.deepsort_tracker import DeepSort
+
+# --- CONFIGURATION ---
+YOLO_ENGINE_PATH = "yolov8n.trt"  # Path to TensorRT engine
+YOLO_INPUT_SIZE = (640, 640)      # Input size for YOLOv8
+YOLO_CLASSES = [
+    # COCO classes (80)
+    "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
+    "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
+    "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
+    "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
+    "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
+    "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+    "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
+    "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse",
+    "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator",
+    "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
+]
+CONF_THRESH = 0.3
+NMS_THRESH = 0.45
+FRAME_SKIP = 0  # Set >0 to skip frames for speed
+
+# --- TensorRT YOLOv8 Wrapper ---
+class TRT_YOLOv8:
+    def __init__(self, engine_path, input_size=(640, 640)):
+        self.input_size = input_size
+        self.logger = trt.Logger(trt.Logger.INFO)
+        with open(engine_path, "rb") as f, trt.Runtime(self.logger) as runtime:
+            self.engine = runtime.deserialize_cuda_engine(f.read())
+        self.context = self.engine.create_execution_context()
+        self.inputs, self.outputs, self.bindings, self.stream = self.allocate_buffers()
+
+    def allocate_buffers(self):
+        inputs = []
+        outputs = []
+        bindings = []
+        stream = cuda.Stream()
+        for binding in self.engine:
+            size = trt.volume(self.engine.get_binding_shape(binding)) * self.engine.max_batch_size
+            dtype = trt.nptype(self.engine.get_binding_dtype(binding))
+            host_mem = cuda.pagelocked_empty(size, dtype)
+            device_mem = cuda.mem_alloc(host_mem.nbytes)
+            bindings.append(int(device_mem))
+            if self.engine.binding_is_input(binding):
+                inputs.append({'host': host_mem, 'device': device_mem})
+            else:
+                outputs.append({'host': host_mem, 'device': device_mem})
+        return inputs, outputs, bindings, stream
+
+    def preprocess(self, img):
+        img = cv2.resize(img, self.input_size)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = img.astype(np.float32) / 255.0
+        img = np.transpose(img, (2, 0, 1))
+        img = np.expand_dims(img, 0)
+        return img
+
+    def infer(self, img):
+        img_input = self.preprocess(img)
+        np.copyto(self.inputs[0]['host'], img_input.ravel())
+        cuda.memcpy_htod_async(self.inputs[0]['device'], self.inputs[0]['host'], self.stream)
+        self.context.execute_async_v2(bindings=self.bindings, stream_handle=self.stream.handle)
+        for out in self.outputs:
+            cuda.memcpy_dtoh_async(out['host'], out['device'], self.stream)
+        self.stream.synchronize()
+        return [out['host'] for out in self.outputs]
+
+    def postprocess(self, outputs, orig_shape):
+        # YOLOv8 ONNX/TensorRT output: (batch, num, 84) [x, y, w, h, conf, 80 classes]
+        pred = outputs[0]
+        pred = pred.reshape(-1, len(YOLO_CLASSES) + 5)
+        boxes = []
+        confidences = []
+        class_ids = []
+        for det in pred:
+            scores = det[5:]
+            class_id = np.argmax(scores)
+            conf = det[4] * scores[class_id]
+            if conf > CONF_THRESH:
+                cx, cy, w, h = det[0], det[1], det[2], det[3]
+                x1 = (cx - w / 2) * orig_shape[1] / self.input_size[0]
+                y1 = (cy - h / 2) * orig_shape[0] / self.input_size[1]
+                x2 = (cx + w / 2) * orig_shape[1] / self.input_size[0]
+                y2 = (cy + h / 2) * orig_shape[0] / self.input_size[1]
+                boxes.append([x1, y1, x2 - x1, y2 - y1])
+                confidences.append(float(conf))
+                class_ids.append(int(class_id))
+        # NMS
+        indices = cv2.dnn.NMSBoxes(boxes, confidences, CONF_THRESH, NMS_THRESH)
+        result = []
+        for i in indices:
+            i = i[0] if isinstance(i, (list, np.ndarray)) else i
+            result.append((boxes[i], confidences[i], class_ids[i]))
+        return result
+
+    def detect(self, img):
+        orig_shape = img.shape[:2]
+        outputs = self.infer(img)
+        detections = self.postprocess(outputs, orig_shape)
+        return detections
+
+# --- Camera Thread ---
+class CameraThread(threading.Thread):
+    def __init__(self, src, frame_queue, width=1280, height=720):
+        super().__init__()
+        self.cap = cv2.VideoCapture(src)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        self.frame_queue = frame_queue
+        self.running = True
+
+    def run(self):
+        while self.running:
+            ret, frame = self.cap.read()
+            if not ret:
+                continue
+            if not self.frame_queue.full():
+                self.frame_queue.put(frame)
+        self.cap.release()
+
+    def stop(self):
+        self.running = False
+
+# --- Main Pipeline ---
+def main():
+    # --- Initialize ---
+    trt_yolo = TRT_YOLOv8(YOLO_ENGINE_PATH, YOLO_INPUT_SIZE)
+    tracker = DeepSort(max_age=30, n_init=3, nms_max_overlap=1.0, embedder="mobilenet", half=True, bgr=True)
+    frame_queue = queue.Queue(maxsize=5)
+    cam_thread = CameraThread(0, frame_queue)
+    cam_thread.start()
+
+    frame_id = 0
+    try:
+        while True:
+            if frame_queue.empty():
+                time.sleep(0.001)
+                continue
+            frame = frame_queue.get()
+            frame_id += 1
+            if FRAME_SKIP > 0 and frame_id % (FRAME_SKIP + 1) != 1:
+                continue
+            t0 = time.time()
+            detections = trt_yolo.detect(frame)
+            det_boxes = [d[0] for d in detections]
+            det_confs = [d[1] for d in detections]
+            det_classes = [d[2] for d in detections]
+            # DeepSORT expects [x, y, w, h] in pixel
+            tracks = tracker.update_tracks(
+                det_boxes, det_confs, det_classes, frame=frame
+            )
+            # --- Metadata Output ---
+            metadata = []
+            for track in tracks:
+                if not track.is_confirmed():
+                    continue
+                track_id = track.track_id
+                ltrb = track.to_ltrb()
+                class_id = track.det_class
+                conf = track.det_conf
+                metadata.append({
+                    "id": int(track_id),
+                    "class": YOLO_CLASSES[class_id] if class_id < len(YOLO_CLASSES) else str(class_id),
+                    "bbox": [int(ltrb[0]), int(ltrb[1]), int(ltrb[2]), int(ltrb[3])],
+                    "confidence": float(conf)
+                })
+                # --- Visualization (Optional) ---
+                cv2.rectangle(frame, (int(ltrb[0]), int(ltrb[1])), (int(ltrb[2]), int(ltrb[3])),
+                              (0, 255, 0), 2)
+                cv2.putText(frame, f"{track_id}:{YOLO_CLASSES[class_id]}", (int(ltrb[0]), int(ltrb[1]) - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            # --- Output Metadata (print as JSON) ---
+            print(json.dumps({
+                "frame_id": frame_id,
+                "timestamp": time.time(),
+                "objects": metadata
+            }))
+            # --- Display (Optional) ---
+            cv2.imshow("YOLOv8 + DeepSORT", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+            # --- FPS ---
+            # print(f"FPS: {1/(time.time()-t0):.2f}")
+    except KeyboardInterrupt:
+        pass
+    finally:
+        cam_thread.stop()
+        cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 64.54 seconds
+Total Tokens: 12,535 (Input: 6,181, Output: 6,354)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 20.34      336          2,542        1         
+Planning_Generation_1     5.40       979          485          1         
+Planning_Verification_1   2.78       663          170          1         
+Planning_Generation_2     4.09       982          323          1         
+Planning_Verification_2   2.72       501          195          1         
+Planning_Generation_3     4.87       970          254          1         
+Planning_Verification_3   2.68       432          195          1         
+Final_Code_Generation     21.66      1,318        2,190        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:26:55.304679
+##########################
+

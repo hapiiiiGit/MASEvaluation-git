@@ -1,0 +1,68 @@
+import cv2
+import numpy as np
+import onnxruntime as ort
+from transformers import pipeline
+
+# Load the ONNX model
+onnx_model_path = 'yolo_model.onnx'
+ort_session = ort.InferenceSession(onnx_model_path)
+
+# Load the hybrid LLM for text generation
+llm = pipeline("text-generation", model="gpt-2")
+
+# Function to preprocess the image for YOLO
+def preprocess_image(image):
+    image = cv2.resize(image, (640, 640))
+    image = image.transpose((2, 0, 1))  # Change data layout from HWC to CHW
+    image = np.expand_dims(image, axis=0)  # Add batch dimension
+    image = image.astype(np.float32) / 255.0  # Normalize to [0, 1]
+    return image
+
+# Function to perform object detection
+def detect_objects(frame):
+    input_tensor = preprocess_image(frame)
+    outputs = ort_session.run(None, {ort_session.get_inputs()[0].name: input_tensor})
+    return outputs
+
+# Function to draw bounding boxes and text overlays
+def draw_overlays(frame, boxes, scores, classes):
+    for box, score, cls in zip(boxes, scores, classes):
+        if score > 0.5:  # Confidence threshold
+            x1, y1, x2, y2 = box.astype(int)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            text = f'Class: {cls}, Score: {score:.2f}'
+            cv2.putText(frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+# Function to generate commentary
+def generate_commentary(detected_objects):
+    commentary = llm(f"Comment on the following objects detected: {detected_objects}")
+    return commentary[0]['generated_text']
+
+# Main video processing loop
+def main(video_source):
+    cap = cv2.VideoCapture(video_source)
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        outputs = detect_objects(frame)
+        boxes, scores, classes = outputs  # Assuming outputs are in this order
+        
+        draw_overlays(frame, boxes, scores, classes)
+        
+        detected_objects = [f'Class: {cls}' for cls in classes]
+        commentary = generate_commentary(detected_objects)
+        cv2.putText(frame, commentary, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        
+        cv2.imshow('Video', frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    
+    cap.release()
+    cv2.destroyAllWindows()
+
+# Run the application
+if __name__ == "__main__":
+    main(0)  # Use 0 for webcam or provide video file path

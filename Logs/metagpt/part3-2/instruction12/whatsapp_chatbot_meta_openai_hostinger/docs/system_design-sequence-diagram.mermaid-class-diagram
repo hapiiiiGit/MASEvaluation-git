@@ -1,0 +1,86 @@
+classDiagram
+    class WhatsAppBot {
+        +__init__(meta_api: MetaAPI, chatgpt_api: ChatGPTAPI, db: Database)
+        +handle_message(message: dict) str
+        +send_message(to: str, text: str) bool
+    }
+    class MetaAPI {
+        +__init__(token: str)
+        +send_whatsapp_message(to: str, text: str) bool
+        +receive_webhook(request: dict) dict
+    }
+    class ChatGPTAPI {
+        +__init__(api_key: str)
+        +get_response(prompt: str, context: dict) str
+    }
+    class Customer {
+        +id: int
+        +name: str
+        +phone: str
+        +email: str
+        +whatsapp_id: str
+        +register(data: dict) bool
+        +authenticate(phone: str, code: str) bool
+    }
+    class Booking {
+        +id: int
+        +customer_id: int
+        +service_type: str
+        +status: str
+        +created_at: datetime
+        +update_status(new_status: str) bool
+    }
+    class Notification {
+        +id: int
+        +recipient_id: int
+        +channel: str
+        +message: str
+        +status: str
+        +send() bool
+    }
+    class Admin {
+        +id: int
+        +username: str
+        +password_hash: str
+        +login(username: str, password: str) bool
+        +view_bookings() list
+        +update_booking(booking_id: int, status: str) bool
+        +send_notification(recipient_id: int, message: str, channel: str) bool
+    }
+    class Database {
+        +__init__(dsn: str)
+        +add_customer(customer: Customer) bool
+        +get_customer_by_whatsapp(whatsapp_id: str) Customer
+        +add_booking(booking: Booking) bool
+        +get_bookings(filter: dict) list
+        +update_booking(booking_id: int, status: str) bool
+        +add_notification(notification: Notification) bool
+    }
+    class EmailSender {
+        +__init__(smtp_config: dict)
+        +send_email(to: str, subject: str, body: str) bool
+    }
+    class DashboardApp {
+        +__init__(db: Database)
+        +login(username: str, password: str) bool
+        +show_bookings() list
+        +show_notifications() list
+        +update_booking(booking_id: int, status: str) bool
+        +send_notification(recipient_id: int, message: str, channel: str) bool
+    }
+    WhatsAppBot --> MetaAPI
+    WhatsAppBot --> ChatGPTAPI
+    WhatsAppBot --> Database
+    WhatsAppBot --> Customer
+    WhatsAppBot --> Booking
+    WhatsAppBot --> Notification
+    DashboardApp --> Database
+    DashboardApp --> Admin
+    DashboardApp --> Booking
+    DashboardApp --> Notification
+    Admin --> Booking
+    Admin --> Notification
+    Notification --> EmailSender
+    Database --> Customer
+    Database --> Booking
+    Database --> Notification

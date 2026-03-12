@@ -1,0 +1,51 @@
+classDiagram
+    class CameraHandler {
+        +__init__(source: str)
+        +start() -> None
+        +read_frame() -> np.ndarray
+        +stop() -> None
+    }
+    class YOLOv8Detector {
+        +__init__(model_path: str, use_tensorrt: bool)
+        +load_model() -> None
+        +detect(frame: np.ndarray) -> List[Detection]
+    }
+    class Detection {
+        +class_id: int
+        +class_name: str
+        +bbox: Tuple[int, int, int, int]
+        +confidence: float
+    }
+    class DeepSORTTracker {
+        +__init__(config: dict)
+        +update(detections: List[Detection], frame: np.ndarray) -> List[Track]
+    }
+    class ByteTrackTracker {
+        +__init__(config: dict)
+        +update(detections: List[Detection], frame: np.ndarray) -> List[Track]
+    }
+    class Track {
+        +track_id: int
+        +class_id: int
+        +class_name: str
+        +bbox: Tuple[int, int, int, int]
+        +confidence: float
+    }
+    class MetadataOutput {
+        +__init__()
+        +format(tracks: List[Track]) -> dict
+        +send(metadata: dict) -> None
+    }
+    class Config {
+        +load(path: str) -> dict
+        +get(key: str) -> Any
+    }
+    CameraHandler --> YOLOv8Detector : provides frames
+    YOLOv8Detector --> DeepSORTTracker : provides detections
+    YOLOv8Detector --> ByteTrackTracker : provides detections
+    DeepSORTTracker --> MetadataOutput : provides tracks
+    ByteTrackTracker --> MetadataOutput : provides tracks
+    Config <.. CameraHandler
+    Config <.. YOLOv8Detector
+    Config <.. DeepSORTTracker
+    Config <.. ByteTrackTracker

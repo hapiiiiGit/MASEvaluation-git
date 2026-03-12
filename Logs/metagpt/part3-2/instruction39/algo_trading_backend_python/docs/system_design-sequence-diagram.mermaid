@@ -1,0 +1,46 @@
+sequenceDiagram
+    participant U as User
+    participant API as FastAPI
+    participant AS as AuthService
+    participant SS as SessionService
+    participant FS as FundService
+    participant MSC as MStockClient
+    participant EH as ErrorHandler
+
+    U->>API: POST /api/auth/login {username, password}
+    API->>AS: login(username, password)
+    AS->>MSC: login(username, password)
+    MSC-->>AS: mStock login response
+    AS->>SS: create_session(user_id)
+    SS-->>AS: session token
+    AS-->>API: session token
+    API-->>U: session token
+
+    U->>API: POST /api/auth/apikey
+    API->>AS: generate_api_key(user_id)
+    AS-->>API: api_key
+    API-->>U: api_key
+
+    U->>API: GET /api/auth/session
+    API->>SS: validate_session(token)
+    SS-->>API: session status
+    API-->>U: session status
+
+    U->>API: POST /api/auth/logout
+    API->>AS: logout(session_token)
+    AS->>MSC: logout(session_token)
+    MSC-->>AS: logout response
+    AS->>SS: terminate_session(token)
+    SS-->>AS: termination status
+    AS-->>API: logout status
+    API-->>U: logout status
+
+    U->>API: GET /api/funds/details
+    API->>FS: get_fund_details(user_id)
+    FS->>MSC: get_fund_details(user_id)
+    MSC-->>FS: fund details
+    FS-->>API: fund details
+    API-->>U: fund details
+
+    API->>EH: handle_error(error)
+    EH-->>API: error response

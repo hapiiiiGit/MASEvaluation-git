@@ -1,0 +1,34 @@
+sequenceDiagram
+    participant M as Main
+    participant I as Installer
+    participant E as EnvManager
+    participant D as DependencyChecker
+    participant C as Compiler
+    participant T as Tester
+    participant L as Logger
+    M->>L: log_info('Starting deployment')
+    M->>I: detect_python()
+    I-->>M: bool (found)
+    alt Python not found
+        M->>I: download_python(version, arch)
+        I-->>M: installer_path
+        M->>I: install_python(installer_path)
+        I-->>M: bool (success)
+    end
+    M->>E: set_env_vars(vars)
+    E-->>M: None
+    M->>E: verify_env_vars(vars)
+    E-->>M: bool (success)
+    M->>D: check_requirements('requirements.txt')
+    D-->>M: list[str] (missing)
+    alt Missing dependencies
+        M->>D: install_requirements('requirements.txt')
+        D-->>M: bool (success)
+    end
+    M->>C: compile_with_pyinstaller(script, options)
+    C-->>M: exe_path
+    M->>T: run_tests(exe_path, users)
+    T-->>M: dict (results)
+    M->>T: report_results(results)
+    T-->>M: None
+    M->>L: log_info('Deployment complete')

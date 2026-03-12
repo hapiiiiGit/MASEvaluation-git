@@ -1,0 +1,41 @@
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant BE as Backend (Django)
+    participant DS as DocumentService
+    participant FS as FormulaService
+    participant SUM as Summarizer
+
+    U->>FE: Login/Register
+    FE->>BE: POST /api/auth/login or /register
+    BE-->>FE: Auth token
+
+    U->>FE: Upload documents (PDF/Word/Text)
+    FE->>BE: POST /api/documents/ (multipart)
+    BE->>DS: Save file, parse content
+    DS->>SUM: Generate summary
+    SUM-->>DS: Summary text
+    DS-->>BE: Document object with summary
+    BE-->>FE: Document list with summaries
+
+    U->>FE: View document summaries
+    FE->>BE: GET /api/documents/
+    BE-->>FE: List of documents with summaries
+
+    U->>FE: Create/Edit formula
+    FE->>BE: POST/PUT /api/formulas/
+    BE->>FS: Validate and save formula
+    FS-->>BE: Formula object
+    BE-->>FE: Updated formula list
+
+    U->>FE: Calculate using formula
+    FE->>BE: POST /api/formulas/{id}/calculate
+    BE->>FS: Evaluate formula with inputs
+    FS-->>BE: Calculation result
+    BE-->>FE: Result
+
+    U->>FE: Share formula
+    FE->>BE: POST /api/formulas/{id}/share
+    BE->>FS: Share with user/team
+    FS-->>BE: Success
+    BE-->>FE: Confirmation

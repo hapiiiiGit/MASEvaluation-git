@@ -1,0 +1,44 @@
+from flask import Flask, jsonify, request
+from flask_socketio import SocketIO, emit
+import requests
+import threading
+import time
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+socketio = SocketIO(app)
+
+# Replace with your actual API for futures prices
+FUTURES_API_URL = 'https://api.example.com/futures/prices'
+IP_API_URL = 'https://api.ipify.org?format=json'
+
+# Function to fetch live futures prices
+def fetch_prices():
+    while True:
+        response = requests.get(FUTURES_API_URL)
+        if response.status_code == 200:
+            prices = response.json()
+            socketio.emit('price_update', prices)
+        time.sleep(0.2)  # 200ms interval
+
+# Start the price fetching thread
+threading.Thread(target=fetch_prices, daemon=True).start()
+
+@app.route('/trade', methods=['POST'])
+def trade():
+    data = request.json
+    # Implement your trading logic here
+    # Ensure secure key handling
+    return jsonify({'status': 'success', 'message': 'Trade executed'}), 200
+
+@app.route('/ip', methods=['GET'])
+def get_ip():
+    response = requests.get(IP_API_URL)
+    return jsonify(response.json()), 200
+
+@socketio.on('connect')
+def handle_connect():
+    emit('message', {'data': 'Connected to WebSocket'})
+
+if __name__ == '__main__':
+    socketio.run(app, host='0.0.0.0', port=5000)

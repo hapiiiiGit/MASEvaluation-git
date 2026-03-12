@@ -1,0 +1,71 @@
+classDiagram
+    class FacebookOAuth {
+        +__init__(client_id: str, client_secret: str, redirect_uri: str)
+        +get_auth_url() str
+        +fetch_token(code: str) dict
+        +refresh_token(refresh_token: str) dict
+    }
+    class HubSpotOAuth {
+        +__init__(client_id: str, client_secret: str, redirect_uri: str)
+        +get_auth_url() str
+        +fetch_token(code: str) dict
+        +refresh_token(refresh_token: str) dict
+    }
+    class AdMetric {
+        +id: int
+        +campaign_id: str
+        +ad_id: str
+        +date: date
+        +clicks: int
+        +impressions: int
+        +spend: float
+        +conversions: int
+        +fetch_from_facebook(token: str, params: dict) list[AdMetric]
+    }
+    class Contact {
+        +id: int
+        +email: str
+        +name: str
+        +facebook_id: str
+        +update_from_metric(metric: AdMetric)
+    }
+    class Deal {
+        +id: int
+        +contact_id: int
+        +amount: float
+        +stage: str
+        +update_from_metric(metric: AdMetric)
+    }
+    class Mapping {
+        +map_metrics_to_contacts(metrics: list[AdMetric]) list[Contact]
+        +map_metrics_to_deals(metrics: list[AdMetric]) list[Deal]
+    }
+    class Scheduler {
+        +__init__(interval: int)
+        +start()
+        +run_sync()
+        +adjust_interval(new_interval: int)
+    }
+    class Logger {
+        +log_error(msg: str)
+        +log_info(msg: str)
+    }
+    class Notifier {
+        +notify_error(msg: str)
+        +notify_success(msg: str)
+    }
+    class API {
+        +get_metrics(filter: dict) list[AdMetric]
+        +get_contacts(filter: dict) list[Contact]
+        +get_deals(filter: dict) list[Deal]
+        +trigger_manual_sync()
+        +get_sync_status() str
+    }
+    FacebookOAuth <.. API
+    HubSpotOAuth <.. API
+    AdMetric <.. Mapping
+    Contact <.. Mapping
+    Deal <.. Mapping
+    Scheduler <.. API
+    Logger <.. Scheduler
+    Notifier <.. Scheduler

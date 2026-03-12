@@ -1,0 +1,859 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:44:50.161637
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a recruitment process for a full-time software developer position, requiring proficiency in multiple programming languages (Python, Java, C++), strong problem-solving skills, and ability to collaborate in a team, including a means for candidates to submit their relevant experience and development approach.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+You are tasked with designing an online course registration system for a university. The system should allow students to register for courses, check for schedule conflicts, and ensure that course capacity is not exceeded. Students should also be able to view their registered courses and drop courses if needed.
+]]></description>
+<code><![CDATA[
+# Step 1: Define data structures for students, courses, and registrations.
+# Step 2: Implement functions to register, drop, and view courses.
+# Step 3: Check for schedule conflicts and course capacity.
+
+class Course:
+    def __init__(self, course_id, name, schedule, capacity):
+        self.course_id = course_id
+        self.name = name
+        self.schedule = schedule  # e.g., {'Mon': '10-12', 'Wed': '10-12'}
+        self.capacity = capacity
+        self.registered_students = set()
+
+class Student:
+    def __init__(self, student_id, name):
+        self.student_id = student_id
+        self.name = name
+        self.courses = set()
+
+def has_conflict(student, new_course, courses_dict):
+    for cid in student.courses:
+        course = courses_dict[cid]
+        for day, time in course.schedule.items():
+            if day in new_course.schedule and new_course.schedule[day] == time:
+                return True
+    return False
+
+def register_course(student, course, courses_dict):
+    if len(course.registered_students) >= course.capacity:
+        return "Course is full."
+    if has_conflict(student, course, courses_dict):
+        return "Schedule conflict."
+    course.registered_students.add(student.student_id)
+    student.courses.add(course.course_id)
+    return "Registered successfully."
+
+def drop_course(student, course):
+    if course.course_id in student.courses:
+        student.courses.remove(course.course_id)
+        course.registered_students.remove(student.student_id)
+        return "Dropped successfully."
+    return "Not registered in this course."
+
+# Example usage:
+courses = {
+    'CS101': Course('CS101', 'Intro to CS', {'Mon': '10-12', 'Wed': '10-12'}, 2),
+    'MATH201': Course('MATH201', 'Calculus', {'Tue': '10-12', 'Thu': '10-12'}, 2)
+}
+student = Student('S001', 'Alice')
+print(register_course(student, courses['CS101'], courses))
+print(register_course(student, courses['MATH201'], courses))
+print(drop_course(student, courses['CS101']))
+]]></code>
+<planning><![CDATA[
+1. Define the data models for students and courses.
+2. Implement registration logic with checks for schedule conflicts and capacity.
+3. Allow students to view and drop courses.
+4. Test the system with multiple students and courses.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Create a system to manage a library's book lending process. The system should allow users to search for books by title or author, borrow available books, return borrowed books, and keep track of due dates. The system should also prevent users from borrowing more than a set number of books at a time.
+]]></description>
+<code><![CDATA[
+# Step 1: Define data structures for books and users.
+# Step 2: Implement search, borrow, and return functionalities.
+# Step 3: Track due dates and borrowing limits.
+
+from datetime import datetime, timedelta
+
+class Book:
+    def __init__(self, book_id, title, author):
+        self.book_id = book_id
+        self.title = title
+        self.author = author
+        self.is_borrowed = False
+
+class User:
+    def __init__(self, user_id, name, max_books=3):
+        self.user_id = user_id
+        self.name = name
+        self.borrowed_books = {}  # book_id: due_date
+        self.max_books = max_books
+
+def search_books(books, query):
+    return [book for book in books if query.lower() in book.title.lower() or query.lower() in book.author.lower()]
+
+def borrow_book(user, book):
+    if len(user.borrowed_books) >= user.max_books:
+        return "Borrowing limit reached."
+    if book.is_borrowed:
+        return "Book is already borrowed."
+    due_date = datetime.now() + timedelta(days=14)
+    user.borrowed_books[book.book_id] = due_date
+    book.is_borrowed = True
+    return f"Book borrowed. Due date: {due_date.strftime('%Y-%m-%d')}"
+
+def return_book(user, book):
+    if book.book_id in user.borrowed_books:
+        del user.borrowed_books[book.book_id]
+        book.is_borrowed = False
+        return "Book returned."
+    return "Book not borrowed by user."
+
+# Example usage:
+books = [Book(1, "1984", "George Orwell"), Book(2, "Python Programming", "John Doe")]
+user = User(1, "Bob")
+print(search_books(books, "python"))
+print(borrow_book(user, books[1]))
+print(return_book(user, books[1]))
+]]></code>
+<planning><![CDATA[
+1. Define book and user data models.
+2. Implement search functionality for books.
+3. Add borrowing and returning logic with due date tracking.
+4. Enforce borrowing limits per user.
+5. Test with multiple users and books.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Develop a task assignment system for a project management tool. The system should allow managers to create tasks, assign them to team members based on their current workload, and track the status of each task. The system should balance the workload among team members as evenly as possible.
+]]></description>
+<code><![CDATA[
+# Step 1: Define data structures for tasks and team members.
+# Step 2: Implement task assignment logic to balance workload.
+# Step 3: Track task status.
+
+class Task:
+    def __init__(self, task_id, description):
+        self.task_id = task_id
+        self.description = description
+        self.assigned_to = None
+        self.status = 'Pending'
+
+class TeamMember:
+    def __init__(self, member_id, name):
+        self.member_id = member_id
+        self.name = name
+        self.tasks = []
+
+def assign_task(task, team_members):
+    # Assign to member with least tasks
+    member = min(team_members, key=lambda m: len(m.tasks))
+    member.tasks.append(task)
+    task.assigned_to = member.member_id
+    return f"Task assigned to {member.name}"
+
+def update_task_status(task, status):
+    task.status = status
+    return f"Task status updated to {status}"
+
+# Example usage:
+members = [TeamMember(1, "Alice"), TeamMember(2, "Bob")]
+tasks = [Task(101, "Design UI"), Task(102, "Implement backend")]
+for task in tasks:
+    print(assign_task(task, members))
+print(update_task_status(tasks[0], "In Progress"))
+]]></code>
+<planning><![CDATA[
+1. Define task and team member data models.
+2. Implement logic to assign tasks to the team member with the least workload.
+3. Allow updating and tracking of task status.
+4. Test with multiple tasks and team members to ensure balanced assignment.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem (implementing a recruitment process for a software developer position) can be approached using a combination of algorithms and design patterns, but the core algorithmic idea is a Rule-based Filtering and Scoring System, often implemented using Greedy and Brute-force approaches for initial filtering, and sometimes enhanced with more advanced techniques (e.g., ranking, matching, or even machine learning for large-scale systems).
+
+Tutorial:
+1. **Rule-based Filtering (Brute-force/Greedy):**
+   - Define a set of rules or criteria (e.g., required languages, experience, skills).
+   - For each candidate, check if they meet each criterion.
+   - Filter out candidates who do not meet the minimum requirements.
+   - This is typically a brute-force approach, as each candidate is checked against all rules.
+
+2. **Scoring and Ranking:**
+   - Assign scores to candidates based on how well they match the requirements (e.g., 1 point for each required language known, extra points for teamwork experience).
+   - Rank candidates by their total score.
+   - This can be implemented greedily by always selecting the highest-scoring candidates for the next stage.
+
+3. **Workflow Design:**
+   - Design forms or interfaces for candidates to submit their experience and development approach.
+   - Store and process submissions, then apply the filtering and scoring logic.
+
+4. **Team Collaboration Assessment:**
+   - Include scenario-based or behavioral questions to assess teamwork.
+   - Optionally, use group tasks or coding challenges to observe collaboration.
+
+**High-level Steps:**
+- Define all requirements and scoring rules.
+- Collect candidate data via forms.
+- For each candidate:
+  - Check all requirements (brute-force).
+  - Calculate score (greedy).
+- Rank and shortlist candidates.
+- Proceed with interviews or further assessments.
+
+This approach is generic and can be adapted to any recruitment or selection process where multiple criteria must be checked and candidates ranked accordingly.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+You are tasked with designing an online course registration system for a university. The system should allow students to register for courses, check for schedule conflicts, and ensure that course capacity is not exceeded. Students should also be able to view their registered courses and drop courses if needed.
+
+# Planning:
+
+1. Define the data models for students and courses.
+2. Implement registration logic with checks for schedule conflicts and capacity.
+3. Allow students to view and drop courses.
+4. Test the system with multiple students and courses.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem (implementing a recruitment process for a software developer position) can be approached using a combination of algorithms and design patterns, but the core algorithmic idea is a Rule-based Filtering and Scoring System, often implemented using Greedy and Brute-force approaches for initial filtering, and sometimes enhanced with more advanced techniques (e.g., ranking, matching, or even machine learning for large-scale systems).
+
+Tutorial:
+1. **Rule-based Filtering (Brute-force/Greedy):**
+   - Define a set of rules or criteria (e.g., required languages, experience, skills).
+   - For each candidate, check if they meet each criterion.
+   - Filter out candidates who do not meet the minimum requirements.
+   - This is typically a brute-force approach, as each candidate is checked against all rules.
+
+2. **Scoring and Ranking:**
+   - Assign scores to candidates based on how well they match the requirements (e.g., 1 point for each required language known, extra points for teamwork experience).
+   - Rank candidates by their total score.
+   - This can be implemented greedily by always selecting the highest-scoring candidates for the next stage.
+
+3. **Workflow Design:**
+   - Design forms or interfaces for candidates to submit their experience and development approach.
+   - Store and process submissions, then apply the filtering and scoring logic.
+
+4. **Team Collaboration Assessment:**
+   - Include scenario-based or behavioral questions to assess teamwork.
+   - Optionally, use group tasks or coding challenges to observe collaboration.
+
+**High-level Steps:**
+- Define all requirements and scoring rules.
+- Collect candidate data via forms.
+- For each candidate:
+  - Check all requirements (brute-force).
+  - Calculate score (greedy).
+- Rank and shortlist candidates.
+- Proceed with interviews or further assessments.
+
+This approach is generic and can be adapted to any recruitment or selection process where multiple criteria must be checked and candidates ranked accordingly.
+
+## Problem to be solved:
+
+Please help me implement a recruitment process for a full-time software developer position, requiring proficiency in multiple programming languages (Python, Java, C++), strong problem-solving skills, and ability to collaborate in a team, including a means for candidates to submit their relevant experience and development approach.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Define data models for candidates, including fields for personal information, programming languages known, problem-solving experience, teamwork experience, and development approach.
+2. Create a submission form/interface for candidates to enter their details and upload supporting documents or write-ups.
+3. Implement rule-based filtering to check if candidates meet minimum requirements (proficiency in Python, Java, C++; evidence of problem-solving skills; teamwork experience).
+4. Assign scores to candidates based on:
+   - Number of required languages known.
+   - Depth of problem-solving experience.
+   - Quality of teamwork experience.
+   - Clarity and effectiveness of development approach.
+5. Rank candidates by total score.
+6. Shortlist top candidates for further assessment (e.g., interviews, coding challenges, group tasks).
+7. Provide an interface for reviewers to view, filter, and manage candidate applications.
+8. Test the system with sample candidate data to ensure correct filtering, scoring, and ranking.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a recruitment process for a full-time software developer position, requiring proficiency in multiple programming languages (Python, Java, C++), strong problem-solving skills, and ability to collaborate in a team, including a means for candidates to submit their relevant experience and development approach.
+
+# Planning:
+**Planning:**
+
+1. Define data models for candidates, including fields for personal information, programming languages known, problem-solving experience, teamwork experience, and development approach.
+2. Create a submission form/interface for candidates to enter their details and upload supporting documents or write-ups.
+3. Implement rule-based filtering to check if candidates meet minimum requirements (proficiency in Python, Java, C++; evidence of problem-solving skills; teamwork experience).
+4. Assign scores to candidates based on:
+   - Number of required languages known.
+   - Depth of problem-solving experience.
+   - Quality of teamwork experience.
+   - Clarity and effectiveness of development approach.
+5. Rank candidates by total score.
+6. Shortlist top candidates for further assessment (e.g., interviews, coding challenges, group tasks).
+7. Provide an interface for reviewers to view, filter, and manage candidate applications.
+8. Test the system with sample candidate data to ensure correct filtering, scoring, and ranking.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a software engineering task to implement a recruitment process system. The planning provided outlines a comprehensive approach to building such a system, including data modeling, candidate submission, rule-based filtering, scoring, ranking, shortlisting, reviewer interface, and testing. These steps are appropriate for developing a recruitment management application in Python3 and address all requirements stated in the problem. Therefore, the plan is correct and sufficient to solve the problem as described.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Create a system to manage a library's book lending process. The system should allow users to search for books by title or author, borrow available books, return borrowed books, and keep track of due dates. The system should also prevent users from borrowing more than a set number of books at a time.
+
+# Planning:
+
+1. Define book and user data models.
+2. Implement search functionality for books.
+3. Add borrowing and returning logic with due date tracking.
+4. Enforce borrowing limits per user.
+5. Test with multiple users and books.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem (implementing a recruitment process for a software developer position) can be approached using a combination of algorithms and design patterns, but the core algorithmic idea is a Rule-based Filtering and Scoring System, often implemented using Greedy and Brute-force approaches for initial filtering, and sometimes enhanced with more advanced techniques (e.g., ranking, matching, or even machine learning for large-scale systems).
+
+Tutorial:
+1. **Rule-based Filtering (Brute-force/Greedy):**
+   - Define a set of rules or criteria (e.g., required languages, experience, skills).
+   - For each candidate, check if they meet each criterion.
+   - Filter out candidates who do not meet the minimum requirements.
+   - This is typically a brute-force approach, as each candidate is checked against all rules.
+
+2. **Scoring and Ranking:**
+   - Assign scores to candidates based on how well they match the requirements (e.g., 1 point for each required language known, extra points for teamwork experience).
+   - Rank candidates by their total score.
+   - This can be implemented greedily by always selecting the highest-scoring candidates for the next stage.
+
+3. **Workflow Design:**
+   - Design forms or interfaces for candidates to submit their experience and development approach.
+   - Store and process submissions, then apply the filtering and scoring logic.
+
+4. **Team Collaboration Assessment:**
+   - Include scenario-based or behavioral questions to assess teamwork.
+   - Optionally, use group tasks or coding challenges to observe collaboration.
+
+**High-level Steps:**
+- Define all requirements and scoring rules.
+- Collect candidate data via forms.
+- For each candidate:
+  - Check all requirements (brute-force).
+  - Calculate score (greedy).
+- Rank and shortlist candidates.
+- Proceed with interviews or further assessments.
+
+This approach is generic and can be adapted to any recruitment or selection process where multiple criteria must be checked and candidates ranked accordingly.
+
+## Problem to be solved:
+
+Please help me implement a recruitment process for a full-time software developer position, requiring proficiency in multiple programming languages (Python, Java, C++), strong problem-solving skills, and ability to collaborate in a team, including a means for candidates to submit their relevant experience and development approach.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+1. Define candidate data model with fields: name, contact info, programming languages known, years of experience, problem-solving examples, teamwork experience, and development approach.
+2. Create a submission form/interface for candidates to enter their information and upload supporting documents.
+3. Implement rule-based filtering to check if candidates know Python, Java, and C++.
+4. Add checks for minimum required years of experience and evidence of problem-solving skills.
+5. Design a scoring system to assign points for each required skill, additional languages, and teamwork experience.
+6. Rank candidates based on total score.
+7. Shortlist top candidates for further assessment.
+8. Include scenario-based questions or coding challenges to evaluate teamwork and problem-solving in practice.
+9. Store and track candidate progress through each recruitment stage.
+10. Test the system with sample candidate data to ensure correct filtering, scoring, and ranking.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a recruitment process for a full-time software developer position, requiring proficiency in multiple programming languages (Python, Java, C++), strong problem-solving skills, and ability to collaborate in a team, including a means for candidates to submit their relevant experience and development approach.
+
+# Planning:
+1. Define candidate data model with fields: name, contact info, programming languages known, years of experience, problem-solving examples, teamwork experience, and development approach.
+2. Create a submission form/interface for candidates to enter their information and upload supporting documents.
+3. Implement rule-based filtering to check if candidates know Python, Java, and C++.
+4. Add checks for minimum required years of experience and evidence of problem-solving skills.
+5. Design a scoring system to assign points for each required skill, additional languages, and teamwork experience.
+6. Rank candidates based on total score.
+7. Shortlist top candidates for further assessment.
+8. Include scenario-based questions or coding challenges to evaluate teamwork and problem-solving in practice.
+9. Store and track candidate progress through each recruitment stage.
+10. Test the system with sample candidate data to ensure correct filtering, scoring, and ranking.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a real-world software engineering task involving the design and implementation of a recruitment process. The planning provided outlines a comprehensive approach to building such a system, including data modeling, form creation, rule-based filtering, scoring, ranking, and candidate tracking. These steps are appropriate for developing a recruitment management application in Python3, possibly using web frameworks and databases. However, this is not a problem that can be solved with a single algorithm or function, as is standard in competitive programming. The plan is correct for building the described system, but it is not applicable to a competitive programming context, which expects a well-defined input/output problem solvable by code within time and space constraints.\n', 'confidence': 90}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Develop a task assignment system for a project management tool. The system should allow managers to create tasks, assign them to team members based on their current workload, and track the status of each task. The system should balance the workload among team members as evenly as possible.
+
+# Planning:
+
+1. Define task and team member data models.
+2. Implement logic to assign tasks to the team member with the least workload.
+3. Allow updating and tracking of task status.
+4. Test with multiple tasks and team members to ensure balanced assignment.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem (implementing a recruitment process for a software developer position) can be approached using a combination of algorithms and design patterns, but the core algorithmic idea is a Rule-based Filtering and Scoring System, often implemented using Greedy and Brute-force approaches for initial filtering, and sometimes enhanced with more advanced techniques (e.g., ranking, matching, or even machine learning for large-scale systems).
+
+Tutorial:
+1. **Rule-based Filtering (Brute-force/Greedy):**
+   - Define a set of rules or criteria (e.g., required languages, experience, skills).
+   - For each candidate, check if they meet each criterion.
+   - Filter out candidates who do not meet the minimum requirements.
+   - This is typically a brute-force approach, as each candidate is checked against all rules.
+
+2. **Scoring and Ranking:**
+   - Assign scores to candidates based on how well they match the requirements (e.g., 1 point for each required language known, extra points for teamwork experience).
+   - Rank candidates by their total score.
+   - This can be implemented greedily by always selecting the highest-scoring candidates for the next stage.
+
+3. **Workflow Design:**
+   - Design forms or interfaces for candidates to submit their experience and development approach.
+   - Store and process submissions, then apply the filtering and scoring logic.
+
+4. **Team Collaboration Assessment:**
+   - Include scenario-based or behavioral questions to assess teamwork.
+   - Optionally, use group tasks or coding challenges to observe collaboration.
+
+**High-level Steps:**
+- Define all requirements and scoring rules.
+- Collect candidate data via forms.
+- For each candidate:
+  - Check all requirements (brute-force).
+  - Calculate score (greedy).
+- Rank and shortlist candidates.
+- Proceed with interviews or further assessments.
+
+This approach is generic and can be adapted to any recruitment or selection process where multiple criteria must be checked and candidates ranked accordingly.
+
+## Problem to be solved:
+
+Please help me implement a recruitment process for a full-time software developer position, requiring proficiency in multiple programming languages (Python, Java, C++), strong problem-solving skills, and ability to collaborate in a team, including a means for candidates to submit their relevant experience and development approach.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+1. Define candidate data model with fields: name, contact info, programming languages known, years of experience, problem-solving evidence, teamwork experience, development approach.
+2. Design a submission form/interface for candidates to enter their information and upload supporting documents.
+3. Specify recruitment criteria:
+   - Must know Python, Java, and C++.
+   - Minimum required years of experience.
+   - Evidence of problem-solving skills (e.g., coding challenge, portfolio).
+   - Teamwork/collaboration experience.
+4. Implement rule-based filtering to eliminate candidates not meeting all mandatory requirements.
+5. Assign scores to candidates based on:
+   - Number of required languages known.
+   - Depth of experience.
+   - Quality of problem-solving evidence.
+   - Teamwork experience.
+   - Clarity and effectiveness of development approach.
+6. Rank candidates by total score.
+7. Shortlist top candidates for further assessment (e.g., interviews, group tasks).
+8. Track candidate status through each recruitment stage.
+9. Test the system with sample candidate data to ensure correct filtering, scoring, and ranking.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a recruitment process for a full-time software developer position, requiring proficiency in multiple programming languages (Python, Java, C++), strong problem-solving skills, and ability to collaborate in a team, including a means for candidates to submit their relevant experience and development approach.
+
+# Planning:
+1. Define candidate data model with fields: name, contact info, programming languages known, years of experience, problem-solving evidence, teamwork experience, development approach.
+2. Design a submission form/interface for candidates to enter their information and upload supporting documents.
+3. Specify recruitment criteria:
+   - Must know Python, Java, and C++.
+   - Minimum required years of experience.
+   - Evidence of problem-solving skills (e.g., coding challenge, portfolio).
+   - Teamwork/collaboration experience.
+4. Implement rule-based filtering to eliminate candidates not meeting all mandatory requirements.
+5. Assign scores to candidates based on:
+   - Number of required languages known.
+   - Depth of experience.
+   - Quality of problem-solving evidence.
+   - Teamwork experience.
+   - Clarity and effectiveness of development approach.
+6. Rank candidates by total score.
+7. Shortlist top candidates for further assessment (e.g., interviews, group tasks).
+8. Track candidate status through each recruitment stage.
+9. Test the system with sample candidate data to ensure correct filtering, scoring, and ranking.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; it is more of a software design and implementation task for a recruitment management system. The planning provided outlines a comprehensive approach to building such a system, including data modeling, form design, criteria specification, filtering, scoring, ranking, shortlisting, status tracking, and testing. This plan is suitable for developing a recruitment process in Python3 and covers all necessary steps to solve the problem as described. However, since the problem is not algorithmic or mathematical in nature, but rather a system design and implementation task, the plan is correct and sufficient for the requirements.\n', 'confidence': 95}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem (implementing a recruitment process for a software developer position) can be approached using a combination of algorithms and design patterns, but the core algorithmic idea is a Rule-based Filtering and Scoring System, often implemented using Greedy and Brute-force approaches for initial filtering, and sometimes enhanced with more advanced techniques (e.g., ranking, matching, or even machine learning for large-scale systems).
+
+Tutorial:
+1. **Rule-based Filtering (Brute-force/Greedy):**
+   - Define a set of rules or criteria (e.g., required languages, experience, skills).
+   - For each candidate, check if they meet each criterion.
+   - Filter out candidates who do not meet the minimum requirements.
+   - This is typically a brute-force approach, as each candidate is checked against all rules.
+
+2. **Scoring and Ranking:**
+   - Assign scores to candidates based on how well they match the requirements (e.g., 1 point for each required language known, extra points for teamwork experience).
+   - Rank candidates by their total score.
+   - This can be implemented greedily by always selecting the highest-scoring candidates for the next stage.
+
+3. **Workflow Design:**
+   - Design forms or interfaces for candidates to submit their experience and development approach.
+   - Store and process submissions, then apply the filtering and scoring logic.
+
+4. **Team Collaboration Assessment:**
+   - Include scenario-based or behavioral questions to assess teamwork.
+   - Optionally, use group tasks or coding challenges to observe collaboration.
+
+**High-level Steps:**
+- Define all requirements and scoring rules.
+- Collect candidate data via forms.
+- For each candidate:
+  - Check all requirements (brute-force).
+  - Calculate score (greedy).
+- Rank and shortlist candidates.
+- Proceed with interviews or further assessments.
+
+This approach is generic and can be adapted to any recruitment or selection process where multiple criteria must be checked and candidates ranked accordingly.
+
+## Problem to be solved:
+
+Please help me implement a recruitment process for a full-time software developer position, requiring proficiency in multiple programming languages (Python, Java, C++), strong problem-solving skills, and ability to collaborate in a team, including a means for candidates to submit their relevant experience and development approach.
+
+## Planning:
+**Planning:**
+
+1. Define data models for candidates, including fields for personal information, programming languages known, problem-solving experience, teamwork experience, and development approach.
+2. Create a submission form/interface for candidates to enter their details and upload supporting documents or write-ups.
+3. Implement rule-based filtering to check if candidates meet minimum requirements (proficiency in Python, Java, C++; evidence of problem-solving skills; teamwork experience).
+4. Assign scores to candidates based on:
+   - Number of required languages known.
+   - Depth of problem-solving experience.
+   - Quality of teamwork experience.
+   - Clarity and effectiveness of development approach.
+5. Rank candidates by total score.
+6. Shortlist top candidates for further assessment (e.g., interviews, coding challenges, group tasks).
+7. Provide an interface for reviewers to view, filter, and manage candidate applications.
+8. Test the system with sample candidate data to ensure correct filtering, scoring, and ranking.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+from typing import List, Dict, Any
+
+# Data model for a candidate
+class Candidate:
+    def __init__(self, name: str, email: str, languages: List[str],
+                 problem_solving_experience: str, teamwork_experience: str,
+                 development_approach: str):
+        self.name = name
+        self.email = email
+        self.languages = [lang.strip().lower() for lang in languages]
+        self.problem_solving_experience = problem_solving_experience
+        self.teamwork_experience = teamwork_experience
+        self.development_approach = development_approach
+        self.score = 0
+        self.passed_filter = False
+
+    def meets_minimum_requirements(self) -> bool:
+        required_languages = {'python', 'java', 'c++'}
+        has_languages = required_languages.issubset(set(self.languages))
+        has_problem_solving = len(self.problem_solving_experience.strip()) > 20
+        has_teamwork = len(self.teamwork_experience.strip()) > 20
+        return has_languages and has_problem_solving and has_teamwork
+
+    def calculate_score(self):
+        # Scoring rules
+        required_languages = {'python', 'java', 'c++'}
+        # 2 points for each required language known
+        self.score += sum(2 for lang in required_languages if lang in self.languages)
+        # 1 point for each additional language
+        self.score += sum(1 for lang in self.languages if lang not in required_languages)
+        # Problem-solving experience: up to 5 points
+        self.score += min(5, len(self.problem_solving_experience.strip()) // 40)
+        # Teamwork experience: up to 5 points
+        self.score += min(5, len(self.teamwork_experience.strip()) // 40)
+        # Development approach: up to 3 points for clarity and effectiveness
+        self.score += min(3, len(self.development_approach.strip()) // 50)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'name': self.name,
+            'email': self.email,
+            'score': self.score,
+            'passed_filter': self.passed_filter
+        }
+
+# Submission interface (simulated for CLI)
+def submit_candidate():
+    print("=== Candidate Submission Form ===")
+    name = input("Name: ").strip()
+    email = input("Email: ").strip()
+    languages = input("Programming languages known (comma separated): ").split(',')
+    print("Describe your problem-solving experience (min 20 chars):")
+    problem_solving_experience = input().strip()
+    print("Describe your teamwork experience (min 20 chars):")
+    teamwork_experience = input().strip()
+    print("Describe your development approach (min 50 chars):")
+    development_approach = input().strip()
+    return Candidate(name, email, languages, problem_solving_experience, teamwork_experience, development_approach)
+
+# Recruitment process
+class RecruitmentProcess:
+    def __init__(self):
+        self.candidates: List[Candidate] = []
+
+    def add_candidate(self, candidate: Candidate):
+        self.candidates.append(candidate)
+
+    def filter_and_score(self):
+        for candidate in self.candidates:
+            candidate.passed_filter = candidate.meets_minimum_requirements()
+            if candidate.passed_filter:
+                candidate.calculate_score()
+
+    def rank_candidates(self) -> List[Candidate]:
+        # Only consider candidates who passed the filter
+        filtered = [c for c in self.candidates if c.passed_filter]
+        return sorted(filtered, key=lambda c: c.score, reverse=True)
+
+    def shortlist(self, top_n: int = 5) -> List[Candidate]:
+        ranked = self.rank_candidates()
+        return ranked[:top_n]
+
+    def reviewer_interface(self):
+        print("\n=== Reviewer Interface ===")
+        self.filter_and_score()
+        ranked = self.rank_candidates()
+        print(f"\nTotal candidates: {len(self.candidates)}")
+        print(f"Candidates passing minimum requirements: {len(ranked)}")
+        print("\nTop candidates:")
+        for idx, candidate in enumerate(ranked, 1):
+            print(f"{idx}. {candidate.name} ({candidate.email}) - Score: {candidate.score}")
+
+# Sample test data
+def sample_candidates() -> List[Candidate]:
+    return [
+        Candidate(
+            "Alice Smith", "alice@example.com",
+            ["Python", "Java", "C++", "Go"],
+            "Solved over 200 algorithmic problems on online judges. Led a team in hackathons.",
+            "Worked in agile teams for 3 years, mentored junior developers, participated in code reviews.",
+            "I follow TDD, prioritize clean code, and communicate proactively with team members to ensure project success."
+        ),
+        Candidate(
+            "Bob Lee", "bob@example.com",
+            ["Python", "Java"],
+            "Solved 50 problems on LeetCode.",
+            "Worked solo on freelance projects.",
+            "I write code and test after implementation."
+        ),
+        Candidate(
+            "Carol Jones", "carol@example.com",
+            ["Python", "Java", "C++", "JavaScript"],
+            "Participated in ACM ICPC regionals, solved 500+ problems, and contributed to open-source projects.",
+            "Collaborated in cross-functional teams, organized team-building activities, and led sprints.",
+            "I emphasize modular design, regular communication, and iterative development with feedback loops."
+        ),
+        Candidate(
+            "Dave Kim", "dave@example.com",
+            ["Python", "C++", "Java"],
+            "Developed AI models for competitions, solved 300+ problems, and published research papers.",
+            "Worked in research groups, coordinated with developers and data scientists.",
+            "I use agile methodologies, focus on documentation, and encourage peer reviews."
+        ),
+        Candidate(
+            "Eve Turner", "eve@example.com",
+            ["Python", "Java", "C++"],
+            "Solved 100+ problems, participated in coding bootcamps.",
+            "Worked in a startup team, contributed to product launches.",
+            "I value code quality, regular standups, and collaborative planning."
+        ),
+    ]
+
+# Main function to run the process
+def main():
+    process = RecruitmentProcess()
+    # Uncomment below to allow manual candidate submission
+    # n = int(input("Number of candidates to submit: "))
+    # for _ in range(n):
+    #     candidate = submit_candidate()
+    #     process.add_candidate(candidate)
+    # For demonstration, use sample candidates
+    for candidate in sample_candidates():
+        process.add_candidate(candidate)
+    process.reviewer_interface()
+    print("\nShortlisted candidates for further assessment:")
+    for candidate in process.shortlist(top_n=3):
+        print(f"- {candidate.name} ({candidate.email}) - Score: {candidate.score}")
+
+if __name__ == "__main__":
+    main()
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 55.15 seconds
+Total Tokens: 8,399 (Input: 4,015, Output: 4,384)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 14.56      326          1,920        1         
+Planning_Generation_1     2.96       621          194          1         
+Planning_Verification_1   5.23       362          122          1         
+Planning_Generation_2     2.32       629          177          1         
+Planning_Verification_2   3.07       345          170          1         
+Planning_Generation_3     2.60       625          219          1         
+Planning_Verification_3   1.95       387          144          1         
+Final_Code_Generation     22.47      720          1,438        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:45:45.359279
+##########################
+

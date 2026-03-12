@@ -1,0 +1,75 @@
+import requests
+import json
+import time
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Load settings from a JSON file
+def load_settings(filename='settings.json'):
+    with open(filename, 'r') as f:
+        return json.load(f)
+
+# Fetch order book data from Poloniex
+def fetch_poloniex_order_book(pair):
+    url = f'https://api.poloniex.com/public?command=returnOrderBook&currencyPair={pair}&depth=5'
+    response = requests.get(url)
+    return response.json()
+
+# Fetch order book data from CoinEx
+def fetch_coinex_order_book(pair):
+    url = f'https://api.coinex.com/v1/market/depth?market={pair}&limit=5'
+    response = requests.get(url)
+    return response.json()
+
+# Fetch funding rate data from Poloniex
+def fetch_poloniex_funding_rate(pair):
+    url = f'https://api.poloniex.com/public?command=returnFundingInfo&currencyPair={pair}'
+    response = requests.get(url)
+    return response.json()
+
+# Fetch funding rate data from CoinEx
+def fetch_coinex_funding_rate(pair):
+    url = f'https://api.coinex.com/v1/market/funding?market={pair}'
+    response = requests.get(url)
+    return response.json()
+
+# Identify pricing gaps
+def identify_arbitrage_opportunity(pol_order_book, coinex_order_book):
+    pol_bid = float(pol_order_book['bids'][0][0]) if pol_order_book['bids'] else None
+    pol_ask = float(pol_order_book['asks'][0][0]) if pol_order_book['asks'] else None
+    coinex_bid = float(coinex_order_book['data']['bids'][0][0]) if coinex_order_book['data']['bids'] else None
+    coinex_ask = float(coinex_order_book['data']['asks'][0][0]) if coinex_order_book['data']['asks'] else None
+
+    if pol_bid and coinex_ask and pol_bid > coinex_ask:
+        return 'buy on CoinEx, sell on Poloniex', coinex_ask, pol_bid
+    elif coinex_bid and pol_ask and coinex_bid > pol_ask:
+        return 'buy on Poloniex, sell on CoinEx', pol_ask, coinex_bid
+    return None, None, None
+
+# Execute trades (mock implementation)
+def execute_trade(action, price, amount):
+    logging.info(f'Executing trade: {action} at {price} for amount {amount}')
+
+# Main trading bot function
+def trading_bot():
+    settings = load_settings()
+    trading_pair = settings['trading_pair']
+    position_size = settings['position_size']
+
+    while True:
+        pol_order_book = fetch_poloniex_order_book(trading_pair)
+        coinex_order_book = fetch_coinex_order_book(trading_pair)
+
+        opportunity, buy_price, sell_price = identify_arbitrage_opportunity(pol_order_book, coinex_order_book)
+
+        if opportunity:
+            logging.info(f'Arbitrage opportunity found: {opportunity} (Buy: {buy_price}, Sell: {sell_price})')
+            execute_trade(opportunity, buy_price, position_size)
+            execute_trade(opportunity, sell_price, position_size)
+
+        time.sleep(5)  # Wait before the next iteration
+
+if __name__ == '__main__':
+    trading_bot()

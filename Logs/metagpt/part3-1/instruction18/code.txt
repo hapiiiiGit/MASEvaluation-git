@@ -1,0 +1,84 @@
+import paramiko
+import threading
+import json
+import os
+
+class RemotePCManager:
+    def __init__(self, host, port, username, password):
+        self.host = host
+        self.port = port
+        self.username = username
+        self.password = password
+        self.client = None
+
+    def connect(self):
+        """Establishes an SSH connection to the remote PC."""
+        try:
+            self.client = paramiko.SSHClient()
+            self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.client.connect(self.host, port=self.port, username=self.username, password=self.password)
+            print(f"Connected to {self.host}")
+        except Exception as e:
+            print(f"Failed to connect to {self.host}: {e}")
+
+    def execute_command(self, command):
+        """Executes a command on the remote PC and returns the output."""
+        if self.client is None:
+            print("Connection not established. Please connect first.")
+            return None
+        try:
+            stdin, stdout, stderr = self.client.exec_command(command)
+            output = stdout.read().decode()
+            error = stderr.read().decode()
+            return output if output else error
+        except Exception as e:
+            print(f"Failed to execute command '{command}': {e}")
+            return None
+
+    def deploy_payload(self, local_path, remote_path):
+        """Deploys a file from local to remote PC."""
+        if self.client is None:
+            print("Connection not established. Please connect first.")
+            return False
+        try:
+            sftp = self.client.open_sftp()
+            sftp.put(local_path, remote_path)
+            sftp.close()
+            print(f"Deployed {local_path} to {remote_path} on {self.host}")
+            return True
+        except Exception as e:
+            print(f"Failed to deploy payload: {e}")
+            return False
+
+    def close(self):
+        """Closes the SSH connection."""
+        if self.client:
+            self.client.close()
+            print(f"Connection to {self.host} closed.")
+
+def manage_remote_pcs(config_file):
+    """Manages multiple remote PCs based on a configuration file."""
+    with open(config_file, 'r') as file:
+        config = json.load(file)
+
+    threads = []
+    for pc in config['pcs']:
+        manager = RemotePCManager(pc['host'], pc['port'], pc['username'], pc['password'])
+        manager.connect()
+        
+        # Example command execution
+        command_output = manager.execute_command("uname -a")
+        print(f"Output from {pc['host']}: {command_output}")
+
+        # Example payload deployment
+        if 'payload' in pc:
+            manager.deploy_payload(pc['payload']['local'], pc['payload']['remote'])
+
+        # Close connection
+        manager.close()
+
+if __name__ == "__main__":
+    # Example configuration file path
+    config_file_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    manage_remote_pcs(config_file_path)
+

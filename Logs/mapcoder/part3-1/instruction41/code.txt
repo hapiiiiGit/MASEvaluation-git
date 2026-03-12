@@ -1,0 +1,73 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import numpy as np
+import smtplib
+from email.mime.text import MIMEText
+from datetime import datetime, timedelta
+import time
+
+# Configuration
+STOCKS = ['AAPL', 'GOOGL', 'TSLA']  # Example stocks for USA
+EMAIL_ADDRESS = 'your_email@example.com'
+EMAIL_PASSWORD = 'your_password'
+RECIPIENT_EMAIL = 'recipient@example.com'
+ALERT_THRESHOLD = 1.05  # Example threshold for alerts
+
+def scrape_stock_data(stock):
+    url = f'https://example.com/stocks/{stock}'  # Replace with actual URL
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    # Extract historical data (this will depend on the website structure)
+    data = []
+    for row in soup.find_all('tr')[1:]:  # Skip header
+        cols = row.find_all('td')
+        date = datetime.strptime(cols[0].text, '%Y-%m-%d')
+        price = float(cols[1].text.replace(',', ''))
+        data.append((date, price))
+    
+    return pd.DataFrame(data, columns=['Date', 'Price']).set_index('Date')
+
+def calculate_indicators(df):
+    df['SMA'] = df['Price'].rolling(window=20).mean()  # 20-day Simple Moving Average
+    df['RSI'] = compute_rsi(df['Price'], 14)  # 14-day RSI
+    return df
+
+def compute_rsi(series, period=14):
+    delta = series.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs))
+
+def check_alert_conditions(df):
+    latest_price = df['Price'].iloc[-1]
+    latest_sma = df['SMA'].iloc[-1]
+    
+    if latest_price > latest_sma * ALERT_THRESHOLD:
+        send_email_alert(latest_price, latest_sma)
+
+def send_email_alert(latest_price, latest_sma):
+    subject = 'Stock Alert!'
+    body = f'Price crossed the threshold!\nLatest Price: {latest_price}\nSMA: {latest_sma}'
+    msg = MIMEText(body)
+    msg['Subject'] = subject
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = RECIPIENT_EMAIL
+
+    with smtplib.SMTP('smtp.example.com', 587) as server:  # Replace with actual SMTP server
+        server.starttls()
+        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        server.send_message(msg)
+
+def main():
+    while True:
+        for stock in STOCKS:
+            df = scrape_stock_data(stock)
+            df = calculate_indicators(df)
+            check_alert_conditions(df)
+        time.sleep(3600)  # Run every hour
+
+if __name__ == '__main__':
+    main()

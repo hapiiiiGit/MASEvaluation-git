@@ -1,0 +1,57 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
+import os
+
+app = Flask(__name__)
+CORS(app)
+
+# Load pre-trained model
+model = load_model('path_to_your_model.h5')
+
+# Function to preprocess the image
+def preprocess_image(img_path):
+    img = image.load_img(img_path, target_size=(224, 224))  # Adjust size as per your model
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array /= 255.0  # Normalize
+    return img_array
+
+# Endpoint to handle image uploads
+@app.route('/upload', methods=['POST'])
+def upload_image():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    # Save the uploaded file
+    img_path = os.path.join('uploads', file.filename)
+    file.save(img_path)
+
+    # Preprocess the image
+    img_array = preprocess_image(img_path)
+
+    # Make predictions
+    predictions = model.predict(img_array)
+    predicted_class = np.argmax(predictions, axis=1)
+
+    # Generate recommendations based on predicted class (dummy example)
+    recommendations = generate_recommendations(predicted_class)
+
+    return jsonify({
+        'predicted_class': int(predicted_class[0]),
+        'recommendations': recommendations
+    })
+
+# Dummy recommendation function
+def generate_recommendations(predicted_class):
+    # Replace with actual recommendation logic
+    return ['Recommendation 1', 'Recommendation 2', 'Recommendation 3']
+
+if __name__ == '__main__':
+    app.run(debug=True)

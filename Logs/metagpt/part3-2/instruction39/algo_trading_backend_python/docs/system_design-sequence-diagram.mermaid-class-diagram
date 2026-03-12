@@ -1,0 +1,65 @@
+classDiagram
+    class User {
+        +id: int
+        +username: str
+        +hashed_password: str
+        +email: str
+        +is_active: bool
+        +created_at: datetime
+        +api_keys: List[APIKey]
+    }
+    class APIKey {
+        +id: int
+        +user_id: int
+        +key: str
+        +created_at: datetime
+        +is_active: bool
+    }
+    class Session {
+        +id: int
+        +user_id: int
+        +token: str
+        +created_at: datetime
+        +expires_at: datetime
+        +is_active: bool
+    }
+    class FundDetails {
+        +user_id: int
+        +balance: float
+        +currency: str
+        +last_updated: datetime
+    }
+    class AuthService {
+        +register_user(data: UserCreate) -> User
+        +login(username: str, password: str) -> Session
+        +logout(session_token: str) -> bool
+        +generate_api_key(user_id: int) -> APIKey
+        +validate_api_key(key: str) -> bool
+    }
+    class SessionService {
+        +create_session(user_id: int) -> Session
+        +validate_session(token: str) -> bool
+        +terminate_session(token: str) -> bool
+    }
+    class FundService {
+        +get_fund_details(user_id: int) -> FundDetails
+        +update_fund_details(user_id: int, data: dict) -> FundDetails
+    }
+    class MStockClient {
+        +login(username: str, password: str) -> dict
+        +get_fund_details(user_id: int) -> dict
+        +logout(session_token: str) -> bool
+    }
+    class ErrorHandler {
+        +handle_error(error: Exception) -> dict
+    }
+    User "1" -- "*" APIKey : owns
+    User "1" -- "*" Session : has
+    User "1" -- "1" FundDetails : manages
+    AuthService "1" -- "*" SessionService : uses
+    AuthService "1" -- "*" FundService : uses
+    AuthService "1" -- "*" MStockClient : integrates
+    FundService "1" -- "*" MStockClient : integrates
+    ErrorHandler <|-- AuthService
+    ErrorHandler <|-- FundService
+    ErrorHandler <|-- SessionService

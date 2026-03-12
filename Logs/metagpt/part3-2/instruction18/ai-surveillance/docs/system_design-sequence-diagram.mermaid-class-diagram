@@ -1,0 +1,48 @@
+classDiagram
+    class VideoStreamHandler {
+        +__init__(rtsp_url: str)
+        +read_frame() -> np.ndarray
+        +is_open() -> bool
+        +release()
+    }
+    class InferenceEngine {
+        +__init__(model_path: str)
+        +predict(frame: np.ndarray) -> dict
+    }
+    class AnomalyDetector {
+        +detect_behavior(frame: np.ndarray) -> dict
+    }
+    class AlertManager {
+        +__init__(...)
+        +send_alert(alert: Alert)
+        +register_channel(channel: AlertChannel)
+    }
+    class Alert {
+        +timestamp: datetime
+        +type: str
+        +details: dict
+    }
+    class AlertChannel {
+        +send(alert: Alert)
+    }
+    class EmailSender {
+        +send(alert: Alert)
+    }
+    class PushNotifier {
+        +send(alert: Alert)
+    }
+    class WebAPI {
+        +get_alerts() -> list[Alert]
+        +get_video_feed() -> StreamingResponse
+    }
+    class Dashboard {
+        +display_alerts(alerts: list[Alert])
+        +display_video_feed(url: str)
+    }
+    VideoStreamHandler --> InferenceEngine : feeds frames
+    InferenceEngine --> AnomalyDetector : uses
+    InferenceEngine --> AlertManager : triggers alert
+    AlertManager --> AlertChannel : uses
+    AlertChannel <|-- EmailSender
+    AlertChannel <|-- PushNotifier
+    WebAPI --> Dashboard : serves data

@@ -1,0 +1,39 @@
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend (Template/API Client)
+    participant AV as AuthViewSet
+    participant US as UserSerializer
+    participant CDV as CoreDataViewSet
+    participant CDS as CoreDataSerializer
+    participant DB as Database
+
+    U->>FE: Submit registration form
+    FE->>AV: POST /api/auth/register
+    AV->>US: create(validated_data)
+    US->>DB: Save new User
+    DB-->>US: User object
+    US-->>AV: User object
+    AV-->>FE: Registration success response
+
+    U->>FE: Login
+    FE->>AV: POST /api/auth/login
+    AV->>DB: Authenticate user
+    DB-->>AV: User object
+    AV-->>FE: Auth token/session
+
+    U->>FE: Access dashboard
+    FE->>DashboardView: GET /dashboard/
+    DashboardView->>DB: Query user data
+    DB-->>DashboardView: Data
+    DashboardView-->>FE: Render dashboard.html
+
+    U->>FE: API CRUD (CoreData)
+    FE->>CDV: GET/POST/PUT/DELETE /api/data/
+    CDV->>CDS: (de)serialize data
+    CDS->>DB: Query/update CoreData
+    DB-->>CDS: CoreData object(s)
+    CDS-->>CDV: Data
+    CDV-->>FE: API response
+
+    TestCase->>AV: test_authentication()
+    TestCase->>CDV: test_coredata_crud()

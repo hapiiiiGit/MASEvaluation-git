@@ -1,0 +1,1301 @@
+2026-01-13 22:56:23,803 WARNING  No vLLM server running at the specified URL.
+2026-01-13 22:56:23,826 WARNING  BMTools is not installed, tools in the simulation environment cannot be used. To install BMTools, please follow the instruction in the README.md file. If you aren't running a *simulation* case with tool, you can ignore this warning.
+2026-01-13 22:56:25,184 INFO  Loop Round 0
+2026-01-13 22:56:29,175 INFO Role Assignment:
+a Python developer specialized in web scraping and multithreading optimization
+a data engineer experienced in proxy management, large-scale data processing, and streaming data to CSV files 
+2026-01-13 22:56:44,340 INFO Initial Plan:
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import threading
+from queue import Queue
+import csv
+import time
+import random
+
+# Constants
+BASE_URL = "https://www.indeed.com/jobs"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+                  " Chrome/90.0.4430.93 Safari/537.36"
+}
+MAX_THREADS = 20
+PROXY_LIST = [
+    # Example proxies, replace with real proxies
+    "http://proxy1.example.com:8080",
+    "http://proxy2.example.com:8080",
+    "http://proxy3.example.com:8080",
+]
+
+# Thread-safe queue for ZIP codes
+zip_queue = Queue()
+# Thread-safe queue for results
+result_queue = Queue()
+
+def load_zip_codes_from_excel(file_path):
+    df = pd.read_excel(file_path, dtype=str)
+    # Assuming ZIP codes are in a column named 'ZIP'
+    zip_codes = df['ZIP'].dropna().unique().tolist()
+    return zip_codes
+
+def get_proxy():
+    # Rotate proxies randomly
+    return {"http": random.choice(PROXY_LIST), "https": random.choice(PROXY_LIST)}
+
+def scrape_jobs(zip_code):
+    params = {
+        "q": "",  # Empty query to get all jobs
+        "l": zip_code,
+        "radius": "25",  # 25 miles radius
+        "start": 0
+    }
+    jobs = []
+    while True:
+        try:
+            proxy = get_proxy()
+            response = requests.get(BASE_URL, headers=HEADERS, params=params, proxies=proxy, timeout=10)
+            if response.status_code != 200:
+                # Retry with different proxy
+                time.sleep(1)
+                continue
+            soup = BeautifulSoup(response.text, "html.parser")
+            job_cards = soup.find_all("div", class_="job_seen_beacon")
+            if not job_cards:
+                break
+            for card in job_cards:
+                title_elem = card.find("h2", class_="jobTitle")
+                company_elem = card.find("span", class_="companyName")
+                location_elem = card.find("div", class_="companyLocation")
+                summary_elem = card.find("div", class_="job-snippet")
+                date_elem = card.find("span", class_="date")
+                job = {
+                    "zip_code": zip_code,
+                    "title": title_elem.get_text(strip=True) if title_elem else "",
+                    "company": company_elem.get_text(strip=True) if company_elem else "",
+                    "location": location_elem.get_text(strip=True) if location_elem else "",
+                    "summary": summary_elem.get_text(strip=True).replace("\n", " ") if summary_elem else "",
+                    "date_posted": date_elem.get_text(strip=True) if date_elem else "",
+                }
+                jobs.append(job)
+            # Pagination: check if next page exists
+            next_button = soup.find("a", {"aria-label": "Next"})
+            if next_button and "href" in next_button.attrs:
+                params["start"] += 10
+                time.sleep(random.uniform(1, 3))  # polite delay
+            else:
+                break
+        except Exception:
+            # On exception, retry after short delay
+            time.sleep(2)
+            continue
+    return jobs
+
+def worker():
+    while True:
+        zip_code = zip_queue.get()
+        if zip_code is None:
+            zip_queue.task_done()
+            break
+        jobs = scrape_jobs(zip_code)
+        for job in jobs:
+            result_queue.put(job)
+        zip_queue.task_done()
+
+def write_results_to_csv(output_file):
+    # Open CSV in append mode and write header only once
+    with open(output_file, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=["zip_code", "title", "company", "location", "summary", "date_posted"])
+        writer.writeheader()
+        while True:
+            job = result_queue.get()
+            if job is None:
+                break
+            writer.writerow(job)
+            result_queue.task_done()
+
+def main():
+    zip_codes = load_zip_codes_from_excel("zip_codes.xlsx")
+    for z in zip_codes:
+        zip_queue.put(z)
+
+    # Start worker threads
+    threads = []
+    for _ in range(min(MAX_THREADS, len(zip_codes))):
+        t = threading.Thread(target=worker)
+        t.start()
+        threads.append(t)
+
+    # Start CSV writer thread
+    writer_thread = threading.Thread(target=write_results_to_csv, args=("indeed_jobs.csv",))
+    writer_thread.start()
+
+    # Wait for all ZIP codes to be processed
+    zip_queue.join()
+
+    # Stop workers
+    for _ in threads:
+        zip_queue.put(None)
+    for t in threads:
+        t.join()
+
+    # Stop writer
+    result_queue.put(None)
+    writer_thread.join()
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 22:57:02,886 INFO Reviews:
+[a data engineer experienced in proxy management, large-scale data processing, and streaming data to CSV files]: ```python
+# Given code and completion:
+
+"""
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import threading
+from queue import Queue
+import csv
+import time
+import random
+
+# Constants
+BASE_URL = "https://www.indeed.com/jobs"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+                  " Chrome/90.0.4430.93 Safari/537.36"
+}
+MAX_THREADS = 20
+PROXY_LIST = [
+    # Example proxies, replace with real proxies
+    "http://proxy1.example.com:8080",
+    "http://proxy2.example.com:8080",
+    "http://proxy3.example.com:8080",
+]
+
+# Thread-safe queue for ZIP codes
+zip_queue = Queue()
+# Thread-safe queue for results
+result_queue = Queue()
+
+def load_zip_codes_from_excel(file_path):
+    df = pd.read_excel(file_path, dtype=str)
+    # Assuming ZIP codes are in a column named 'ZIP'
+    zip_codes = df['ZIP'].dropna().unique().tolist()
+    return zip_codes
+
+def get_proxy():
+    # Rotate proxies randomly
+    return {"http": random.choice(PROXY_LIST), "https": random.choice(PROXY_LIST)}
+
+def scrape_jobs(zip_code):
+    params = {
+        "q": "",  # Empty query to get all jobs
+        "l": zip_code,
+        "radius": "25",  # 25 miles radius
+        "start": 0
+    }
+    jobs = []
+    while True:
+        try:
+            proxy = get_proxy()
+            response = requests.get(BASE_URL, headers=HEADERS, params=params, proxies=proxy, timeout=10)
+            if response.status_code != 200:
+                # Retry with different proxy
+                time.sleep(1)
+                continue
+            soup = BeautifulSoup(response.text, "html.parser")
+            job_cards = soup.find_all("div", class_="job_seen_beacon")
+            if not job_cards:
+                break
+            for card in job_cards:
+                title_elem = card.find("h2", class_="jobTitle")
+                company_elem = card.find("span", class_="companyName")
+                location_elem = card.find("div", class_="companyLocation")
+                summary_elem = card.find("div", class_="job-snippet")
+                date_elem = card.find("span", class_="date")
+                job = {
+                    "zip_code": zip_code,
+                    "title": title_elem.get_text(strip=True) if title_elem else "",
+                    "company": company_elem.get_text(strip=True) if company_elem else "",
+                    "location": location_elem.get_text(strip=True) if location_elem else "",
+                    "summary": summary_elem.get_text(strip=True).replace("\n", " ") if summary_elem else "",
+                    "date_posted": date_elem.get_text(strip=True) if date_elem else "",
+                }
+                jobs.append(job)
+            # Pagination: check if next page exists
+            next_button = soup.find("a", {"aria-label": "Next"})
+            if next_button and "href" in next_button.attrs:
+                params["start"] += 10
+                time.sleep(random.uniform(1, 3))  # polite delay
+            else:
+                break
+        except Exception:
+            # On exception, retry after short delay
+            time.sleep(2)
+            continue
+    return jobs
+
+def worker():
+    while True:
+        zip_code = zip_queue.get()
+        if zip_code is None:
+            zip_queue.task_done()
+            break
+        jobs = scrape_jobs(zip_code)
+        for job in jobs:
+            result_queue.put(job)
+        zip_queue.task_done()
+
+def write_results_to_csv(output_file):
+    # Open CSV in append mode and write header only once
+    with open(output_file, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=["zip_code", "title", "company", "location", "summary", "date_posted"])
+        writer.writeheader()
+        while True:
+            job = result_queue.get()
+            if job is None:
+                break
+            writer.writerow(job)
+            result_queue.task_done()
+
+def main():
+    zip_codes = load_zip_codes_from_excel("zip_codes.xlsx")
+    for z in zip_codes:
+        zip_queue.put(z)
+
+    # Start worker threads
+    threads = []
+    for _ in range(min(MAX_THREADS, len(zip_codes))):
+        t = threading.Thread(target=worker)
+        t.start()
+        threads.append(t)
+
+    # Start CSV writer thread
+    writer_thread = threading.Thread(target=write_results_to_csv, args=("indeed_jobs.csv",))
+    writer_thread.start()
+
+    # Wait for all ZIP codes to be processed
+    zip_queue.join()
+
+    # Stop workers
+ 
+2026-01-13 22:57:22,794 INFO Updated Plan:
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import threading
+from queue import Queue
+import csv
+import time
+import random
+
+# Constants
+BASE_URL = "https://www.indeed.com/jobs"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+                  " Chrome/90.0.4430.93 Safari/537.36"
+}
+MAX_THREADS = 20
+PROXY_LIST = [
+    # Example proxies, replace with real proxies
+    "http://proxy1.example.com:8080",
+    "http://proxy2.example.com:8080",
+    "http://proxy3.example.com:8080",
+]
+
+# Thread-safe queue for ZIP codes
+zip_queue = Queue()
+# Thread-safe queue for results
+result_queue = Queue()
+
+def load_zip_codes_from_excel(file_path):
+    df = pd.read_excel(file_path, dtype=str)
+    # Assuming ZIP codes are in a column named 'ZIP'
+    zip_codes = df['ZIP'].dropna().unique().tolist()
+    return zip_codes
+
+def get_proxy():
+    # Rotate proxies randomly
+    proxy = random.choice(PROXY_LIST)
+    return {"http": proxy, "https": proxy}
+
+def scrape_jobs(zip_code):
+    params = {
+        "q": "",  # Empty query to get all jobs
+        "l": zip_code,
+        "radius": "25",  # 25 miles radius
+        "start": 0
+    }
+    jobs = []
+    while True:
+        try:
+            proxy = get_proxy()
+            response = requests.get(BASE_URL, headers=HEADERS, params=params, proxies=proxy, timeout=10)
+            if response.status_code != 200:
+                # Retry with different proxy
+                time.sleep(1)
+                continue
+            soup = BeautifulSoup(response.text, "html.parser")
+            job_cards = soup.find_all("div", class_="job_seen_beacon")
+            if not job_cards:
+                break
+            for card in job_cards:
+                title_elem = card.find("h2", class_="jobTitle")
+                company_elem = card.find("span", class_="companyName")
+                location_elem = card.find("div", class_="companyLocation")
+                summary_elem = card.find("div", class_="job-snippet")
+                date_elem = card.find("span", class_="date")
+                job = {
+                    "zip_code": zip_code,
+                    "title": title_elem.get_text(strip=True) if title_elem else "",
+                    "company": company_elem.get_text(strip=True) if company_elem else "",
+                    "location": location_elem.get_text(strip=True) if location_elem else "",
+                    "summary": summary_elem.get_text(strip=True).replace("\n", " ") if summary_elem else "",
+                    "date_posted": date_elem.get_text(strip=True) if date_elem else "",
+                }
+                jobs.append(job)
+            # Pagination: check if next page exists
+            next_button = soup.find("a", {"aria-label": "Next"})
+            if next_button and "href" in next_button.attrs:
+                params["start"] += 10
+                time.sleep(random.uniform(1, 3))  # polite delay
+            else:
+                break
+        except Exception:
+            # On exception, retry after short delay
+            time.sleep(2)
+            continue
+    return jobs
+
+def worker():
+    while True:
+        zip_code = zip_queue.get()
+        if zip_code is None:
+            zip_queue.task_done()
+            break
+        jobs = scrape_jobs(zip_code)
+        for job in jobs:
+            result_queue.put(job)
+        zip_queue.task_done()
+
+def write_results_to_csv(output_file):
+    with open(output_file, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=["zip_code", "title", "company", "location", "summary", "date_posted"])
+        writer.writeheader()
+        while True:
+            job = result_queue.get()
+            if job is None:
+                result_queue.task_done()
+                break
+            writer.writerow(job)
+            result_queue.task_done()
+
+def main():
+    zip_codes = load_zip_codes_from_excel("zip_codes.xlsx")
+    for z in zip_codes:
+        zip_queue.put(z)
+
+    # Start worker threads
+    threads = []
+    for _ in range(min(MAX_THREADS, len(zip_codes))):
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
+        threads.append(t)
+
+    # Start CSV writer thread
+    writer_thread = threading.Thread(target=write_results_to_csv, args=("indeed_jobs.csv",))
+    writer_thread.daemon = True
+    writer_thread.start()
+
+    # Wait for all ZIP codes to be processed
+    zip_queue.join()
+
+    # Stop workers
+    for _ in threads:
+        zip_queue.put(None)
+    for t in threads:
+        t.join()
+
+    # Stop writer
+    result_queue.put(None)
+    writer_thread.join()
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 22:57:39,147 INFO Reviews:
+[a data engineer experienced in proxy management, large-scale data processing, and streaming data to CSV files]: ```python
+# Given code and completion:
+
+"""
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import threading
+from queue import Queue
+import csv
+import time
+import random
+
+# Constants
+BASE_URL = "https://www.indeed.com/jobs"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+                  " Chrome/90.0.4430.93 Safari/537.36"
+}
+MAX_THREADS = 20
+PROXY_LIST = [
+    # Example proxies, replace with real proxies
+    "http://proxy1.example.com:8080",
+    "http://proxy2.example.com:8080",
+    "http://proxy3.example.com:8080",
+]
+
+# Thread-safe queue for ZIP codes
+zip_queue = Queue()
+# Thread-safe queue for results
+result_queue = Queue()
+
+def load_zip_codes_from_excel(file_path):
+    df = pd.read_excel(file_path, dtype=str)
+    # Assuming ZIP codes are in a column named 'ZIP'
+    zip_codes = df['ZIP'].dropna().unique().tolist()
+    return zip_codes
+
+def get_proxy():
+    # Rotate proxies randomly
+    proxy = random.choice(PROXY_LIST)
+    return {"http": proxy, "https": proxy}
+
+def scrape_jobs(zip_code):
+    params = {
+        "q": "",  # Empty query to get all jobs
+        "l": zip_code,
+        "radius": "25",  # 25 miles radius
+        "start": 0
+    }
+    jobs = []
+    while True:
+        try:
+            proxy = get_proxy()
+            response = requests.get(BASE_URL, headers=HEADERS, params=params, proxies=proxy, timeout=10)
+            if response.status_code != 200:
+                # Retry with different proxy
+                time.sleep(1)
+                continue
+            soup = BeautifulSoup(response.text, "html.parser")
+            job_cards = soup.find_all("div", class_="job_seen_beacon")
+            if not job_cards:
+                break
+            for card in job_cards:
+                title_elem = card.find("h2", class_="jobTitle")
+                company_elem = card.find("span", class_="companyName")
+                location_elem = card.find("div", class_="companyLocation")
+                summary_elem = card.find("div", class_="job-snippet")
+                date_elem = card.find("span", class_="date")
+                job = {
+                    "zip_code": zip_code,
+                    "title": title_elem.get_text(strip=True) if title_elem else "",
+                    "company": company_elem.get_text(strip=True) if company_elem else "",
+                    "location": location_elem.get_text(strip=True) if location_elem else "",
+                    "summary": summary_elem.get_text(strip=True).replace("\n", " ") if summary_elem else "",
+                    "date_posted": date_elem.get_text(strip=True) if date_elem else "",
+                }
+                jobs.append(job)
+            # Pagination: check if next page exists
+            next_button = soup.find("a", {"aria-label": "Next"})
+            if next_button and "href" in next_button.attrs:
+                params["start"] += 10
+                time.sleep(random.uniform(1, 3))  # polite delay
+            else:
+                break
+        except Exception:
+            # On exception, retry after short delay
+            time.sleep(2)
+            continue
+    return jobs
+
+def worker():
+    while True:
+        zip_code = zip_queue.get()
+        if zip_code is None:
+            zip_queue.task_done()
+            break
+        jobs = scrape_jobs(zip_code)
+        for job in jobs:
+            result_queue.put(job)
+        zip_queue.task_done()
+
+def write_results_to_csv(output_file):
+    with open(output_file, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=["zip_code", "title", "company", "location", "summary", "date_posted"])
+        writer.writeheader()
+        while True:
+            job = result_queue.get()
+            if job is None:
+                result_queue.task_done()
+                break
+            writer.writerow(job)
+            result_queue.task_done()
+
+def main():
+    zip_codes = load_zip_codes_from_excel("zip_codes.xlsx")
+    for z in zip_codes:
+        zip_queue.put(z)
+
+    # Start worker threads
+    threads = []
+    for _ in range(min(MAX_THREADS, len(zip_codes))):
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
+        threads.append(t)
+
+    # Start CSV writer thread
+    writer_thread = threading.Thread(target=write_results_to_csv, args=("indeed_jobs.csv",))
+    writer_thread.daemon = True
+    writer_thread.start()
+
+    # Wait for all ZIP codes to be processed
+    
+2026-01-13 22:57:59,525 INFO Updated Plan:
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import threading
+from queue import Queue
+import csv
+import time
+import random
+
+# Constants
+BASE_URL = "https://www.indeed.com/jobs"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+                  " Chrome/90.0.4430.93 Safari/537.36"
+}
+MAX_THREADS = 20
+PROXY_LIST = [
+    # Example proxies, replace with real proxies
+    "http://proxy1.example.com:8080",
+    "http://proxy2.example.com:8080",
+    "http://proxy3.example.com:8080",
+]
+
+# Thread-safe queue for ZIP codes
+zip_queue = Queue()
+# Thread-safe queue for results
+result_queue = Queue()
+
+def load_zip_codes_from_excel(file_path):
+    df = pd.read_excel(file_path, dtype=str)
+    # Assuming ZIP codes are in a column named 'ZIP'
+    zip_codes = df['ZIP'].dropna().unique().tolist()
+    return zip_codes
+
+def get_proxy():
+    # Rotate proxies randomly
+    proxy = random.choice(PROXY_LIST)
+    return {"http": proxy, "https": proxy}
+
+def scrape_jobs(zip_code):
+    params = {
+        "q": "",  # Empty query to get all jobs
+        "l": zip_code,
+        "radius": "25",  # 25 miles radius
+        "start": 0
+    }
+    jobs = []
+    while True:
+        try:
+            proxy = get_proxy()
+            response = requests.get(BASE_URL, headers=HEADERS, params=params, proxies=proxy, timeout=10)
+            if response.status_code != 200:
+                # Retry with different proxy
+                time.sleep(1)
+                continue
+            soup = BeautifulSoup(response.text, "html.parser")
+            job_cards = soup.find_all("div", class_="job_seen_beacon")
+            if not job_cards:
+                break
+            for card in job_cards:
+                title_elem = card.find("h2", class_="jobTitle")
+                company_elem = card.find("span", class_="companyName")
+                location_elem = card.find("div", class_="companyLocation")
+                summary_elem = card.find("div", class_="job-snippet")
+                date_elem = card.find("span", class_="date")
+                job = {
+                    "zip_code": zip_code,
+                    "title": title_elem.get_text(strip=True) if title_elem else "",
+                    "company": company_elem.get_text(strip=True) if company_elem else "",
+                    "location": location_elem.get_text(strip=True) if location_elem else "",
+                    "summary": summary_elem.get_text(strip=True).replace("\n", " ") if summary_elem else "",
+                    "date_posted": date_elem.get_text(strip=True) if date_elem else "",
+                }
+                jobs.append(job)
+            # Pagination: check if next page exists
+            next_button = soup.find("a", {"aria-label": "Next"})
+            if next_button and "href" in next_button.attrs:
+                params["start"] += 10
+                time.sleep(random.uniform(1, 3))  # polite delay
+            else:
+                break
+        except Exception:
+            # On exception, retry after short delay
+            time.sleep(2)
+            continue
+    return jobs
+
+def worker():
+    while True:
+        zip_code = zip_queue.get()
+        if zip_code is None:
+            zip_queue.task_done()
+            break
+        jobs = scrape_jobs(zip_code)
+        for job in jobs:
+            result_queue.put(job)
+        zip_queue.task_done()
+
+def write_results_to_csv(output_file):
+    with open(output_file, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=["zip_code", "title", "company", "location", "summary", "date_posted"])
+        writer.writeheader()
+        while True:
+            job = result_queue.get()
+            if job is None:
+                result_queue.task_done()
+                break
+            writer.writerow(job)
+            result_queue.task_done()
+
+def main():
+    zip_codes = load_zip_codes_from_excel("zip_codes.xlsx")
+    for z in zip_codes:
+        zip_queue.put(z)
+
+    # Start worker threads
+    threads = []
+    for _ in range(min(MAX_THREADS, len(zip_codes))):
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
+        threads.append(t)
+
+    # Start CSV writer thread
+    writer_thread = threading.Thread(target=write_results_to_csv, args=("indeed_jobs.csv",))
+    writer_thread.daemon = True
+    writer_thread.start()
+
+    # Wait for all ZIP codes to be processed
+    zip_queue.join()
+
+    # Stop workers
+    for _ in threads:
+        zip_queue.put(None)
+    for t in threads:
+        t.join()
+
+    # Stop writer
+    result_queue.put(None)
+    writer_thread.join()
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 22:58:13,778 INFO Reviews:
+[a data engineer experienced in proxy management, large-scale data processing, and streaming data to CSV files]: ```python
+# Given code and completion:
+
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import threading
+from queue import Queue
+import csv
+import time
+import random
+
+# Constants
+BASE_URL = "https://www.indeed.com/jobs"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+                  " Chrome/90.0.4430.93 Safari/537.36"
+}
+MAX_THREADS = 20
+PROXY_LIST = [
+    # Example proxies, replace with real proxies
+    "http://proxy1.example.com:8080",
+    "http://proxy2.example.com:8080",
+    "http://proxy3.example.com:8080",
+]
+
+# Thread-safe queue for ZIP codes
+zip_queue = Queue()
+# Thread-safe queue for results
+result_queue = Queue()
+
+def load_zip_codes_from_excel(file_path):
+    df = pd.read_excel(file_path, dtype=str)
+    # Assuming ZIP codes are in a column named 'ZIP'
+    zip_codes = df['ZIP'].dropna().unique().tolist()
+    return zip_codes
+
+def get_proxy():
+    # Rotate proxies randomly
+    proxy = random.choice(PROXY_LIST)
+    return {"http": proxy, "https": proxy}
+
+def scrape_jobs(zip_code):
+    params = {
+        "q": "",  # Empty query to get all jobs
+        "l": zip_code,
+        "radius": "25",  # 25 miles radius
+        "start": 0
+    }
+    jobs = []
+    while True:
+        try:
+            proxy = get_proxy()
+            response = requests.get(BASE_URL, headers=HEADERS, params=params, proxies=proxy, timeout=10)
+            if response.status_code != 200:
+                # Retry with different proxy
+                time.sleep(1)
+                continue
+            soup = BeautifulSoup(response.text, "html.parser")
+            job_cards = soup.find_all("div", class_="job_seen_beacon")
+            if not job_cards:
+                break
+            for card in job_cards:
+                title_elem = card.find("h2", class_="jobTitle")
+                company_elem = card.find("span", class_="companyName")
+                location_elem = card.find("div", class_="companyLocation")
+                summary_elem = card.find("div", class_="job-snippet")
+                date_elem = card.find("span", class_="date")
+                job = {
+                    "zip_code": zip_code,
+                    "title": title_elem.get_text(strip=True) if title_elem else "",
+                    "company": company_elem.get_text(strip=True) if company_elem else "",
+                    "location": location_elem.get_text(strip=True) if location_elem else "",
+                    "summary": summary_elem.get_text(strip=True).replace("\n", " ") if summary_elem else "",
+                    "date_posted": date_elem.get_text(strip=True) if date_elem else "",
+                }
+                jobs.append(job)
+            # Pagination: check if next page exists
+            next_button = soup.find("a", {"aria-label": "Next"})
+            if next_button and "href" in next_button.attrs:
+                params["start"] += 10
+                time.sleep(random.uniform(1, 3))  # polite delay
+            else:
+                break
+        except Exception:
+            # On exception, retry after short delay
+            time.sleep(2)
+            continue
+    return jobs
+
+def worker():
+    while True:
+        zip_code = zip_queue.get()
+        if zip_code is None:
+            zip_queue.task_done()
+            break
+        jobs = scrape_jobs(zip_code)
+        for job in jobs:
+            result_queue.put(job)
+        zip_queue.task_done()
+
+def write_results_to_csv(output_file):
+    with open(output_file, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=["zip_code", "title", "company", "location", "summary", "date_posted"])
+        writer.writeheader()
+        while True:
+            job = result_queue.get()
+            if job is None:
+                result_queue.task_done()
+                break
+            writer.writerow(job)
+            result_queue.task_done()
+
+def main():
+    zip_codes = load_zip_codes_from_excel("zip_codes.xlsx")
+    for z in zip_codes:
+        zip_queue.put(z)
+
+    # Start worker threads
+    threads = []
+    for _ in range(min(MAX_THREADS, len(zip_codes))):
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
+        threads.append(t)
+
+    # Start CSV writer thread
+    writer_thread = threading.Thread(target=write_results_to_csv, args=("indeed_jobs.csv",))
+    writer_thread.daemon = True
+    writer_thread.start()
+
+    # Wait for all ZIP codes to be processed
+    zip 
+2026-01-13 22:58:34,902 INFO Updated Plan:
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import threading
+from queue import Queue
+import csv
+import time
+import random
+
+# Constants
+BASE_URL = "https://www.indeed.com/jobs"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+                  " Chrome/90.0.4430.93 Safari/537.36"
+}
+MAX_THREADS = 20
+PROXY_LIST = [
+    # Example proxies, replace with real proxies
+    "http://proxy1.example.com:8080",
+    "http://proxy2.example.com:8080",
+    "http://proxy3.example.com:8080",
+]
+
+# Thread-safe queue for ZIP codes
+zip_queue = Queue()
+# Thread-safe queue for results
+result_queue = Queue()
+
+def load_zip_codes_from_excel(file_path):
+    df = pd.read_excel(file_path, dtype=str)
+    # Assuming ZIP codes are in a column named 'ZIP'
+    zip_codes = df['ZIP'].dropna().unique().tolist()
+    return zip_codes
+
+def get_proxy():
+    # Rotate proxies randomly
+    proxy = random.choice(PROXY_LIST)
+    return {"http": proxy, "https": proxy}
+
+def scrape_jobs(zip_code):
+    params = {
+        "q": "",  # Empty query to get all jobs
+        "l": zip_code,
+        "radius": "25",  # 25 miles radius
+        "start": 0
+    }
+    jobs = []
+    while True:
+        try:
+            proxy = get_proxy()
+            response = requests.get(BASE_URL, headers=HEADERS, params=params, proxies=proxy, timeout=10)
+            if response.status_code != 200:
+                # Retry with different proxy
+                time.sleep(1)
+                continue
+            soup = BeautifulSoup(response.text, "html.parser")
+            job_cards = soup.find_all("div", class_="job_seen_beacon")
+            if not job_cards:
+                break
+            for card in job_cards:
+                title_elem = card.find("h2", class_="jobTitle")
+                company_elem = card.find("span", class_="companyName")
+                location_elem = card.find("div", class_="companyLocation")
+                summary_elem = card.find("div", class_="job-snippet")
+                date_elem = card.find("span", class_="date")
+                job = {
+                    "zip_code": zip_code,
+                    "title": title_elem.get_text(strip=True) if title_elem else "",
+                    "company": company_elem.get_text(strip=True) if company_elem else "",
+                    "location": location_elem.get_text(strip=True) if location_elem else "",
+                    "summary": summary_elem.get_text(strip=True).replace("\n", " ") if summary_elem else "",
+                    "date_posted": date_elem.get_text(strip=True) if date_elem else "",
+                }
+                jobs.append(job)
+            # Pagination: check if next page exists
+            next_button = soup.find("a", {"aria-label": "Next"})
+            if next_button and "href" in next_button.attrs:
+                params["start"] += 10
+                time.sleep(random.uniform(1, 3))  # polite delay
+            else:
+                break
+        except Exception:
+            # On exception, retry after short delay
+            time.sleep(2)
+            continue
+    return jobs
+
+def worker():
+    while True:
+        zip_code = zip_queue.get()
+        if zip_code is None:
+            zip_queue.task_done()
+            break
+        jobs = scrape_jobs(zip_code)
+        for job in jobs:
+            result_queue.put(job)
+        zip_queue.task_done()
+
+def write_results_to_csv(output_file):
+    with open(output_file, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=["zip_code", "title", "company", "location", "summary", "date_posted"])
+        writer.writeheader()
+        while True:
+            job = result_queue.get()
+            if job is None:
+                result_queue.task_done()
+                break
+            writer.writerow(job)
+            result_queue.task_done()
+
+def main():
+    zip_codes = load_zip_codes_from_excel("zip_codes.xlsx")
+    for z in zip_codes:
+        zip_queue.put(z)
+
+    # Start worker threads
+    threads = []
+    for _ in range(min(MAX_THREADS, len(zip_codes))):
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
+        threads.append(t)
+
+    # Start CSV writer thread
+    writer_thread = threading.Thread(target=write_results_to_csv, args=("indeed_jobs.csv",))
+    writer_thread.daemon = True
+    writer_thread.start()
+
+    # Wait for all ZIP codes to be processed
+    zip_queue.join()
+
+    # Stop workers
+    for _ in threads:
+        zip_queue.put(None)
+    for t in threads:
+        t.join()
+
+    # Stop writer
+    result_queue.put(None)
+    writer_thread.join()
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 22:58:34,903 INFO Decision Plan:
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import threading
+from queue import Queue
+import csv
+import time
+import random
+
+# Constants
+BASE_URL = "https://www.indeed.com/jobs"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+                  " Chrome/90.0.4430.93 Safari/537.36"
+}
+MAX_THREADS = 20
+PROXY_LIST = [
+    # Example proxies, replace with real proxies
+    "http://proxy1.example.com:8080",
+    "http://proxy2.example.com:8080",
+    "http://proxy3.example.com:8080",
+]
+
+# Thread-safe queue for ZIP codes
+zip_queue = Queue()
+# Thread-safe queue for results
+result_queue = Queue()
+
+def load_zip_codes_from_excel(file_path):
+    df = pd.read_excel(file_path, dtype=str)
+    # Assuming ZIP codes are in a column named 'ZIP'
+    zip_codes = df['ZIP'].dropna().unique().tolist()
+    return zip_codes
+
+def get_proxy():
+    # Rotate proxies randomly
+    proxy = random.choice(PROXY_LIST)
+    return {"http": proxy, "https": proxy}
+
+def scrape_jobs(zip_code):
+    params = {
+        "q": "",  # Empty query to get all jobs
+        "l": zip_code,
+        "radius": "25",  # 25 miles radius
+        "start": 0
+    }
+    jobs = []
+    while True:
+        try:
+            proxy = get_proxy()
+            response = requests.get(BASE_URL, headers=HEADERS, params=params, proxies=proxy, timeout=10)
+            if response.status_code != 200:
+                # Retry with different proxy
+                time.sleep(1)
+                continue
+            soup = BeautifulSoup(response.text, "html.parser")
+            job_cards = soup.find_all("div", class_="job_seen_beacon")
+            if not job_cards:
+                break
+            for card in job_cards:
+                title_elem = card.find("h2", class_="jobTitle")
+                company_elem = card.find("span", class_="companyName")
+                location_elem = card.find("div", class_="companyLocation")
+                summary_elem = card.find("div", class_="job-snippet")
+                date_elem = card.find("span", class_="date")
+                job = {
+                    "zip_code": zip_code,
+                    "title": title_elem.get_text(strip=True) if title_elem else "",
+                    "company": company_elem.get_text(strip=True) if company_elem else "",
+                    "location": location_elem.get_text(strip=True) if location_elem else "",
+                    "summary": summary_elem.get_text(strip=True).replace("\n", " ") if summary_elem else "",
+                    "date_posted": date_elem.get_text(strip=True) if date_elem else "",
+                }
+                jobs.append(job)
+            # Pagination: check if next page exists
+            next_button = soup.find("a", {"aria-label": "Next"})
+            if next_button and "href" in next_button.attrs:
+                params["start"] += 10
+                time.sleep(random.uniform(1, 3))  # polite delay
+            else:
+                break
+        except Exception:
+            # On exception, retry after short delay
+            time.sleep(2)
+            continue
+    return jobs
+
+def worker():
+    while True:
+        zip_code = zip_queue.get()
+        if zip_code is None:
+            zip_queue.task_done()
+            break
+        jobs = scrape_jobs(zip_code)
+        for job in jobs:
+            result_queue.put(job)
+        zip_queue.task_done()
+
+def write_results_to_csv(output_file):
+    with open(output_file, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=["zip_code", "title", "company", "location", "summary", "date_posted"])
+        writer.writeheader()
+        while True:
+            job = result_queue.get()
+            if job is None:
+                result_queue.task_done()
+                break
+            writer.writerow(job)
+            result_queue.task_done()
+
+def main():
+    zip_codes = load_zip_codes_from_excel("zip_codes.xlsx")
+    for z in zip_codes:
+        zip_queue.put(z)
+
+    # Start worker threads
+    threads = []
+    for _ in range(min(MAX_THREADS, len(zip_codes))):
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
+        threads.append(t)
+
+    # Start CSV writer thread
+    writer_thread = threading.Thread(target=write_results_to_csv, args=("indeed_jobs.csv",))
+    writer_thread.daemon = True
+    writer_thread.start()
+
+    # Wait for all ZIP codes to be processed
+    zip_queue.join()
+
+    # Stop workers
+    for _ in threads:
+        zip_queue.put(None)
+    for t in threads:
+        t.join()
+
+    # Stop writer
+    result_queue.put(None)
+    writer_thread.join()
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 22:58:34,903 INFO Execution Result: 
+2026-01-13 22:58:34,903 INFO  
+2026-01-13 22:58:41,111 INFO Evaluation result:
+Score: True
+Advice: The provided solution is well-structured and addresses the problem requirements effectively. It reads ZIP codes from an Excel file, uses multithreading to scrape job listings from Indeed, rotates proxies to avoid IP blocking, and streams results to a CSV file. The use of thread-safe queues for both input ZIP codes and output results ensures safe concurrent access. The polite delays and retry logic help maintain scraping stability.
+A few suggestions to further improve the solution:
+- Consider adding error logging to capture exceptions during scraping for easier debugging.
+- The proxy list is static; in a production environment, dynamic proxy management or validation would improve reliability.
+- The current approach uses threading, which is suitable here since the bottleneck is network I/O. However, for very large-scale scraping, exploring asynchronous requests or multiprocessing might yield better scalability.
+- To enhance scalability across all US states, ensure the Excel file includes all relevant ZIP codes, and consider chunking the workload or distributing it across multiple machines if needed.
+For the next round, recruiting experts with experience in:
+- Advanced proxy management and rotation strategies, including proxy health checks.
+- Asynchronous programming in Python (e.g., using asyncio and aiohttp) to improve scraping speed and scalability.
+- Robust error handling and logging frameworks for scraping applications.
+- Large-scale data pipeline design for streaming and storing scraped data efficiently.
+These experts can help refine the solution for production-grade robustness, speed, and scalability. 
+2026-01-13 22:58:41,111 INFO Good score! Accept! Final Result:
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import threading
+from queue import Queue
+import csv
+import time
+import random
+
+# Constants
+BASE_URL = "https://www.indeed.com/jobs"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
+                  " Chrome/90.0.4430.93 Safari/537.36"
+}
+MAX_THREADS = 20
+PROXY_LIST = [
+    # Example proxies, replace with real proxies
+    "http://proxy1.example.com:8080",
+    "http://proxy2.example.com:8080",
+    "http://proxy3.example.com:8080",
+]
+
+# Thread-safe queue for ZIP codes
+zip_queue = Queue()
+# Thread-safe queue for results
+result_queue = Queue()
+
+def load_zip_codes_from_excel(file_path):
+    df = pd.read_excel(file_path, dtype=str)
+    # Assuming ZIP codes are in a column named 'ZIP'
+    zip_codes = df['ZIP'].dropna().unique().tolist()
+    return zip_codes
+
+def get_proxy():
+    # Rotate proxies randomly
+    proxy = random.choice(PROXY_LIST)
+    return {"http": proxy, "https": proxy}
+
+def scrape_jobs(zip_code):
+    params = {
+        "q": "",  # Empty query to get all jobs
+        "l": zip_code,
+        "radius": "25",  # 25 miles radius
+        "start": 0
+    }
+    jobs = []
+    while True:
+        try:
+            proxy = get_proxy()
+            response = requests.get(BASE_URL, headers=HEADERS, params=params, proxies=proxy, timeout=10)
+            if response.status_code != 200:
+                # Retry with different proxy
+                time.sleep(1)
+                continue
+            soup = BeautifulSoup(response.text, "html.parser")
+            job_cards = soup.find_all("div", class_="job_seen_beacon")
+            if not job_cards:
+                break
+            for card in job_cards:
+                title_elem = card.find("h2", class_="jobTitle")
+                company_elem = card.find("span", class_="companyName")
+                location_elem = card.find("div", class_="companyLocation")
+                summary_elem = card.find("div", class_="job-snippet")
+                date_elem = card.find("span", class_="date")
+                job = {
+                    "zip_code": zip_code,
+                    "title": title_elem.get_text(strip=True) if title_elem else "",
+                    "company": company_elem.get_text(strip=True) if company_elem else "",
+                    "location": location_elem.get_text(strip=True) if location_elem else "",
+                    "summary": summary_elem.get_text(strip=True).replace("\n", " ") if summary_elem else "",
+                    "date_posted": date_elem.get_text(strip=True) if date_elem else "",
+                }
+                jobs.append(job)
+            # Pagination: check if next page exists
+            next_button = soup.find("a", {"aria-label": "Next"})
+            if next_button and "href" in next_button.attrs:
+                params["start"] += 10
+                time.sleep(random.uniform(1, 3))  # polite delay
+            else:
+                break
+        except Exception:
+            # On exception, retry after short delay
+            time.sleep(2)
+            continue
+    return jobs
+
+def worker():
+    while True:
+        zip_code = zip_queue.get()
+        if zip_code is None:
+            zip_queue.task_done()
+            break
+        jobs = scrape_jobs(zip_code)
+        for job in jobs:
+            result_queue.put(job)
+        zip_queue.task_done()
+
+def write_results_to_csv(output_file):
+    with open(output_file, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=["zip_code", "title", "company", "location", "summary", "date_posted"])
+        writer.writeheader()
+        while True:
+            job = result_queue.get()
+            if job is None:
+                result_queue.task_done()
+                break
+            writer.writerow(job)
+            result_queue.task_done()
+
+def main():
+    zip_codes = load_zip_codes_from_excel("zip_codes.xlsx")
+    for z in zip_codes:
+        zip_queue.put(z)
+
+    # Start worker threads
+    threads = []
+    for _ in range(min(MAX_THREADS, len(zip_codes))):
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
+        threads.append(t)
+
+    # Start CSV writer thread
+    writer_thread = threading.Thread(target=write_results_to_csv, args=("indeed_jobs.csv",))
+    writer_thread.daemon = True
+    writer_thread.start()
+
+    # Wait for all ZIP codes to be processed
+    zip_queue.join()
+
+    # Stop workers
+    for _ in threads:
+        zip_queue.put(None)
+    for t in threads:
+        t.join()
+
+    # Stop writer
+    result_queue.put(None)
+    writer_thread.join()
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 22:58:41,113 INFO Agent spend: 
+2026-01-13 22:58:41,113 INFO Agent (Role: AGENT_TYPES.ROLE_ASSIGNMENT) role assigner: $0.000158 
+2026-01-13 22:58:41,113 INFO Agent (Role: AGENT_TYPES.SOLVER) a Python developer specialized in web scraping and multithreading optimization: $0.01 
+2026-01-13 22:58:41,113 INFO Agent (Role: AGENT_TYPES.CRITIC) a data engineer experienced in proxy management, large-scale data processing, and streaming data to CSV files: $0.01 
+2026-01-13 22:58:41,113 INFO Agent (Role: AGENT_TYPES.EXECUTION) Executor: $0.000000 
+2026-01-13 22:58:41,113 INFO Agent (Role: AGENT_TYPES.EVALUATION) Evaluator: $0.001089 
+2026-01-13 22:58:41,113 INFO Agent (Role: AGENT_TYPES.MANAGER) Manager: $0.000000 
+2026-01-13 22:58:41,113 INFO Total spent: $0.022595 

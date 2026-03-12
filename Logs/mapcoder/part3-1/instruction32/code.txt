@@ -1,0 +1,83 @@
+import pandas as pd
+import numpy as np
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from nltk.sentiment import SentimentIntensityAnalyzer
+import spacy
+import gensim
+from gensim.summarization import keywords
+from flask import Flask, request, jsonify
+
+nltk.download('punkt')
+nltk.download('stopwords')
+
+# Load English tokenizer, tagger, parser, NER, and POS tagger
+nlp = spacy.load("en_core_web_sm")
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Preprocessing function
+def preprocess_text(text):
+    text = text.lower()
+    tokens = word_tokenize(text)
+    tokens = [word for word in tokens if word.isalnum()]
+    stop_words = set(stopwords.words('english'))
+    tokens = [word for word in tokens if word not in stop_words]
+    return ' '.join(tokens)
+
+# Load dataset
+def load_data(file_path):
+    df = pd.read_csv(file_path)
+    df['cleaned_text'] = df['text'].apply(preprocess_text)
+    return df
+
+# Topic modeling using LDA
+def topic_modeling(texts, n_topics=5):
+    vectorizer = TfidfVectorizer()
+    tfidf = vectorizer.fit_transform(texts)
+    lda = LatentDirichletAllocation(n_components=n_topics, random_state=42)
+    lda.fit(tfidf)
+    return lda
+
+# Key-phrase extraction
+def extract_keywords(text):
+    return keywords(text).split('\n')
+
+# Sentiment analysis
+def sentiment_analysis(text):
+    sia = SentimentIntensityAnalyzer()
+    return sia.polarity_scores(text)
+
+# API endpoint for analysis
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    data = request.json
+    raw_text = data['text']
+    
+    # Preprocess
+    cleaned_text = preprocess_text(raw_text)
+    
+    # Topic modeling
+    lda_model = topic_modeling([cleaned_text])
+    
+    # Key-phrase extraction
+    key_phrases = extract_keywords(cleaned_text)
+    
+    # Sentiment analysis
+    sentiment = sentiment_analysis(cleaned_text)
+    
+    return jsonify({
+        'key_phrases': key_phrases,
+        'sentiment': sentiment
+    })
+
+if __name__ == '__main__':
+    app.run(debug=True)

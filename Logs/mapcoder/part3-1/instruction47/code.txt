@@ -1,0 +1,85 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, accuracy_score
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+import streamlit as st
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+import json
+
+# Load datasets
+def load_data():
+    # Replace with actual data loading logic
+    data = pd.read_csv('call_center_data.csv')
+    return data
+
+# Data preprocessing
+def preprocess_data(data):
+    data.drop_duplicates(inplace=True)
+    data.fillna('', inplace=True)
+    return data
+
+# Exploratory Data Analysis
+def eda(data):
+    plt.figure(figsize=(10, 6))
+    sns.countplot(x='call_type', data=data)
+    plt.title('Call Type Distribution')
+    plt.show()
+
+# NLP preprocessing
+def nlp_preprocessing(text):
+    lemmatizer = WordNetLemmatizer()
+    tokens = word_tokenize(text.lower())
+    return ' '.join([lemmatizer.lemmatize(token) for token in tokens])
+
+# Build ML model
+def build_model(data):
+    X = data['transcription'].apply(nlp_preprocessing)
+    y = data['call_type']
+    
+    vectorizer = TfidfVectorizer()
+    X_vectorized = vectorizer.fit_transform(X)
+    
+    X_train, X_test, y_train, y_test = train_test_split(X_vectorized, y, test_size=0.2, random_state=42)
+    
+    model = RandomForestClassifier()
+    model.fit(X_train, y_train)
+    
+    y_pred = model.predict(X_test)
+    print(classification_report(y_test, y_pred))
+    print("Accuracy:", accuracy_score(y_test, y_pred))
+    
+    return model, vectorizer
+
+# Generate insights
+def generate_insights(model, vectorizer, query):
+    query_vectorized = vectorizer.transform([nlp_preprocessing(query)])
+    prediction = model.predict(query_vectorized)
+    return prediction[0]
+
+# Streamlit dashboard
+def dashboard(model, vectorizer):
+    st.title("AI-Powered Call Center Management")
+    
+    query = st.text_input("Enter your query:")
+    if st.button("Get Recommendation"):
+        result = generate_insights(model, vectorizer, query)
+        st.write(f"Recommended Action: {result}")
+
+# Main function
+def main():
+    data = load_data()
+    data = preprocess_data(data)
+    eda(data)
+    model, vectorizer = build_model(data)
+    dashboard(model, vectorizer)
+
+if __name__ == "__main__":
+    main()

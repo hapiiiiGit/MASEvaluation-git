@@ -1,0 +1,22 @@
+sequenceDiagram
+    participant VS as VideoStreamHandler
+    participant IE as InferenceEngine
+    participant AD as AnomalyDetector
+    participant AM as AlertManager
+    participant EC as EmailSender
+    participant PC as PushNotifier
+    participant API as WebAPI
+    participant DB as Dashboard
+    loop For each frame
+        VS->>IE: read_frame()
+        IE->>AD: predict(frame)
+        AD-->>IE: anomaly_result
+        IE->>AM: send_alert(alert) if anomaly
+        AM->>EC: send(alert) if email enabled
+        AM->>PC: send(alert) if push enabled
+        AM->>API: update alert list
+    end
+    DB->>API: get_alerts()
+    API-->>DB: alerts
+    DB->>API: get_video_feed()
+    API-->>DB: video stream

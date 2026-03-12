@@ -1,0 +1,127 @@
+classDiagram
+    class User {
+        +id: int
+        +username: str
+        +email: str
+        +password: str
+        +role: Role
+        +is_active: bool
+        +created_at: datetime
+        +check_password(password: str) bool
+    }
+    class Role {
+        +id: int
+        +name: str
+        +permissions: list[str]
+    }
+    class AuditLog {
+        +id: int
+        +user: User
+        +action: str
+        +object_type: str
+        +object_id: int
+        +timestamp: datetime
+        +details: str
+    }
+    class Account {
+        +id: int
+        +name: str
+        +code: str
+        +type: str
+        +parent: Account
+    }
+    class JournalEntry {
+        +id: int
+        +date: date
+        +description: str
+        +created_by: User
+        +lines: list[JournalEntryLine]
+    }
+    class JournalEntryLine {
+        +id: int
+        +journal_entry: JournalEntry
+        +account: Account
+        +debit: Decimal
+        +credit: Decimal
+    }
+    class Invoice {
+        +id: int
+        +number: str
+        +customer: str
+        +date: date
+        +due_date: date
+        +status: str
+        +total: Decimal
+        +lines: list[InvoiceLine]
+        +created_by: User
+    }
+    class InvoiceLine {
+        +id: int
+        +invoice: Invoice
+        +description: str
+        +quantity: int
+        +unit_price: Decimal
+        +total: Decimal
+    }
+    class Supplier {
+        +id: int
+        +name: str
+        +contact_info: str
+    }
+    class PurchaseOrder {
+        +id: int
+        +number: str
+        +supplier: Supplier
+        +date: date
+        +status: str
+        +total: Decimal
+        +lines: list[PurchaseOrderLine]
+        +created_by: User
+    }
+    class PurchaseOrderLine {
+        +id: int
+        +purchase_order: PurchaseOrder
+        +item: InventoryItem
+        +quantity: int
+        +unit_price: Decimal
+        +total: Decimal
+    }
+    class InventoryItem {
+        +id: int
+        +sku: str
+        +name: str
+        +quantity: int
+        +unit_cost: Decimal
+        +reorder_level: int
+        +supplier: Supplier
+    }
+    class InventoryAdjustment {
+        +id: int
+        +item: InventoryItem
+        +date: date
+        +quantity_change: int
+        +reason: str
+        +created_by: User
+    }
+    class FinancialReport {
+        +id: int
+        +type: str
+        +parameters: dict
+        +generated_by: User
+        +generated_at: datetime
+        +data: dict
+    }
+    User "1" -- "*" AuditLog : logs
+    User "1" -- "*" JournalEntry : created
+    User "1" -- "*" Invoice : created
+    User "1" -- "*" PurchaseOrder : created
+    User "1" -- "*" InventoryAdjustment : created
+    User "1" -- "*" FinancialReport : generated
+    Role "1" -- "*" User : assigned
+    Account "1" -- "*" JournalEntryLine : used_in
+    JournalEntry "1" -- "*" JournalEntryLine : has
+    Invoice "1" -- "*" InvoiceLine : has
+    PurchaseOrder "1" -- "*" PurchaseOrderLine : has
+    Supplier "1" -- "*" PurchaseOrder : supplies
+    Supplier "1" -- "*" InventoryItem : supplies
+    InventoryItem "1" -- "*" InventoryAdjustment : adjusted

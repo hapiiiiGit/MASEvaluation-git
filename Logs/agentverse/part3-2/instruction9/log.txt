@@ -1,0 +1,1117 @@
+2026-01-13 18:28:07,473 WARNING  No vLLM server running at the specified URL.
+2026-01-13 18:28:07,496 WARNING  BMTools is not installed, tools in the simulation environment cannot be used. To install BMTools, please follow the instruction in the README.md file. If you aren't running a *simulation* case with tool, you can ignore this warning.
+2026-01-13 18:28:08,983 INFO  Loop Round 0
+2026-01-13 18:28:10,785 INFO Role Assignment:
+a machine learning engineer specialized in document AI and OCR technologies
+a software developer experienced in Google Cloud Platform and API integration 
+2026-01-13 18:28:20,648 INFO Initial Plan:
+# Please help me implement a Python program to set up Google Document AI for extracting specified fields from supplier invoices in image or PDF format, ensuring the model handles various scan conditions, and outputs the results in JSON or CSV format for database storage.
+
+from google.cloud import documentai_v1 as documentai
+from google.cloud.documentai_v1 import DocumentProcessorServiceClient
+import json
+import csv
+import os
+
+# Set your Google Cloud project details
+PROJECT_ID = "your-project-id"
+LOCATION = "us"  # Format is 'us' or 'eu'
+PROCESSOR_ID = "your-processor-id"  # The processor ID for your invoice processor
+
+# Path to the local file (image or PDF)
+FILE_PATH = "path/to/your/invoice.pdf"
+
+# Output paths
+OUTPUT_JSON = "output_invoice.json"
+OUTPUT_CSV = "output_invoice.csv"
+
+def process_document(file_path):
+    client = DocumentProcessorServiceClient()
+
+    # The full resource name of the processor
+    name = f"projects/{PROJECT_ID}/locations/{LOCATION}/processors/{PROCESSOR_ID}"
+
+    # Read the file into memory
+    with open(file_path, "rb") as image:
+        image_content = image.read()
+
+    # Configure the process request
+    document = {"content": image_content, "mime_type": "application/pdf" if file_path.lower().endswith(".pdf") else "image/jpeg"}
+
+    request = {
+        "name": name,
+        "raw_document": document,
+    }
+
+    # Use the client to process the document
+    result = client.process_document(request=request)
+    document = result.document
+
+    return document
+
+def extract_fields(document):
+    # Extract entities from the document
+    fields = {}
+    for entity in document.entities:
+        # The entity type corresponds to the field name, e.g. "invoice_date", "supplier_name"
+        field_name = entity.type_
+        field_value = entity.mention_text
+        fields[field_name] = field_value
+    return fields
+
+def save_json(data, output_path):
+    with open(output_path, "w") as f:
+        json.dump(data, f, indent=2)
+
+def save_csv(data, output_path):
+    # Save the extracted fields as a single-row CSV
+    with open(output_path, "w", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+        writer.writeheader()
+        writer.writerow(data)
+
+def main():
+    document = process_document(FILE_PATH)
+    fields = extract_fields(document)
+    save_json(fields, OUTPUT_JSON)
+    save_csv(fields, OUTPUT_CSV)
+    print(f"Extraction complete. Results saved to {OUTPUT_JSON} and {OUTPUT_CSV}")
+
+if __name__ == "__main__":
+    # Make sure to set the environment variable for authentication before running:
+    # export GOOGLE_APPLICATION_CREDENTIALS="path/to/your/service-account-file.json"
+    main()
+ 
+2026-01-13 18:28:35,299 INFO Reviews:
+[a software developer experienced in Google Cloud Platform and API integration]: ```python
+# Critique:
+# 1. The code uses the Document AI client correctly but misses specifying the processor type for invoice extraction.
+# 2. The mime_type is hardcoded to "image/jpeg" for non-PDFs, but invoices can be PNG, TIFF, etc. It should detect mime type dynamically.
+# 3. The extraction of fields assumes entities are directly available and their type_ corresponds to field names, but the Document AI Invoice Processor returns structured fields in document.pages[].form_fields or document.entities with normalized values.
+# 4. The code does not handle different scan conditions explicitly; this is mostly handled by the Document AI model itself.
+# 5. The code does not handle authentication setup or error handling.
+# 6. The code does not parse the structured invoice fields properly; it just dumps entity mention_text which may not be sufficient.
+# 7. The code does not include the import for mimetypes to detect mime type.
+# 8. The code does not handle the case where multiple values for the same field exist.
+# 9. The code does not include comments explaining the steps.
+
+# Corrected code with comments and improvements:
+
+from google.cloud import documentai_v1 as documentai
+from google.cloud.documentai_v1 import DocumentProcessorServiceClient
+import json
+import csv
+import os
+import mimetypes
+
+# Set your Google Cloud project details
+PROJECT_ID = "your-project-id"
+LOCATION = "us"  # Format is 'us' or 'eu'
+PROCESSOR_ID = "your-processor-id"  # The processor ID for your invoice processor
+
+# Path to the local file (image or PDF)
+FILE_PATH = "path/to/your/invoice.pdf"
+
+# Output paths
+OUTPUT_JSON = "output_invoice.json"
+OUTPUT_CSV = "output_invoice.csv"
+
+def get_mime_type(file_path):
+    # Detect mime type based on file extension
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type is None:
+        # Default to application/pdf if unknown
+        mime_type = "application/pdf"
+    return mime_type
+
+def process_document(file_path):
+    """
+    Processes the document using Google Document AI Invoice Processor.
+    """
+    client = DocumentProcessorServiceClient()
+
+    # The full resource name of the processor
+    name = f"projects/{PROJECT_ID}/locations/{LOCATION}/processors/{PROCESSOR_ID}"
+
+    # Read the file into memory
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+
+    mime_type = get_mime_type(file_path)
+
+    raw_document = documentai.RawDocument(content=file_content, mime_type=mime_type)
+
+    request = documentai.ProcessRequest(name=name, raw_document=raw_document)
+
+    result = client.process_document(request=request)
+    document = result.document
+
+    return document
+
+def extract_invoice_fields(document):
+    """
+    Extracts key invoice fields from the Document AI response.
+    The invoice processor returns structured fields in document.entities and document.pages[].form_fields.
+    This function extracts common invoice fields like invoice number, date, supplier name, total amount, etc.
+    """
+    fields = {}
+
+    # Extract entities with normalized values if available
+    for entity in document.entities:
+        field_name = entity.type_
+        # Prefer normalized value if available
+        if entity.normalized_value and entity.normalized_value.text:
+            field_value = entity.normalized_value.text
+        else:
+            field_value = entity.mention_text
+        # If field already exists, append or convert to list
+        if field_name in fields:
+            if isinstance(fields[field_name], list):
+                fields[field_name].append(field_value)
+            else:
+                fields[field_name] = [fields[field_name], field_value]
+        else:
+            fields[field_name] = field_value
+
+    # Additionally, parse form fields on pages for more structured data
+    for page in document.pages:
+        for form_field in page.form_fields:
+            # Field name text
+            field_name = form_field.field_name.text_anchor.content if form_field.field_name.text_anchor else form_field.field_name.text
+            # Field value text
+            field_value = form_field.field_value.text_anchor.content if form_field.field_value.text_anchor else form_field.field_value.text
+            if field_name and field_value:
+                # Normalize field name to lowercase and replace spaces with underscores
+                normalized_field_name = field_name.strip().lower().replace(" ", "_")
+                if normalized_field_name in fields:
+                    if isinstance(fields[normalized_field_name], list):
+                        fields[normalized_field_name].append(field_value)
+                    else:
+                        fields[normalized_field_name] = [fields[normalized_field_name], field_value]
+                else:
+                    fields[normalized_field_name] = field_value
+
+    return fields
+
+def save_json(data, output_path):
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False 
+2026-01-13 18:28:54,573 INFO Updated Plan:
+# Please help me implement a Python program to set up Google Document AI for extracting specified fields from supplier invoices in image or PDF format, ensuring the model handles various scan conditions, and outputs the results in JSON or CSV format for database storage.
+
+from google.cloud import documentai_v1 as documentai
+from google.cloud.documentai_v1 import DocumentProcessorServiceClient
+import json
+import csv
+import os
+import mimetypes
+
+# Set your Google Cloud project details
+PROJECT_ID = "your-project-id"
+LOCATION = "us"  # Format is 'us' or 'eu'
+PROCESSOR_ID = "your-processor-id"  # The processor ID for your invoice processor
+
+# Path to the local file (image or PDF)
+FILE_PATH = "path/to/your/invoice.pdf"
+
+# Output paths
+OUTPUT_JSON = "output_invoice.json"
+OUTPUT_CSV = "output_invoice.csv"
+
+def get_mime_type(file_path):
+    # Detect mime type based on file extension
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type is None:
+        # Default to application/pdf if unknown
+        mime_type = "application/pdf"
+    return mime_type
+
+def process_document(file_path):
+    """
+    Processes the document using Google Document AI Invoice Processor.
+    """
+    client = DocumentProcessorServiceClient()
+
+    # The full resource name of the processor
+    name = f"projects/{PROJECT_ID}/locations/{LOCATION}/processors/{PROCESSOR_ID}"
+
+    # Read the file into memory
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+
+    mime_type = get_mime_type(file_path)
+
+    raw_document = documentai.RawDocument(content=file_content, mime_type=mime_type)
+
+    request = documentai.ProcessRequest(name=name, raw_document=raw_document)
+
+    result = client.process_document(request=request)
+    document = result.document
+
+    return document
+
+def extract_invoice_fields(document):
+    """
+    Extracts key invoice fields from the Document AI response.
+    The invoice processor returns structured fields in document.entities and document.pages[].form_fields.
+    This function extracts common invoice fields like invoice number, date, supplier name, total amount, etc.
+    """
+    fields = {}
+
+    # Extract entities with normalized values if available
+    for entity in document.entities:
+        field_name = entity.type_
+        # Prefer normalized value if available
+        if entity.normalized_value and entity.normalized_value.text:
+            field_value = entity.normalized_value.text
+        else:
+            field_value = entity.mention_text
+        # If field already exists, append or convert to list
+        if field_name in fields:
+            if isinstance(fields[field_name], list):
+                fields[field_name].append(field_value)
+            else:
+                fields[field_name] = [fields[field_name], field_value]
+        else:
+            fields[field_name] = field_value
+
+    # Additionally, parse form fields on pages for more structured data
+    for page in document.pages:
+        for form_field in page.form_fields:
+            # Field name text
+            if form_field.field_name.text_anchor and form_field.field_name.text_anchor.content:
+                field_name = form_field.field_name.text_anchor.content.strip()
+            else:
+                field_name = form_field.field_name.text.strip() if form_field.field_name.text else None
+
+            # Field value text
+            if form_field.field_value.text_anchor and form_field.field_value.text_anchor.content:
+                field_value = form_field.field_value.text_anchor.content.strip()
+            else:
+                field_value = form_field.field_value.text.strip() if form_field.field_value.text else None
+
+            if field_name and field_value:
+                # Normalize field name to lowercase and replace spaces with underscores
+                normalized_field_name = field_name.lower().replace(" ", "_")
+                if normalized_field_name in fields:
+                    if isinstance(fields[normalized_field_name], list):
+                        fields[normalized_field_name].append(field_value)
+                    else:
+                        fields[normalized_field_name] = [fields[normalized_field_name], field_value]
+                else:
+                    fields[normalized_field_name] = field_value
+
+    return fields
+
+def save_json(data, output_path):
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def save_csv(data, output_path):
+    # Save the extracted fields as a single-row CSV
+    with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+        writer.writeheader()
+        # Flatten lists by joining with semicolon
+        row = {k: "; ".join(v) if isinstance(v, list) else v for k, v in data.items()}
+        writer.writerow(row)
+
+def main():
+    # Ensure GOOGLE_APPLICATION_CREDENTIALS env var is set to your service account JSON path
+    document = process_document(FILE_PATH)
+    fields = extract_invoice_fields(document)
+    save_json(fields, OUTPUT_JSON)
+    save_csv(fields, OUTPUT_CSV)
+    print(f"Extraction complete. Results saved to {OUTPUT_JSON} and {OUTPUT_CSV}")
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 18:29:08,614 INFO Reviews:
+[a software developer experienced in Google Cloud Platform and API integration]: ```python
+# Given code and completion:
+
+from google.cloud import documentai_v1 as documentai
+from google.cloud.documentai_v1 import DocumentProcessorServiceClient
+import json
+import csv
+import os
+import mimetypes
+
+# Set your Google Cloud project details
+PROJECT_ID = "your-project-id"
+LOCATION = "us"  # Format is 'us' or 'eu'
+PROCESSOR_ID = "your-processor-id"  # The processor ID for your invoice processor
+
+# Path to the local file (image or PDF)
+FILE_PATH = "path/to/your/invoice.pdf"
+
+# Output paths
+OUTPUT_JSON = "output_invoice.json"
+OUTPUT_CSV = "output_invoice.csv"
+
+def get_mime_type(file_path):
+    # Detect mime type based on file extension
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type is None:
+        # Default to application/pdf if unknown
+        mime_type = "application/pdf"
+    return mime_type
+
+def process_document(file_path):
+    """
+    Processes the document using Google Document AI Invoice Processor.
+    """
+    client = DocumentProcessorServiceClient()
+
+    # The full resource name of the processor
+    name = f"projects/{PROJECT_ID}/locations/{LOCATION}/processors/{PROCESSOR_ID}"
+
+    # Read the file into memory
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+
+    mime_type = get_mime_type(file_path)
+
+    raw_document = documentai.RawDocument(content=file_content, mime_type=mime_type)
+
+    request = documentai.ProcessRequest(name=name, raw_document=raw_document)
+
+    result = client.process_document(request=request)
+    document = result.document
+
+    return document
+
+def extract_invoice_fields(document):
+    """
+    Extracts key invoice fields from the Document AI response.
+    The invoice processor returns structured fields in document.entities and document.pages[].form_fields.
+    This function extracts common invoice fields like invoice number, date, supplier name, total amount, etc.
+    """
+    fields = {}
+
+    # Extract entities with normalized values if available
+    for entity in document.entities:
+        field_name = entity.type_
+        # Prefer normalized value if available
+        if entity.normalized_value and entity.normalized_value.text:
+            field_value = entity.normalized_value.text
+        else:
+            field_value = entity.mention_text
+        # If field already exists, append or convert to list
+        if field_name in fields:
+            if isinstance(fields[field_name], list):
+                fields[field_name].append(field_value)
+            else:
+                fields[field_name] = [fields[field_name], field_value]
+        else:
+            fields[field_name] = field_value
+
+    # Additionally, parse form fields on pages for more structured data
+    for page in document.pages:
+        for form_field in page.form_fields:
+            # Field name text
+            if form_field.field_name.text_anchor and form_field.field_name.text_anchor.content:
+                field_name = form_field.field_name.text_anchor.content.strip()
+            else:
+                field_name = form_field.field_name.text.strip() if form_field.field_name.text else None
+
+            # Field value text
+            if form_field.field_value.text_anchor and form_field.field_value.text_anchor.content:
+                field_value = form_field.field_value.text_anchor.content.strip()
+            else:
+                field_value = form_field.field_value.text.strip() if form_field.field_value.text else None
+
+            if field_name and field_value:
+                # Normalize field name to lowercase and replace spaces with underscores
+                normalized_field_name = field_name.lower().replace(" ", "_")
+                if normalized_field_name in fields:
+                    if isinstance(fields[normalized_field_name], list):
+                        fields[normalized_field_name].append(field_value)
+                    else:
+                        fields[normalized_field_name] = [fields[normalized_field_name], field_value]
+                else:
+                    fields[normalized_field_name] = field_value
+
+    return fields
+
+def save_json(data, output_path):
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def save_csv(data, output_path):
+    # Save the extracted fields as a single-row CSV
+    with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+        writer.writeheader()
+        # Flatten lists by joining with semicolon
+        row = {k: "; ".join(v) if isinstance(v, list) else v for k, v in data.items()}
+        writer.writerow(row)
+
+def main():
+    # Ensure GOOGLE_APPLICATION_CREDENTIALS env var is set to your service account JSON path
+    document = process_document(FILE_PATH)
+    fields = extract_invoice_fields(document)
+    save_json(fields, OUTPUT_JSON)
+    save_csv(fields, OUTPUT_CSV)
+    print(f"Extraction complete. Results saved to {OUTPUT_JSON} and {OUTPUT_CSV}")
+
+ 
+2026-01-13 18:29:27,376 INFO Updated Plan:
+from google.cloud import documentai_v1 as documentai
+from google.cloud.documentai_v1 import DocumentProcessorServiceClient
+import json
+import csv
+import os
+import mimetypes
+
+# Set your Google Cloud project details
+PROJECT_ID = "your-project-id"
+LOCATION = "us"  # Format is 'us' or 'eu'
+PROCESSOR_ID = "your-processor-id"  # The processor ID for your invoice processor
+
+# Path to the local file (image or PDF)
+FILE_PATH = "path/to/your/invoice.pdf"
+
+# Output paths
+OUTPUT_JSON = "output_invoice.json"
+OUTPUT_CSV = "output_invoice.csv"
+
+def get_mime_type(file_path):
+    # Detect mime type based on file extension
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type is None:
+        # Default to application/pdf if unknown
+        mime_type = "application/pdf"
+    return mime_type
+
+def process_document(file_path):
+    """
+    Processes the document using Google Document AI Invoice Processor.
+    """
+    client = DocumentProcessorServiceClient()
+
+    # The full resource name of the processor
+    name = f"projects/{PROJECT_ID}/locations/{LOCATION}/processors/{PROCESSOR_ID}"
+
+    # Read the file into memory
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+
+    mime_type = get_mime_type(file_path)
+
+    raw_document = documentai.RawDocument(content=file_content, mime_type=mime_type)
+
+    request = documentai.ProcessRequest(name=name, raw_document=raw_document)
+
+    result = client.process_document(request=request)
+    document = result.document
+
+    return document
+
+def extract_invoice_fields(document):
+    """
+    Extracts key invoice fields from the Document AI response.
+    The invoice processor returns structured fields in document.entities and document.pages[].form_fields.
+    This function extracts common invoice fields like invoice number, date, supplier name, total amount, etc.
+    """
+    fields = {}
+
+    # Extract entities with normalized values if available
+    for entity in document.entities:
+        field_name = entity.type_
+        # Prefer normalized value if available
+        if entity.normalized_value and entity.normalized_value.text:
+            field_value = entity.normalized_value.text
+        else:
+            field_value = entity.mention_text
+        # If field already exists, append or convert to list
+        if field_name in fields:
+            if isinstance(fields[field_name], list):
+                fields[field_name].append(field_value)
+            else:
+                fields[field_name] = [fields[field_name], field_value]
+        else:
+            fields[field_name] = field_value
+
+    # Additionally, parse form fields on pages for more structured data
+    for page in document.pages:
+        for form_field in page.form_fields:
+            # Field name text
+            if form_field.field_name.text_anchor and form_field.field_name.text_anchor.content:
+                field_name = form_field.field_name.text_anchor.content.strip()
+            else:
+                field_name = form_field.field_name.text.strip() if form_field.field_name.text else None
+
+            # Field value text
+            if form_field.field_value.text_anchor and form_field.field_value.text_anchor.content:
+                field_value = form_field.field_value.text_anchor.content.strip()
+            else:
+                field_value = form_field.field_value.text.strip() if form_field.field_value.text else None
+
+            if field_name and field_value:
+                # Normalize field name to lowercase and replace spaces with underscores
+                normalized_field_name = field_name.lower().replace(" ", "_")
+                if normalized_field_name in fields:
+                    if isinstance(fields[normalized_field_name], list):
+                        fields[normalized_field_name].append(field_value)
+                    else:
+                        fields[normalized_field_name] = [fields[normalized_field_name], field_value]
+                else:
+                    fields[normalized_field_name] = field_value
+
+    return fields
+
+def save_json(data, output_path):
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def save_csv(data, output_path):
+    # Save the extracted fields as a single-row CSV
+    with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+        writer.writeheader()
+        # Flatten lists by joining with semicolon
+        row = {k: "; ".join(v) if isinstance(v, list) else v for k, v in data.items()}
+        writer.writerow(row)
+
+def main():
+    # Ensure GOOGLE_APPLICATION_CREDENTIALS env var is set to your service account JSON path
+    document = process_document(FILE_PATH)
+    fields = extract_invoice_fields(document)
+    save_json(fields, OUTPUT_JSON)
+    save_csv(fields, OUTPUT_CSV)
+    print(f"Extraction complete. Results saved to {OUTPUT_JSON} and {OUTPUT_CSV}")
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 18:29:38,932 INFO Reviews:
+[a software developer experienced in Google Cloud Platform and API integration]: ```python
+# Given code and completion:
+
+from google.cloud import documentai_v1 as documentai
+from google.cloud.documentai_v1 import DocumentProcessorServiceClient
+import json
+import csv
+import os
+import mimetypes
+
+# Set your Google Cloud project details
+PROJECT_ID = "your-project-id"
+LOCATION = "us"  # Format is 'us' or 'eu'
+PROCESSOR_ID = "your-processor-id"  # The processor ID for your invoice processor
+
+# Path to the local file (image or PDF)
+FILE_PATH = "path/to/your/invoice.pdf"
+
+# Output paths
+OUTPUT_JSON = "output_invoice.json"
+OUTPUT_CSV = "output_invoice.csv"
+
+def get_mime_type(file_path):
+    # Detect mime type based on file extension
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type is None:
+        # Default to application/pdf if unknown
+        mime_type = "application/pdf"
+    return mime_type
+
+def process_document(file_path):
+    """
+    Processes the document using Google Document AI Invoice Processor.
+    """
+    client = DocumentProcessorServiceClient()
+
+    # The full resource name of the processor
+    name = f"projects/{PROJECT_ID}/locations/{LOCATION}/processors/{PROCESSOR_ID}"
+
+    # Read the file into memory
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+
+    mime_type = get_mime_type(file_path)
+
+    raw_document = documentai.RawDocument(content=file_content, mime_type=mime_type)
+
+    request = documentai.ProcessRequest(name=name, raw_document=raw_document)
+
+    result = client.process_document(request=request)
+    document = result.document
+
+    return document
+
+def extract_invoice_fields(document):
+    """
+    Extracts key invoice fields from the Document AI response.
+    The invoice processor returns structured fields in document.entities and document.pages[].form_fields.
+    This function extracts common invoice fields like invoice number, date, supplier name, total amount, etc.
+    """
+    fields = {}
+
+    # Extract entities with normalized values if available
+    for entity in document.entities:
+        field_name = entity.type_
+        # Prefer normalized value if available
+        if entity.normalized_value and entity.normalized_value.text:
+            field_value = entity.normalized_value.text
+        else:
+            field_value = entity.mention_text
+        # If field already exists, append or convert to list
+        if field_name in fields:
+            if isinstance(fields[field_name], list):
+                fields[field_name].append(field_value)
+            else:
+                fields[field_name] = [fields[field_name], field_value]
+        else:
+            fields[field_name] = field_value
+
+    # Additionally, parse form fields on pages for more structured data
+    for page in document.pages:
+        for form_field in page.form_fields:
+            # Field name text
+            if form_field.field_name.text_anchor and form_field.field_name.text_anchor.content:
+                field_name = form_field.field_name.text_anchor.content.strip()
+            else:
+                field_name = form_field.field_name.text.strip() if form_field.field_name.text else None
+
+            # Field value text
+            if form_field.field_value.text_anchor and form_field.field_value.text_anchor.content:
+                field_value = form_field.field_value.text_anchor.content.strip()
+            else:
+                field_value = form_field.field_value.text.strip() if form_field.field_value.text else None
+
+            if field_name and field_value:
+                # Normalize field name to lowercase and replace spaces with underscores
+                normalized_field_name = field_name.lower().replace(" ", "_")
+                if normalized_field_name in fields:
+                    if isinstance(fields[normalized_field_name], list):
+                        fields[normalized_field_name].append(field_value)
+                    else:
+                        fields[normalized_field_name] = [fields[normalized_field_name], field_value]
+                else:
+                    fields[normalized_field_name] = field_value
+
+    return fields
+
+def save_json(data, output_path):
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def save_csv(data, output_path):
+    # Save the extracted fields as a single-row CSV
+    with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+        writer.writeheader()
+        # Flatten lists by joining with semicolon
+        row = {k: "; ".join(v) if isinstance(v, list) else v for k, v in data.items()}
+        writer.writerow(row)
+
+def main():
+    # Ensure GOOGLE_APPLICATION_CREDENTIALS env var is set to your service account JSON path
+    document = process_document(FILE_PATH)
+    fields = extract_invoice_fields(document)
+    save_json(fields, OUTPUT_JSON)
+    save_csv(fields, OUTPUT_CSV)
+    print(f"Extraction complete. Results saved to {OUTPUT_JSON} and {OUTPUT_CSV}")
+
+ 
+2026-01-13 18:29:55,634 INFO Updated Plan:
+from google.cloud import documentai_v1 as documentai
+from google.cloud.documentai_v1 import DocumentProcessorServiceClient
+import json
+import csv
+import os
+import mimetypes
+
+# Set your Google Cloud project details
+PROJECT_ID = "your-project-id"
+LOCATION = "us"  # Format is 'us' or 'eu'
+PROCESSOR_ID = "your-processor-id"  # The processor ID for your invoice processor
+
+# Path to the local file (image or PDF)
+FILE_PATH = "path/to/your/invoice.pdf"
+
+# Output paths
+OUTPUT_JSON = "output_invoice.json"
+OUTPUT_CSV = "output_invoice.csv"
+
+def get_mime_type(file_path):
+    # Detect mime type based on file extension
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type is None:
+        # Default to application/pdf if unknown
+        mime_type = "application/pdf"
+    return mime_type
+
+def process_document(file_path):
+    """
+    Processes the document using Google Document AI Invoice Processor.
+    """
+    client = DocumentProcessorServiceClient()
+
+    # The full resource name of the processor
+    name = f"projects/{PROJECT_ID}/locations/{LOCATION}/processors/{PROCESSOR_ID}"
+
+    # Read the file into memory
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+
+    mime_type = get_mime_type(file_path)
+
+    raw_document = documentai.RawDocument(content=file_content, mime_type=mime_type)
+
+    request = documentai.ProcessRequest(name=name, raw_document=raw_document)
+
+    result = client.process_document(request=request)
+    document = result.document
+
+    return document
+
+def extract_invoice_fields(document):
+    """
+    Extracts key invoice fields from the Document AI response.
+    The invoice processor returns structured fields in document.entities and document.pages[].form_fields.
+    This function extracts common invoice fields like invoice number, date, supplier name, total amount, etc.
+    """
+    fields = {}
+
+    # Extract entities with normalized values if available
+    for entity in document.entities:
+        field_name = entity.type_
+        # Prefer normalized value if available
+        if entity.normalized_value and entity.normalized_value.text:
+            field_value = entity.normalized_value.text
+        else:
+            field_value = entity.mention_text
+        # If field already exists, append or convert to list
+        if field_name in fields:
+            if isinstance(fields[field_name], list):
+                fields[field_name].append(field_value)
+            else:
+                fields[field_name] = [fields[field_name], field_value]
+        else:
+            fields[field_name] = field_value
+
+    # Additionally, parse form fields on pages for more structured data
+    for page in document.pages:
+        for form_field in page.form_fields:
+            # Extract field name text
+            if form_field.field_name.text_anchor and form_field.field_name.text_anchor.content:
+                field_name = form_field.field_name.text_anchor.content.strip()
+            else:
+                field_name = form_field.field_name.text.strip() if form_field.field_name.text else None
+
+            # Extract field value text
+            if form_field.field_value.text_anchor and form_field.field_value.text_anchor.content:
+                field_value = form_field.field_value.text_anchor.content.strip()
+            else:
+                field_value = form_field.field_value.text.strip() if form_field.field_value.text else None
+
+            if field_name and field_value:
+                normalized_field_name = field_name.lower().replace(" ", "_")
+                if normalized_field_name in fields:
+                    if isinstance(fields[normalized_field_name], list):
+                        fields[normalized_field_name].append(field_value)
+                    else:
+                        fields[normalized_field_name] = [fields[normalized_field_name], field_value]
+                else:
+                    fields[normalized_field_name] = field_value
+
+    return fields
+
+def save_json(data, output_path):
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def save_csv(data, output_path):
+    # Save the extracted fields as a single-row CSV
+    with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+        writer.writeheader()
+        # Flatten lists by joining with semicolon
+        row = {k: "; ".join(v) if isinstance(v, list) else v for k, v in data.items()}
+        writer.writerow(row)
+
+def main():
+    # Ensure GOOGLE_APPLICATION_CREDENTIALS env var is set to your service account JSON path
+    document = process_document(FILE_PATH)
+    fields = extract_invoice_fields(document)
+    save_json(fields, OUTPUT_JSON)
+    save_csv(fields, OUTPUT_CSV)
+    print(f"Extraction complete. Results saved to {OUTPUT_JSON} and {OUTPUT_CSV}")
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 18:29:55,634 INFO Decision Plan:
+from google.cloud import documentai_v1 as documentai
+from google.cloud.documentai_v1 import DocumentProcessorServiceClient
+import json
+import csv
+import os
+import mimetypes
+
+# Set your Google Cloud project details
+PROJECT_ID = "your-project-id"
+LOCATION = "us"  # Format is 'us' or 'eu'
+PROCESSOR_ID = "your-processor-id"  # The processor ID for your invoice processor
+
+# Path to the local file (image or PDF)
+FILE_PATH = "path/to/your/invoice.pdf"
+
+# Output paths
+OUTPUT_JSON = "output_invoice.json"
+OUTPUT_CSV = "output_invoice.csv"
+
+def get_mime_type(file_path):
+    # Detect mime type based on file extension
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type is None:
+        # Default to application/pdf if unknown
+        mime_type = "application/pdf"
+    return mime_type
+
+def process_document(file_path):
+    """
+    Processes the document using Google Document AI Invoice Processor.
+    """
+    client = DocumentProcessorServiceClient()
+
+    # The full resource name of the processor
+    name = f"projects/{PROJECT_ID}/locations/{LOCATION}/processors/{PROCESSOR_ID}"
+
+    # Read the file into memory
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+
+    mime_type = get_mime_type(file_path)
+
+    raw_document = documentai.RawDocument(content=file_content, mime_type=mime_type)
+
+    request = documentai.ProcessRequest(name=name, raw_document=raw_document)
+
+    result = client.process_document(request=request)
+    document = result.document
+
+    return document
+
+def extract_invoice_fields(document):
+    """
+    Extracts key invoice fields from the Document AI response.
+    The invoice processor returns structured fields in document.entities and document.pages[].form_fields.
+    This function extracts common invoice fields like invoice number, date, supplier name, total amount, etc.
+    """
+    fields = {}
+
+    # Extract entities with normalized values if available
+    for entity in document.entities:
+        field_name = entity.type_
+        # Prefer normalized value if available
+        if entity.normalized_value and entity.normalized_value.text:
+            field_value = entity.normalized_value.text
+        else:
+            field_value = entity.mention_text
+        # If field already exists, append or convert to list
+        if field_name in fields:
+            if isinstance(fields[field_name], list):
+                fields[field_name].append(field_value)
+            else:
+                fields[field_name] = [fields[field_name], field_value]
+        else:
+            fields[field_name] = field_value
+
+    # Additionally, parse form fields on pages for more structured data
+    for page in document.pages:
+        for form_field in page.form_fields:
+            # Extract field name text
+            if form_field.field_name.text_anchor and form_field.field_name.text_anchor.content:
+                field_name = form_field.field_name.text_anchor.content.strip()
+            else:
+                field_name = form_field.field_name.text.strip() if form_field.field_name.text else None
+
+            # Extract field value text
+            if form_field.field_value.text_anchor and form_field.field_value.text_anchor.content:
+                field_value = form_field.field_value.text_anchor.content.strip()
+            else:
+                field_value = form_field.field_value.text.strip() if form_field.field_value.text else None
+
+            if field_name and field_value:
+                normalized_field_name = field_name.lower().replace(" ", "_")
+                if normalized_field_name in fields:
+                    if isinstance(fields[normalized_field_name], list):
+                        fields[normalized_field_name].append(field_value)
+                    else:
+                        fields[normalized_field_name] = [fields[normalized_field_name], field_value]
+                else:
+                    fields[normalized_field_name] = field_value
+
+    return fields
+
+def save_json(data, output_path):
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def save_csv(data, output_path):
+    # Save the extracted fields as a single-row CSV
+    with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+        writer.writeheader()
+        # Flatten lists by joining with semicolon
+        row = {k: "; ".join(v) if isinstance(v, list) else v for k, v in data.items()}
+        writer.writerow(row)
+
+def main():
+    # Ensure GOOGLE_APPLICATION_CREDENTIALS env var is set to your service account JSON path
+    document = process_document(FILE_PATH)
+    fields = extract_invoice_fields(document)
+    save_json(fields, OUTPUT_JSON)
+    save_csv(fields, OUTPUT_CSV)
+    print(f"Extraction complete. Results saved to {OUTPUT_JSON} and {OUTPUT_CSV}")
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 18:29:55,634 INFO Execution Result: 
+2026-01-13 18:29:55,635 INFO  
+2026-01-13 18:29:59,868 INFO Evaluation result:
+Score: True
+Advice: The provided code is functionally correct and well-structured for setting up Google Document AI to process supplier invoices and extract specified fields. It correctly handles reading the input file, determining MIME type, invoking the Document AI processor, extracting relevant invoice fields from both entities and form fields, and saving the results in JSON and CSV formats suitable for database storage. The use of normalized values and fallback to mention text is appropriate, and the CSV saving logic handles list fields gracefully.
+One minor suggestion is to verify that the environment variable `GOOGLE_APPLICATION_CREDENTIALS` is properly set before running the script, as the code assumes this but does not check it explicitly. Adding error handling around the API call could also improve robustness, especially to handle cases like invalid processor IDs or unsupported file types.
+For the next round, recruiting a machine learning engineer with expertise in Document AI and OCR technologies remains valuable to ensure the extraction logic aligns with the latest API capabilities and invoice schema nuances. Additionally, a software developer experienced in Google Cloud Platform and API integration can help refine error handling, authentication setup, and deployment considerations. 
+2026-01-13 18:29:59,868 INFO Good score! Accept! Final Result:
+from google.cloud import documentai_v1 as documentai
+from google.cloud.documentai_v1 import DocumentProcessorServiceClient
+import json
+import csv
+import os
+import mimetypes
+
+# Set your Google Cloud project details
+PROJECT_ID = "your-project-id"
+LOCATION = "us"  # Format is 'us' or 'eu'
+PROCESSOR_ID = "your-processor-id"  # The processor ID for your invoice processor
+
+# Path to the local file (image or PDF)
+FILE_PATH = "path/to/your/invoice.pdf"
+
+# Output paths
+OUTPUT_JSON = "output_invoice.json"
+OUTPUT_CSV = "output_invoice.csv"
+
+def get_mime_type(file_path):
+    # Detect mime type based on file extension
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type is None:
+        # Default to application/pdf if unknown
+        mime_type = "application/pdf"
+    return mime_type
+
+def process_document(file_path):
+    """
+    Processes the document using Google Document AI Invoice Processor.
+    """
+    client = DocumentProcessorServiceClient()
+
+    # The full resource name of the processor
+    name = f"projects/{PROJECT_ID}/locations/{LOCATION}/processors/{PROCESSOR_ID}"
+
+    # Read the file into memory
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+
+    mime_type = get_mime_type(file_path)
+
+    raw_document = documentai.RawDocument(content=file_content, mime_type=mime_type)
+
+    request = documentai.ProcessRequest(name=name, raw_document=raw_document)
+
+    result = client.process_document(request=request)
+    document = result.document
+
+    return document
+
+def extract_invoice_fields(document):
+    """
+    Extracts key invoice fields from the Document AI response.
+    The invoice processor returns structured fields in document.entities and document.pages[].form_fields.
+    This function extracts common invoice fields like invoice number, date, supplier name, total amount, etc.
+    """
+    fields = {}
+
+    # Extract entities with normalized values if available
+    for entity in document.entities:
+        field_name = entity.type_
+        # Prefer normalized value if available
+        if entity.normalized_value and entity.normalized_value.text:
+            field_value = entity.normalized_value.text
+        else:
+            field_value = entity.mention_text
+        # If field already exists, append or convert to list
+        if field_name in fields:
+            if isinstance(fields[field_name], list):
+                fields[field_name].append(field_value)
+            else:
+                fields[field_name] = [fields[field_name], field_value]
+        else:
+            fields[field_name] = field_value
+
+    # Additionally, parse form fields on pages for more structured data
+    for page in document.pages:
+        for form_field in page.form_fields:
+            # Extract field name text
+            if form_field.field_name.text_anchor and form_field.field_name.text_anchor.content:
+                field_name = form_field.field_name.text_anchor.content.strip()
+            else:
+                field_name = form_field.field_name.text.strip() if form_field.field_name.text else None
+
+            # Extract field value text
+            if form_field.field_value.text_anchor and form_field.field_value.text_anchor.content:
+                field_value = form_field.field_value.text_anchor.content.strip()
+            else:
+                field_value = form_field.field_value.text.strip() if form_field.field_value.text else None
+
+            if field_name and field_value:
+                normalized_field_name = field_name.lower().replace(" ", "_")
+                if normalized_field_name in fields:
+                    if isinstance(fields[normalized_field_name], list):
+                        fields[normalized_field_name].append(field_value)
+                    else:
+                        fields[normalized_field_name] = [fields[normalized_field_name], field_value]
+                else:
+                    fields[normalized_field_name] = field_value
+
+    return fields
+
+def save_json(data, output_path):
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def save_csv(data, output_path):
+    # Save the extracted fields as a single-row CSV
+    with open(output_path, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+        writer.writeheader()
+        # Flatten lists by joining with semicolon
+        row = {k: "; ".join(v) if isinstance(v, list) else v for k, v in data.items()}
+        writer.writerow(row)
+
+def main():
+    # Ensure GOOGLE_APPLICATION_CREDENTIALS env var is set to your service account JSON path
+    document = process_document(FILE_PATH)
+    fields = extract_invoice_fields(document)
+    save_json(fields, OUTPUT_JSON)
+    save_csv(fields, OUTPUT_CSV)
+    print(f"Extraction complete. Results saved to {OUTPUT_JSON} and {OUTPUT_CSV}")
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 18:29:59,869 INFO Agent spend: 
+2026-01-13 18:29:59,869 INFO Agent (Role: AGENT_TYPES.ROLE_ASSIGNMENT) role assigner: $0.000142 
+2026-01-13 18:29:59,869 INFO Agent (Role: AGENT_TYPES.SOLVER) a machine learning engineer specialized in document AI and OCR technologies: $0.01 
+2026-01-13 18:29:59,869 INFO Agent (Role: AGENT_TYPES.CRITIC) a software developer experienced in Google Cloud Platform and API integration: $0.01 
+2026-01-13 18:29:59,869 INFO Agent (Role: AGENT_TYPES.EXECUTION) Executor: $0.000000 
+2026-01-13 18:29:59,869 INFO Agent (Role: AGENT_TYPES.EVALUATION) Evaluator: $0.000953 
+2026-01-13 18:29:59,869 INFO Agent (Role: AGENT_TYPES.MANAGER) Manager: $0.000000 
+2026-01-13 18:29:59,869 INFO Total spent: $0.020560 

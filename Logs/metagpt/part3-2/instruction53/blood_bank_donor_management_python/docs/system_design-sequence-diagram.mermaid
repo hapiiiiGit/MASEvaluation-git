@@ -1,0 +1,44 @@
+sequenceDiagram
+    participant U as User
+    participant AV as AuthService
+    participant DV as DonorView
+    participant DF as DonorForm
+    participant FS as FirebaseService
+    participant APV as AdminPanelView
+    participant AU as AdminUser
+    participant RV as ReportingView
+    participant R as Report
+    participant AM as AuditMiddleware
+
+    U->>AV: login(request)
+    AV->>AU: authenticate(username, password)
+    AU-->>AV: authentication result
+    AV-->>U: login response
+    U->>DV: list(request)
+    DV->>FS: get_donors()
+    FS-->>DV: donor list
+    DV-->>U: render donor_list.html
+    U->>DV: create(request)
+    DV->>DF: DonorForm(data)
+    DF->>DV: is_valid()
+    alt valid
+        DV->>FS: add_donor(donor)
+        FS-->>DV: success
+        DV-->>U: redirect to donor_list
+    else invalid
+        DV-->>U: show errors
+    end
+    U->>APV: dashboard(request)
+    APV->>AU: get_admin_data()
+    AU-->>APV: admin data
+    APV-->>U: render admin_panel.html
+    U->>RV: generate_report(request)
+    RV->>R: generate(params)
+    R-->>RV: report object
+    RV-->>U: render report.html
+    U->>RV: export_report(request, report_id, format)
+    RV->>R: export(format)
+    R-->>RV: file
+    RV-->>U: download file
+    AM->>APV: process_request(request)
+    APV-->>AM: process_response(request, response)

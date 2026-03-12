@@ -1,0 +1,686 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2026-01-12 18:24:10.505422
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Write a function to check if the given expression is balanced or not. https://www.geeksforgeeks.org/check-for-balanced-parentheses-in-an-expression/
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+Given a string containing only the characters '(', ')', '{', '}', '[' and ']', write a function to return the length of the longest balanced substring. For example, for the input "()[{}]", the output should be 6, since the whole string is balanced.
+]]></description>
+<code><![CDATA[
+# Step 1: Initialize a stack to keep track of indices of opening brackets.
+# Step 2: Initialize a variable 'max_length' to store the maximum length found.
+# Step 3: Push -1 to the stack to handle edge cases.
+# Step 4: Iterate through the string, for each character:
+#         - If it's an opening bracket, push its index to the stack.
+#         - If it's a closing bracket, check if the top of the stack is a matching opening bracket.
+#             - If yes, pop the stack and update max_length.
+#             - If no, push the current index to the stack.
+# Step 5: Return max_length.
+
+def longest_balanced_substring(s):
+    stack = [-1]
+    max_length = 0
+    pairs = {')': '(', '}': '{', ']': '['}
+    for i, ch in enumerate(s):
+        if ch in '({[':
+            stack.append(i)
+        elif ch in ')}]':
+            if stack and stack[-1] != -1 and s[stack[-1]] == pairs[ch]:
+                stack.pop()
+                max_length = max(max_length, i - stack[-1])
+            else:
+                stack.append(i)
+    return max_length
+
+# Example usage:
+print(longest_balanced_substring("()[{}]"))  # Output: 6
+]]></code>
+<planning><![CDATA[
+- Use a stack to keep track of indices of opening brackets.
+- Push -1 initially to handle the case when the first valid substring starts at index 0.
+- For each character, if it's an opening bracket, push its index.
+- If it's a closing bracket, check if the top of the stack is a matching opening bracket.
+- If matched, pop and update the maximum length.
+- If not matched, push the current index to the stack.
+- At the end, return the maximum length found.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Given a mathematical expression as a string, check if all types of brackets are closed in the correct order and also return the position of the first error if the expression is not balanced. For example, for the input "([)]", the function should return False and the position 2 (where the error occurs).
+]]></description>
+<code><![CDATA[
+# Step 1: Initialize a stack to keep track of opening brackets and their positions.
+# Step 2: Iterate through the string, for each character:
+#         - If it's an opening bracket, push (bracket, position) to the stack.
+#         - If it's a closing bracket, check if the top of the stack is a matching opening bracket.
+#             - If not, return False and the current position.
+#             - If yes, pop the stack.
+# Step 3: After iteration, if the stack is not empty, return False and the position of the first unmatched opening bracket.
+# Step 4: If all brackets are matched, return True and -1.
+
+def check_balanced_with_error_position(expr):
+    stack = []
+    pairs = {')': '(', '}': '{', ']': '['}
+    for i, ch in enumerate(expr):
+        if ch in '({[':
+            stack.append((ch, i))
+        elif ch in ')}]':
+            if not stack or stack[-1][0] != pairs[ch]:
+                return False, i
+            stack.pop()
+    if stack:
+        return False, stack[0][1]
+    return True, -1
+
+# Example usage:
+print(check_balanced_with_error_position("([)]"))  # Output: (False, 2)
+]]></code>
+<planning><![CDATA[
+- Use a stack to keep track of opening brackets and their positions.
+- For each character, push opening brackets with their positions.
+- For closing brackets, check for matching opening bracket at the top of the stack.
+- If not matched, return False and the current position.
+- If stack is not empty after processing, return False and the position of the first unmatched opening bracket.
+- If all matched, return True and -1.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Given a string containing only brackets, find the minimum number of bracket reversals required to make the expression balanced. For example, for the input "}{", the output should be 2, since both brackets need to be reversed.
+]]></description>
+<code><![CDATA[
+# Step 1: If the length of the string is odd, it's impossible to balance, return -1.
+# Step 2: Initialize a stack.
+# Step 3: Iterate through the string:
+#         - If it's an opening bracket, push to stack.
+#         - If it's a closing bracket and stack is not empty and top is opening, pop the stack.
+#         - Else, push the closing bracket to stack.
+# Step 4: After iteration, count the number of opening and closing brackets left in the stack.
+# Step 5: The minimum reversals required is (open_count // 2) + (close_count // 2).
+
+def min_reversals_to_balance(expr):
+    if len(expr) % 2 != 0:
+        return -1
+    stack = []
+    for ch in expr:
+        if ch == '{':
+            stack.append(ch)
+        else:  # ch == '}'
+            if stack and stack[-1] == '{':
+                stack.pop()
+            else:
+                stack.append(ch)
+    open_count = stack.count('{')
+    close_count = stack.count('}')
+    return (open_count // 2) + (close_count // 2)
+
+# Example usage:
+print(min_reversals_to_balance("}{"))  # Output: 2
+]]></code>
+<planning><![CDATA[
+- If the length of the string is odd, return -1 (cannot be balanced).
+- Use a stack to process the brackets.
+- For each bracket, push opening brackets, and for closing brackets, pop if matched, else push.
+- After processing, count the number of unmatched opening and closing brackets.
+- The minimum reversals required is half the number of unmatched opening plus half the number of unmatched closing brackets.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The algorithm used to solve the original problem (checking for balanced parentheses) is the Stack-based approach.
+
+Tutorial:
+Stack-based Parentheses Matching Algorithm
+
+1. Introduction:
+   - The stack data structure is ideal for problems involving matching pairs, such as parentheses, brackets, or braces.
+   - The main idea is to process the expression from left to right, pushing opening brackets onto the stack and popping them when a matching closing bracket is found.
+
+2. Steps:
+   - Initialize an empty stack.
+   - For each character in the expression:
+     - If it is an opening bracket, push it onto the stack.
+     - If it is a closing bracket, check if the stack is not empty and the top of the stack is the matching opening bracket.
+       - If yes, pop the stack.
+       - If no, the expression is not balanced.
+   - After processing all characters, if the stack is empty, the expression is balanced; otherwise, it is not.
+
+3. Applications:
+   - Syntax checking in compilers.
+   - Validating mathematical expressions.
+   - Solving problems involving nested structures.
+
+4. Key Points:
+   - The stack ensures that the most recent opening bracket is matched first (LIFO order).
+   - The algorithm runs in O(n) time, where n is the length of the expression.
+   - It can be extended to handle multiple types of brackets and to report error positions.
+
+5. Variations:
+   - Finding the longest balanced substring.
+   - Counting minimum reversals to balance.
+   - Reporting error positions.
+
+6. When to use:
+   - Whenever you need to check for correct nesting or matching of pairs in a sequence.
+
+By mastering the stack-based approach, you can efficiently solve a wide range of problems involving matching pairs and nested structures.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Given a string containing only the characters '(', ')', '{', '}', '[' and ']', write a function to return the length of the longest balanced substring. For example, for the input "()[{}]", the output should be 6, since the whole string is balanced.
+
+# Planning:
+
+- Use a stack to keep track of indices of opening brackets.
+- Push -1 initially to handle the case when the first valid substring starts at index 0.
+- For each character, if it's an opening bracket, push its index.
+- If it's a closing bracket, check if the top of the stack is a matching opening bracket.
+- If matched, pop and update the maximum length.
+- If not matched, push the current index to the stack.
+- At the end, return the maximum length found.
+
+## Relevant Algorithm to solve the next problem:
+
+The algorithm used to solve the original problem (checking for balanced parentheses) is the Stack-based approach.
+
+Tutorial:
+Stack-based Parentheses Matching Algorithm
+
+1. Introduction:
+   - The stack data structure is ideal for problems involving matching pairs, such as parentheses, brackets, or braces.
+   - The main idea is to process the expression from left to right, pushing opening brackets onto the stack and popping them when a matching closing bracket is found.
+
+2. Steps:
+   - Initialize an empty stack.
+   - For each character in the expression:
+     - If it is an opening bracket, push it onto the stack.
+     - If it is a closing bracket, check if the stack is not empty and the top of the stack is the matching opening bracket.
+       - If yes, pop the stack.
+       - If no, the expression is not balanced.
+   - After processing all characters, if the stack is empty, the expression is balanced; otherwise, it is not.
+
+3. Applications:
+   - Syntax checking in compilers.
+   - Validating mathematical expressions.
+   - Solving problems involving nested structures.
+
+4. Key Points:
+   - The stack ensures that the most recent opening bracket is matched first (LIFO order).
+   - The algorithm runs in O(n) time, where n is the length of the expression.
+   - It can be extended to handle multiple types of brackets and to report error positions.
+
+5. Variations:
+   - Finding the longest balanced substring.
+   - Counting minimum reversals to balance.
+   - Reporting error positions.
+
+6. When to use:
+   - Whenever you need to check for correct nesting or matching of pairs in a sequence.
+
+By mastering the stack-based approach, you can efficiently solve a wide range of problems involving matching pairs and nested structures.
+
+## Problem to be solved:
+
+Write a function to check if the given expression is balanced or not. https://www.geeksforgeeks.org/check-for-balanced-parentheses-in-an-expression/
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+- Initialize an empty stack.
+- For each character in the expression:
+    - If the character is an opening bracket ('(', '{', '['), push it onto the stack.
+    - If the character is a closing bracket (')', '}', ']'):
+        - If the stack is empty, return False (unbalanced).
+        - Pop the top element from the stack.
+        - Check if the popped element is the matching opening bracket for the current closing bracket.
+            - If not, return False (unbalanced).
+- After processing all characters, check if the stack is empty.
+    - If empty, return True (balanced).
+    - If not empty, return False (unbalanced).
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Write a function to check if the given expression is balanced or not. https://www.geeksforgeeks.org/check-for-balanced-parentheses-in-an-expression/
+
+# Planning:
+- Initialize an empty stack.
+- For each character in the expression:
+    - If the character is an opening bracket ('(', '{', '['), push it onto the stack.
+    - If the character is a closing bracket (')', '}', ']'):
+        - If the stack is empty, return False (unbalanced).
+        - Pop the top element from the stack.
+        - Check if the popped element is the matching opening bracket for the current closing bracket.
+            - If not, return False (unbalanced).
+- After processing all characters, check if the stack is empty.
+    - If empty, return True (balanced).
+    - If not empty, return False (unbalanced).
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': 'The given plan correctly describes the standard stack-based approach to check for balanced parentheses in an expression. By pushing opening brackets onto the stack and ensuring that each closing bracket matches the most recent opening bracket, the plan ensures that all brackets are properly nested and closed. The final check for an empty stack guarantees that no unmatched opening brackets remain. This approach is efficient and widely accepted for this problem.', 'confidence': 100}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Given a mathematical expression as a string, check if all types of brackets are closed in the correct order and also return the position of the first error if the expression is not balanced. For example, for the input "([)]", the function should return False and the position 2 (where the error occurs).
+
+# Planning:
+
+- Use a stack to keep track of opening brackets and their positions.
+- For each character, push opening brackets with their positions.
+- For closing brackets, check for matching opening bracket at the top of the stack.
+- If not matched, return False and the current position.
+- If stack is not empty after processing, return False and the position of the first unmatched opening bracket.
+- If all matched, return True and -1.
+
+## Relevant Algorithm to solve the next problem:
+
+The algorithm used to solve the original problem (checking for balanced parentheses) is the Stack-based approach.
+
+Tutorial:
+Stack-based Parentheses Matching Algorithm
+
+1. Introduction:
+   - The stack data structure is ideal for problems involving matching pairs, such as parentheses, brackets, or braces.
+   - The main idea is to process the expression from left to right, pushing opening brackets onto the stack and popping them when a matching closing bracket is found.
+
+2. Steps:
+   - Initialize an empty stack.
+   - For each character in the expression:
+     - If it is an opening bracket, push it onto the stack.
+     - If it is a closing bracket, check if the stack is not empty and the top of the stack is the matching opening bracket.
+       - If yes, pop the stack.
+       - If no, the expression is not balanced.
+   - After processing all characters, if the stack is empty, the expression is balanced; otherwise, it is not.
+
+3. Applications:
+   - Syntax checking in compilers.
+   - Validating mathematical expressions.
+   - Solving problems involving nested structures.
+
+4. Key Points:
+   - The stack ensures that the most recent opening bracket is matched first (LIFO order).
+   - The algorithm runs in O(n) time, where n is the length of the expression.
+   - It can be extended to handle multiple types of brackets and to report error positions.
+
+5. Variations:
+   - Finding the longest balanced substring.
+   - Counting minimum reversals to balance.
+   - Reporting error positions.
+
+6. When to use:
+   - Whenever you need to check for correct nesting or matching of pairs in a sequence.
+
+By mastering the stack-based approach, you can efficiently solve a wide range of problems involving matching pairs and nested structures.
+
+## Problem to be solved:
+
+Write a function to check if the given expression is balanced or not. https://www.geeksforgeeks.org/check-for-balanced-parentheses-in-an-expression/
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Define a mapping of opening to closing brackets: {'(': ')', '[': ']', '{': '}'}.
+2. Initialize an empty stack to store tuples of (bracket, position).
+3. Iterate through the string, tracking the current index:
+   - If the character is an opening bracket, push (bracket, index) onto the stack.
+   - If the character is a closing bracket:
+     - If the stack is empty, return False and current index.
+     - Pop the top element from the stack.
+     - Check if the popped opening bracket matches the current closing bracket using the mapping.
+       - If not matched, return False and current index.
+4. After iteration, if the stack is not empty, return False and the position of the first unmatched opening bracket (stack[0][1]).
+5. If all brackets are matched, return True and -1.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Write a function to check if the given expression is balanced or not. https://www.geeksforgeeks.org/check-for-balanced-parentheses-in-an-expression/
+
+# Planning:
+**Planning:**
+
+1. Define a mapping of opening to closing brackets: {'(': ')', '[': ']', '{': '}'}.
+2. Initialize an empty stack to store tuples of (bracket, position).
+3. Iterate through the string, tracking the current index:
+   - If the character is an opening bracket, push (bracket, index) onto the stack.
+   - If the character is a closing bracket:
+     - If the stack is empty, return False and current index.
+     - Pop the top element from the stack.
+     - Check if the popped opening bracket matches the current closing bracket using the mapping.
+       - If not matched, return False and current index.
+4. After iteration, if the stack is not empty, return False and the position of the first unmatched opening bracket (stack[0][1]).
+5. If all brackets are matched, return True and -1.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given plan is correct and sufficient to solve the problem of checking for balanced parentheses in an expression. The use of a stack to keep track of opening brackets and their positions is a standard and efficient approach. The plan also accounts for mismatched or extra closing brackets by returning False and the current index when such a case is detected. Additionally, it handles the case where there are unmatched opening brackets left in the stack after processing the string. Returning True and -1 when all brackets are matched is also appropriate. The plan is detailed, covers all edge cases, and is directly implementable in Python3.\n', 'confidence': 100}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Given a string containing only brackets, find the minimum number of bracket reversals required to make the expression balanced. For example, for the input "}{", the output should be 2, since both brackets need to be reversed.
+
+# Planning:
+
+- If the length of the string is odd, return -1 (cannot be balanced).
+- Use a stack to process the brackets.
+- For each bracket, push opening brackets, and for closing brackets, pop if matched, else push.
+- After processing, count the number of unmatched opening and closing brackets.
+- The minimum reversals required is half the number of unmatched opening plus half the number of unmatched closing brackets.
+
+## Relevant Algorithm to solve the next problem:
+
+The algorithm used to solve the original problem (checking for balanced parentheses) is the Stack-based approach.
+
+Tutorial:
+Stack-based Parentheses Matching Algorithm
+
+1. Introduction:
+   - The stack data structure is ideal for problems involving matching pairs, such as parentheses, brackets, or braces.
+   - The main idea is to process the expression from left to right, pushing opening brackets onto the stack and popping them when a matching closing bracket is found.
+
+2. Steps:
+   - Initialize an empty stack.
+   - For each character in the expression:
+     - If it is an opening bracket, push it onto the stack.
+     - If it is a closing bracket, check if the stack is not empty and the top of the stack is the matching opening bracket.
+       - If yes, pop the stack.
+       - If no, the expression is not balanced.
+   - After processing all characters, if the stack is empty, the expression is balanced; otherwise, it is not.
+
+3. Applications:
+   - Syntax checking in compilers.
+   - Validating mathematical expressions.
+   - Solving problems involving nested structures.
+
+4. Key Points:
+   - The stack ensures that the most recent opening bracket is matched first (LIFO order).
+   - The algorithm runs in O(n) time, where n is the length of the expression.
+   - It can be extended to handle multiple types of brackets and to report error positions.
+
+5. Variations:
+   - Finding the longest balanced substring.
+   - Counting minimum reversals to balance.
+   - Reporting error positions.
+
+6. When to use:
+   - Whenever you need to check for correct nesting or matching of pairs in a sequence.
+
+By mastering the stack-based approach, you can efficiently solve a wide range of problems involving matching pairs and nested structures.
+
+## Problem to be solved:
+
+Write a function to check if the given expression is balanced or not. https://www.geeksforgeeks.org/check-for-balanced-parentheses-in-an-expression/
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+- Initialize an empty stack.
+- Iterate through each character in the expression:
+    - If the character is an opening bracket ('(', '{', '['), push it onto the stack.
+    - If the character is a closing bracket (')', '}', ']'):
+        - If the stack is empty, return False (unbalanced).
+        - Pop the top element from the stack and check if it matches the type of closing bracket.
+        - If it does not match, return False (unbalanced).
+- After processing all characters, if the stack is empty, return True (balanced); otherwise, return False (unbalanced).
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Write a function to check if the given expression is balanced or not. https://www.geeksforgeeks.org/check-for-balanced-parentheses-in-an-expression/
+
+# Planning:
+- Initialize an empty stack.
+- Iterate through each character in the expression:
+    - If the character is an opening bracket ('(', '{', '['), push it onto the stack.
+    - If the character is a closing bracket (')', '}', ']'):
+        - If the stack is empty, return False (unbalanced).
+        - Pop the top element from the stack and check if it matches the type of closing bracket.
+        - If it does not match, return False (unbalanced).
+- After processing all characters, if the stack is empty, return True (balanced); otherwise, return False (unbalanced).
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': 'The given plan correctly outlines the standard stack-based approach to check for balanced parentheses in an expression. By pushing opening brackets onto the stack and ensuring that each closing bracket matches the most recent opening bracket, the plan ensures that all brackets are properly nested and closed. The final check for an empty stack guarantees that no unmatched opening brackets remain. This approach is efficient and widely accepted for this problem, and it will work for all valid inputs as described in the problem statement.', 'confidence': 100}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The algorithm used to solve the original problem (checking for balanced parentheses) is the Stack-based approach.
+
+Tutorial:
+Stack-based Parentheses Matching Algorithm
+
+1. Introduction:
+   - The stack data structure is ideal for problems involving matching pairs, such as parentheses, brackets, or braces.
+   - The main idea is to process the expression from left to right, pushing opening brackets onto the stack and popping them when a matching closing bracket is found.
+
+2. Steps:
+   - Initialize an empty stack.
+   - For each character in the expression:
+     - If it is an opening bracket, push it onto the stack.
+     - If it is a closing bracket, check if the stack is not empty and the top of the stack is the matching opening bracket.
+       - If yes, pop the stack.
+       - If no, the expression is not balanced.
+   - After processing all characters, if the stack is empty, the expression is balanced; otherwise, it is not.
+
+3. Applications:
+   - Syntax checking in compilers.
+   - Validating mathematical expressions.
+   - Solving problems involving nested structures.
+
+4. Key Points:
+   - The stack ensures that the most recent opening bracket is matched first (LIFO order).
+   - The algorithm runs in O(n) time, where n is the length of the expression.
+   - It can be extended to handle multiple types of brackets and to report error positions.
+
+5. Variations:
+   - Finding the longest balanced substring.
+   - Counting minimum reversals to balance.
+   - Reporting error positions.
+
+6. When to use:
+   - Whenever you need to check for correct nesting or matching of pairs in a sequence.
+
+By mastering the stack-based approach, you can efficiently solve a wide range of problems involving matching pairs and nested structures.
+
+## Problem to be solved:
+
+Write a function to check if the given expression is balanced or not. https://www.geeksforgeeks.org/check-for-balanced-parentheses-in-an-expression/
+
+## Planning:
+- Initialize an empty stack.
+- For each character in the expression:
+    - If the character is an opening bracket ('(', '{', '['), push it onto the stack.
+    - If the character is a closing bracket (')', '}', ']'):
+        - If the stack is empty, return False (unbalanced).
+        - Pop the top element from the stack.
+        - Check if the popped element is the matching opening bracket for the current closing bracket.
+            - If not, return False (unbalanced).
+- After processing all characters, check if the stack is empty.
+    - If empty, return True (balanced).
+    - If not empty, return False (unbalanced).
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+def is_balanced(expression):
+    stack = []
+    bracket_map = {')': '(', '}': '{', ']': '['}
+    opening = set(bracket_map.values())
+
+    for char in expression:
+        if char in opening:
+            stack.append(char)
+        elif char in bracket_map:
+            if not stack or stack[-1] != bracket_map[char]:
+                return False
+            stack.pop()
+    return not stack
+
+# Example usage:
+# print(is_balanced("({[]})"))  # True
+# print(is_balanced("({[})"))   # False
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 34.33 seconds
+Total Tokens: 6,264 (Input: 3,627, Output: 2,637)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 14.40      301          1,710        1         
+Planning_Generation_1     3.57       625          140          1         
+Planning_Verification_1   2.25       283          97           1         
+Planning_Generation_2     3.27       615          185          1         
+Planning_Verification_2   3.54       328          142          1         
+Planning_Generation_3     2.51       596          126          1         
+Planning_Verification_3   2.73       269          112          1         
+Final_Code_Generation     2.06       610          125          1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2026-01-12 18:24:44.882783
+##########################
+

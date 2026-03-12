@@ -1,0 +1,45 @@
+# fruit_freshness_classifier.py
+
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+class FruitFreshnessClassifier:
+    def __init__(self, input_shape, num_classes_freshness, num_classes_expiry):
+        self.model = self.build_model(input_shape, num_classes_freshness, num_classes_expiry)
+
+    def build_model(self, input_shape, num_classes_freshness, num_classes_expiry):
+        model = models.Sequential()
+        
+        # Convolutional layers
+        model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape))
+        model.add(layers.MaxPooling2D((2, 2)))
+        model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+        model.add(layers.MaxPooling2D((2, 2)))
+        model.add(layers.Conv2D(128, (3, 3), activation='relu'))
+        model.add(layers.MaxPooling2D((2, 2)))
+        
+        # Flatten layer
+        model.add(layers.Flatten())
+        
+        # Dense layers for freshness classification
+        model.add(layers.Dense(128, activation='relu'))
+        model.add(layers.Dense(num_classes_freshness, activation='softmax'), name='freshness_output')
+        
+        # Dense layers for expiry prediction
+        model.add(layers.Dense(128, activation='relu'))
+        model.add(layers.Dense(num_classes_expiry, activation='softmax'), name='expiry_output')
+        
+        return model
+
+    def compile_model(self):
+        self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    def train_model(self, X_train, y_freshness_train, y_expiry_train, epochs=10, batch_size=32):
+        self.model.fit(X_train, {'freshness_output': y_freshness_train, 'expiry_output': y_expiry_train},
+                       epochs=epochs, batch_size=batch_size)
+        
+    def predict(self, X):
+        return self.model.predict(X)
+
+    def evaluate(self, X_test, y_freshness_test, y_expiry_test):
+        return self.model.evaluate(X_test, {'freshness_output': y_freshness_test, 'expiry_output': y_expiry_test})

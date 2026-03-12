@@ -1,0 +1,80 @@
+classDiagram
+    class LogEntry {
+        +int id
+        +datetime date
+        +str location
+        +float depth
+        +float duration
+        +str notes
+        +List~Photo~ photos
+        +Signature signature
+        +User validated_by
+        +bool is_validated
+        +add_photo(photo: Photo)
+        +add_signature(signature: Signature)
+        +validate(user: User)
+    }
+    class Photo {
+        +int id
+        +str file_path
+        +str thumbnail_path
+        +datetime uploaded_at
+        +User uploaded_by
+    }
+    class Signature {
+        +int id
+        +str image_path
+        +str signer_name
+        +datetime signed_at
+        +str signature_hash
+        +verify_signature(public_key: str) bool
+    }
+    class User {
+        +int id
+        +str username
+        +str email
+        +str oauth_provider
+        +str oauth_id
+        +str encrypted_token
+        +bool is_instructor
+        +verify_password(password: str) bool
+    }
+    class OCRService {
+        +extract_text(image_path: str) str
+    }
+    class CloudService {
+        +upload_file(file_path: str, provider: str) str
+        +download_file(file_id: str, provider: str) str
+        +sync_logbook(user: User)
+    }
+    class ExportService {
+        +export_pdf(log_entries: List~LogEntry~) str
+        +export_csv(log_entries: List~LogEntry~) str
+        +export_images(log_entries: List~LogEntry~) List~str~
+    }
+    class AuthService {
+        +login_oauth(provider: str) User
+        +biometric_login() User
+        +logout(user: User)
+    }
+    class ValidationService {
+        +validate_entry(entry: LogEntry, instructor: User) bool
+        +audit_log(entry: LogEntry)
+    }
+    class EncryptionUtil {
+        +encrypt(data: bytes) bytes
+        +decrypt(data: bytes) bytes
+    }
+    LogEntry "*" -- "*" Photo : contains
+    LogEntry "1" -- "1" Signature : signed_by
+    LogEntry "1" -- "0..1" User : validated_by
+    Photo "1" -- "1" User : uploaded_by
+    Signature "1" -- "1" User : signer
+    User "1" -- "*" LogEntry : owns
+    LogEntry "*" -- "1" OCRService : uses
+    LogEntry "*" -- "1" CloudService : syncs
+    LogEntry "*" -- "1" ExportService : exports
+    LogEntry "*" -- "1" ValidationService : validates
+    User "1" -- "1" AuthService : authenticates
+    EncryptionUtil <.. AuthService : uses
+    EncryptionUtil <.. CloudService : uses

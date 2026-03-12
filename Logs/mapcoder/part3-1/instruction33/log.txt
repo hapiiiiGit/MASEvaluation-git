@@ -1,0 +1,763 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-09-02 16:02:36.807245
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python program using Django to develop a web-based hotel and local tourism management system that supports user roles for Admins, Hotel Staff, and Guests, allowing for room management, secure reservations, local tour booking, and administrative reporting.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+```xml
+<root>
+    <problem>
+        <description><![CDATA[
+            A library management system that allows users to borrow and return books, manage book inventory, and track overdue books. The system should support user roles for Admins and Members, with Admins having the ability to add or remove books and view reports on book usage.
+        ]]></description>
+        <code><![CDATA[
+            # Step 1: Define the models for Book, User, and Borrowing records.
+            from django.db import models
+            from django.contrib.auth.models import User
+
+            class Book(models.Model):
+                title = models.CharField(max_length=200)
+                author = models.CharField(max_length=100)
+                available_copies = models.IntegerField()
+
+            class Borrowing(models.Model):
+                user = models.ForeignKey(User, on_delete=models.CASCADE)
+                book = models.ForeignKey(Book, on_delete=models.CASCADE)
+                borrow_date = models.DateField(auto_now_add=True)
+                return_date = models.DateField(null=True, blank=True)
+
+            # Step 2: Create views for borrowing and returning books.
+            from django.shortcuts import render, redirect
+            from .models import Book, Borrowing
+
+            def borrow_book(request, book_id):
+                book = Book.objects.get(id=book_id)
+                if book.available_copies > 0:
+                    Borrowing.objects.create(user=request.user, book=book)
+                    book.available_copies -= 1
+                    book.save()
+                return redirect('book_list')
+
+            def return_book(request, borrowing_id):
+                borrowing = Borrowing.objects.get(id=borrowing_id)
+                book = borrowing.book
+                book.available_copies += 1
+                book.save()
+                borrowing.return_date = date.today()
+                borrowing.save()
+                return redirect('borrowed_books')
+
+            # Step 3: Create templates for displaying books and borrowed books.
+            # Step 4: Implement user authentication and role management.
+        ]]></code>
+        <planning><![CDATA[
+            1. Define the project structure and set up Django.
+            2. Create models for Book and Borrowing.
+            3. Implement views for borrowing and returning books.
+            4. Create templates for user interfaces.
+            5. Set up user authentication and role management.
+            6. Test the application for functionality and usability.
+        ]]></planning>
+    </problem>
+
+    <problem>
+        <description><![CDATA[
+            An online food ordering system that allows users to browse menus, place orders, and track delivery status. The system should support user roles for Admins, Restaurant Staff, and Customers, with Admins managing the menu and viewing order reports.
+        ]]></description>
+        <code><![CDATA[
+            # Step 1: Define the models for MenuItem, Order, and User.
+            from django.db import models
+            from django.contrib.auth.models import User
+
+            class MenuItem(models.Model):
+                name = models.CharField(max_length=100)
+                price = models.DecimalField(max_digits=5, decimal_places=2)
+                available = models.BooleanField(default=True)
+
+            class Order(models.Model):
+                user = models.ForeignKey(User, on_delete=models.CASCADE)
+                items = models.ManyToManyField(MenuItem)
+                order_date = models.DateField(auto_now_add=True)
+                status = models.CharField(max_length=20, default='Pending')
+
+            # Step 2: Create views for placing and tracking orders.
+            from django.shortcuts import render, redirect
+            from .models import MenuItem, Order
+
+            def place_order(request):
+                if request.method == 'POST':
+                    order = Order.objects.create(user=request.user)
+                    for item_id in request.POST.getlist('items'):
+                        item = MenuItem.objects.get(id=item_id)
+                        order.items.add(item)
+                    return redirect('order_status', order_id=order.id)
+
+            def order_status(request, order_id):
+                order = Order.objects.get(id=order_id)
+                return render(request, 'order_status.html', {'order': order})
+
+            # Step 3: Create templates for displaying menu and order status.
+            # Step 4: Implement user authentication and role management.
+        ]]></code>
+        <planning><![CDATA[
+            1. Define the project structure and set up Django.
+            2. Create models for MenuItem and Order.
+            3. Implement views for placing and tracking orders.
+            4. Create templates for user interfaces.
+            5. Set up user authentication and role management.
+            6. Test the application for functionality and usability.
+        ]]></planning>
+    </problem>
+
+    <problem>
+        <description><![CDATA[
+            A personal finance management application that allows users to track their income and expenses, categorize transactions, and generate financial reports. The system should support user roles for Admins and Users, with Admins managing user accounts and viewing overall financial statistics.
+        ]]></description>
+        <code><![CDATA[
+            # Step 1: Define the models for Transaction and User.
+            from django.db import models
+            from django.contrib.auth.models import User
+
+            class Transaction(models.Model):
+                user = models.ForeignKey(User, on_delete=models.CASCADE)
+                amount = models.DecimalField(max_digits=10, decimal_places=2)
+                category = models.CharField(max_length=100)
+                date = models.DateField(auto_now_add=True)
+
+            # Step 2: Create views for adding and viewing transactions.
+            from django.shortcuts import render, redirect
+            from .models import Transaction
+
+            def add_transaction(request):
+                if request.method == 'POST':
+                    Transaction.objects.create(
+                        user=request.user,
+                        amount=request.POST['amount'],
+                        category=request.POST['category']
+                    )
+                    return redirect('transaction_list')
+
+            def transaction_list(request):
+                transactions = Transaction.objects.filter(user=request.user)
+                return render(request, 'transaction_list.html', {'transactions': transactions})
+
+            # Step 3: Create templates for adding and viewing transactions.
+            # Step 4: Implement user authentication and role management.
+        ]]></code>
+        <planning><![CDATA[
+            1. Define the project structure and set up Django.
+            2. Create models for Transaction.
+            3. Implement views for adding and viewing transactions.
+            4. Create templates for user interfaces.
+            5. Set up user authentication and role management.
+            6. Test the application for functionality and usability.
+        ]]></planning>
+    </problem>
+
+    <algorithm><![CDATA[
+        The algorithm that can be used to solve the original problem is the "Model-View-Template" (MVT) architecture, which is a variant of the MVC (Model-View-Controller) pattern. This architecture is particularly suited for web applications built with Django.
+
+        Tutorial on MVT Architecture:
+        1. **Model**: This component handles the data and business logic of the application. In Django, models are defined as Python classes that represent database tables. Each model class corresponds to a table in the database, and each attribute of the class corresponds to a column in that table.
+
+        2. **View**: Views are responsible for processing user requests and returning responses. In Django, views are defined as Python functions or classes that receive web requests and return web responses. Views interact with models to retrieve data and pass it to templates for rendering.
+
+        3. **Template**: Templates are used to define the presentation layer of the application. They are HTML files that can include dynamic content generated by the views. Django's templating engine allows for the inclusion of variables and control structures to create dynamic web pages.
+
+        To implement a web application using the MVT architecture:
+        - Start by defining your models to represent the data structure.
+        - Create views to handle user interactions and business logic.
+        - Design templates to present the data to users.
+        - Set up URL routing to connect views with specific URLs.
+        - Test the application to ensure all components work together seamlessly.
+    ]]></algorithm>
+</root>
+```
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+            A library management system that allows users to borrow and return books, manage book inventory, and track overdue books. The system should support user roles for Admins and Members, with Admins having the ability to add or remove books and view reports on book usage.
+        
+# Planning:
+
+            1. Define the project structure and set up Django.
+            2. Create models for Book and Borrowing.
+            3. Implement views for borrowing and returning books.
+            4. Create templates for user interfaces.
+            5. Set up user authentication and role management.
+            6. Test the application for functionality and usability.
+        
+## Relevant Algorithm to solve the next problem:
+
+        The algorithm that can be used to solve the original problem is the "Model-View-Template" (MVT) architecture, which is a variant of the MVC (Model-View-Controller) pattern. This architecture is particularly suited for web applications built with Django.
+
+        Tutorial on MVT Architecture:
+        1. **Model**: This component handles the data and business logic of the application. In Django, models are defined as Python classes that represent database tables. Each model class corresponds to a table in the database, and each attribute of the class corresponds to a column in that table.
+
+        2. **View**: Views are responsible for processing user requests and returning responses. In Django, views are defined as Python functions or classes that receive web requests and return web responses. Views interact with models to retrieve data and pass it to templates for rendering.
+
+        3. **Template**: Templates are used to define the presentation layer of the application. They are HTML files that can include dynamic content generated by the views. Django's templating engine allows for the inclusion of variables and control structures to create dynamic web pages.
+
+        To implement a web application using the MVT architecture:
+        - Start by defining your models to represent the data structure.
+        - Create views to handle user interactions and business logic.
+        - Design templates to present the data to users.
+        - Set up URL routing to connect views with specific URLs.
+        - Test the application to ensure all components work together seamlessly.
+    
+## Problem to be solved:
+
+Please help me implement a Python program using Django to develop a web-based hotel and local tourism management system that supports user roles for Admins, Hotel Staff, and Guests, allowing for room management, secure reservations, local tour booking, and administrative reporting.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+## Planning:
+
+1. Define the project structure and set up Django.
+2. Create models for User, Room, Reservation, Tour, and Report.
+3. Implement views for:
+   - Admin: Adding/removing rooms, viewing reports.
+   - Hotel Staff: Managing room availability and reservations.
+   - Guests: Booking rooms and local tours.
+4. Create templates for user interfaces for each role.
+5. Set up user authentication and role management.
+6. Implement form handling for reservations and tour bookings.
+7. Set up URL routing to connect views with specific URLs.
+8. Test the application for functionality and usability.
+9. Deploy the application to a web server.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program using Django to develop a web-based hotel and local tourism management system that supports user roles for Admins, Hotel Staff, and Guests, allowing for room management, secure reservations, local tour booking, and administrative reporting.
+
+# Planning:
+## Planning:
+
+1. Define the project structure and set up Django.
+2. Create models for User, Room, Reservation, Tour, and Report.
+3. Implement views for:
+   - Admin: Adding/removing rooms, viewing reports.
+   - Hotel Staff: Managing room availability and reservations.
+   - Guests: Booking rooms and local tours.
+4. Create templates for user interfaces for each role.
+5. Set up user authentication and role management.
+6. Implement form handling for reservations and tour bookings.
+7. Set up URL routing to connect views with specific URLs.
+8. Test the application for functionality and usability.
+9. Deploy the application to a web server.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': 'The given planning is well-structured and addresses the requirements of the problem effectively. It outlines the necessary steps to create a web-based hotel and local tourism management system using Django, including defining models for the various entities involved, implementing views for different user roles, and setting up user authentication. Each step logically follows the previous one, ensuring that all aspects of the system are covered, from backend to frontend. Therefore, the planning is correct and should lead to a successful implementation of the problem.', 'confidence': 90}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+            An online food ordering system that allows users to browse menus, place orders, and track delivery status. The system should support user roles for Admins, Restaurant Staff, and Customers, with Admins managing the menu and viewing order reports.
+        
+# Planning:
+
+            1. Define the project structure and set up Django.
+            2. Create models for MenuItem and Order.
+            3. Implement views for placing and tracking orders.
+            4. Create templates for user interfaces.
+            5. Set up user authentication and role management.
+            6. Test the application for functionality and usability.
+        
+## Relevant Algorithm to solve the next problem:
+
+        The algorithm that can be used to solve the original problem is the "Model-View-Template" (MVT) architecture, which is a variant of the MVC (Model-View-Controller) pattern. This architecture is particularly suited for web applications built with Django.
+
+        Tutorial on MVT Architecture:
+        1. **Model**: This component handles the data and business logic of the application. In Django, models are defined as Python classes that represent database tables. Each model class corresponds to a table in the database, and each attribute of the class corresponds to a column in that table.
+
+        2. **View**: Views are responsible for processing user requests and returning responses. In Django, views are defined as Python functions or classes that receive web requests and return web responses. Views interact with models to retrieve data and pass it to templates for rendering.
+
+        3. **Template**: Templates are used to define the presentation layer of the application. They are HTML files that can include dynamic content generated by the views. Django's templating engine allows for the inclusion of variables and control structures to create dynamic web pages.
+
+        To implement a web application using the MVT architecture:
+        - Start by defining your models to represent the data structure.
+        - Create views to handle user interactions and business logic.
+        - Design templates to present the data to users.
+        - Set up URL routing to connect views with specific URLs.
+        - Test the application to ensure all components work together seamlessly.
+    
+## Problem to be solved:
+
+Please help me implement a Python program using Django to develop a web-based hotel and local tourism management system that supports user roles for Admins, Hotel Staff, and Guests, allowing for room management, secure reservations, local tour booking, and administrative reporting.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+1. Define the project structure and set up Django.
+2. Create models for User, Room, Reservation, Tour, and Report.
+3. Implement views for room management, reservations, tour bookings, and administrative reporting.
+4. Create templates for user interfaces for Admins, Hotel Staff, and Guests.
+5. Set up user authentication and role management.
+6. Implement forms for room booking and tour reservations.
+7. Set up URL routing to connect views with specific URLs.
+8. Test the application for functionality, usability, and security.
+9. Deploy the application to a web server.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program using Django to develop a web-based hotel and local tourism management system that supports user roles for Admins, Hotel Staff, and Guests, allowing for room management, secure reservations, local tour booking, and administrative reporting.
+
+# Planning:
+1. Define the project structure and set up Django.
+2. Create models for User, Room, Reservation, Tour, and Report.
+3. Implement views for room management, reservations, tour bookings, and administrative reporting.
+4. Create templates for user interfaces for Admins, Hotel Staff, and Guests.
+5. Set up user authentication and role management.
+6. Implement forms for room booking and tour reservations.
+7. Set up URL routing to connect views with specific URLs.
+8. Test the application for functionality, usability, and security.
+9. Deploy the application to a web server.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': 'The given planning is well-structured and addresses the requirements of the problem effectively. It outlines the necessary steps to create a web-based hotel and local tourism management system using Django. Each step is relevant, from setting up the project structure to implementing user roles and functionalities. The inclusion of models, views, templates, and user authentication ensures that the application will be robust and user-friendly. Additionally, testing and deployment are crucial for ensuring the application works as intended in a real-world scenario. Overall, the plan is comprehensive and should lead to a successful implementation of the system.', 'confidence': 90}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+            A personal finance management application that allows users to track their income and expenses, categorize transactions, and generate financial reports. The system should support user roles for Admins and Users, with Admins managing user accounts and viewing overall financial statistics.
+        
+# Planning:
+
+            1. Define the project structure and set up Django.
+            2. Create models for Transaction.
+            3. Implement views for adding and viewing transactions.
+            4. Create templates for user interfaces.
+            5. Set up user authentication and role management.
+            6. Test the application for functionality and usability.
+        
+## Relevant Algorithm to solve the next problem:
+
+        The algorithm that can be used to solve the original problem is the "Model-View-Template" (MVT) architecture, which is a variant of the MVC (Model-View-Controller) pattern. This architecture is particularly suited for web applications built with Django.
+
+        Tutorial on MVT Architecture:
+        1. **Model**: This component handles the data and business logic of the application. In Django, models are defined as Python classes that represent database tables. Each model class corresponds to a table in the database, and each attribute of the class corresponds to a column in that table.
+
+        2. **View**: Views are responsible for processing user requests and returning responses. In Django, views are defined as Python functions or classes that receive web requests and return web responses. Views interact with models to retrieve data and pass it to templates for rendering.
+
+        3. **Template**: Templates are used to define the presentation layer of the application. They are HTML files that can include dynamic content generated by the views. Django's templating engine allows for the inclusion of variables and control structures to create dynamic web pages.
+
+        To implement a web application using the MVT architecture:
+        - Start by defining your models to represent the data structure.
+        - Create views to handle user interactions and business logic.
+        - Design templates to present the data to users.
+        - Set up URL routing to connect views with specific URLs.
+        - Test the application to ensure all components work together seamlessly.
+    
+## Problem to be solved:
+
+Please help me implement a Python program using Django to develop a web-based hotel and local tourism management system that supports user roles for Admins, Hotel Staff, and Guests, allowing for room management, secure reservations, local tour booking, and administrative reporting.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+## Planning:
+
+1. Define the project structure and set up Django.
+2. Create models for User, Room, Reservation, Tour, and Report.
+3. Implement views for:
+   - User registration and authentication.
+   - Room management (CRUD operations for Admins and Hotel Staff).
+   - Reservation management (creating, viewing, and canceling reservations).
+   - Tour booking (viewing available tours and booking).
+   - Administrative reporting (viewing statistics and reports).
+4. Create templates for user interfaces:
+   - Admin dashboard.
+   - Hotel staff interface for room and reservation management.
+   - Guest interface for booking and viewing reservations/tours.
+5. Set up user authentication and role management (Admins, Hotel Staff, Guests).
+6. Implement URL routing to connect views with specific URLs.
+7. Test the application for functionality, usability, and security.
+8. Deploy the application to a web server for public access.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program using Django to develop a web-based hotel and local tourism management system that supports user roles for Admins, Hotel Staff, and Guests, allowing for room management, secure reservations, local tour booking, and administrative reporting.
+
+# Planning:
+## Planning:
+
+1. Define the project structure and set up Django.
+2. Create models for User, Room, Reservation, Tour, and Report.
+3. Implement views for:
+   - User registration and authentication.
+   - Room management (CRUD operations for Admins and Hotel Staff).
+   - Reservation management (creating, viewing, and canceling reservations).
+   - Tour booking (viewing available tours and booking).
+   - Administrative reporting (viewing statistics and reports).
+4. Create templates for user interfaces:
+   - Admin dashboard.
+   - Hotel staff interface for room and reservation management.
+   - Guest interface for booking and viewing reservations/tours.
+5. Set up user authentication and role management (Admins, Hotel Staff, Guests).
+6. Implement URL routing to connect views with specific URLs.
+7. Test the application for functionality, usability, and security.
+8. Deploy the application to a web server for public access.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': 'The planning outlined is well-structured and addresses the requirements of the problem effectively. It covers the essential components needed for a web-based hotel and local tourism management system, including user roles, room management, reservations, and reporting. Each step in the plan logically follows the previous one, ensuring a comprehensive approach to building the application. The inclusion of user authentication and role management is crucial for differentiating access levels among Admins, Hotel Staff, and Guests. Overall, the plan is correct and should lead to a functional implementation of the system.', 'confidence': 90}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+        The algorithm that can be used to solve the original problem is the "Model-View-Template" (MVT) architecture, which is a variant of the MVC (Model-View-Controller) pattern. This architecture is particularly suited for web applications built with Django.
+
+        Tutorial on MVT Architecture:
+        1. **Model**: This component handles the data and business logic of the application. In Django, models are defined as Python classes that represent database tables. Each model class corresponds to a table in the database, and each attribute of the class corresponds to a column in that table.
+
+        2. **View**: Views are responsible for processing user requests and returning responses. In Django, views are defined as Python functions or classes that receive web requests and return web responses. Views interact with models to retrieve data and pass it to templates for rendering.
+
+        3. **Template**: Templates are used to define the presentation layer of the application. They are HTML files that can include dynamic content generated by the views. Django's templating engine allows for the inclusion of variables and control structures to create dynamic web pages.
+
+        To implement a web application using the MVT architecture:
+        - Start by defining your models to represent the data structure.
+        - Create views to handle user interactions and business logic.
+        - Design templates to present the data to users.
+        - Set up URL routing to connect views with specific URLs.
+        - Test the application to ensure all components work together seamlessly.
+    
+## Problem to be solved:
+
+Please help me implement a Python program using Django to develop a web-based hotel and local tourism management system that supports user roles for Admins, Hotel Staff, and Guests, allowing for room management, secure reservations, local tour booking, and administrative reporting.
+
+## Planning:
+## Planning:
+
+1. Define the project structure and set up Django.
+2. Create models for User, Room, Reservation, Tour, and Report.
+3. Implement views for:
+   - Admin: Adding/removing rooms, viewing reports.
+   - Hotel Staff: Managing room availability and reservations.
+   - Guests: Booking rooms and local tours.
+4. Create templates for user interfaces for each role.
+5. Set up user authentication and role management.
+6. Implement form handling for reservations and tour bookings.
+7. Set up URL routing to connect views with specific URLs.
+8. Test the application for functionality and usability.
+9. Deploy the application to a web server.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+# settings.py
+INSTALLED_APPS = [
+    ...
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'hotel_management',
+]
+
+# models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+class Room(models.Model):
+    room_number = models.CharField(max_length=10)
+    room_type = models.CharField(max_length=50)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    is_available = models.BooleanField(default=True)
+
+class Reservation(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    check_in_date = models.DateField()
+    check_out_date = models.DateField()
+
+class Tour(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+class Report(models.Model):
+    date = models.DateField()
+    total_reservations = models.IntegerField()
+    total_revenue = models.DecimalField(max_digits=10, decimal_places=2)
+
+# views.py
+from django.shortcuts import render, redirect
+from .models import Room, Reservation, Tour, Report
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def admin_dashboard(request):
+    rooms = Room.objects.all()
+    reports = Report.objects.all()
+    return render(request, 'admin_dashboard.html', {'rooms': rooms, 'reports': reports})
+
+@login_required
+def add_room(request):
+    if request.method == 'POST':
+        room_number = request.POST['room_number']
+        room_type = request.POST['room_type']
+        price = request.POST['price']
+        Room.objects.create(room_number=room_number, room_type=room_type, price=price)
+        return redirect('admin_dashboard')
+    return render(request, 'add_room.html')
+
+@login_required
+def staff_dashboard(request):
+    reservations = Reservation.objects.filter(room__is_available=False)
+    return render(request, 'staff_dashboard.html', {'reservations': reservations})
+
+@login_required
+def guest_dashboard(request):
+    tours = Tour.objects.all()
+    return render(request, 'guest_dashboard.html', {'tours': tours})
+
+@login_required
+def book_room(request, room_id):
+    room = Room.objects.get(id=room_id)
+    if request.method == 'POST':
+        check_in_date = request.POST['check_in_date']
+        check_out_date = request.POST['check_out_date']
+        Reservation.objects.create(user=request.user, room=room, check_in_date=check_in_date, check_out_date=check_out_date)
+        room.is_available = False
+        room.save()
+        return redirect('guest_dashboard')
+    return render(request, 'book_room.html', {'room': room})
+
+# urls.py
+from django.urls import path
+from .views import admin_dashboard, add_room, staff_dashboard, guest_dashboard, book_room
+
+urlpatterns = [
+    path('admin/', admin_dashboard, name='admin_dashboard'),
+    path('admin/add_room/', add_room, name='add_room'),
+    path('staff/', staff_dashboard, name='staff_dashboard'),
+    path('guest/', guest_dashboard, name='guest_dashboard'),
+    path('guest/book_room/<int:room_id>/', book_room, name='book_room'),
+]
+
+# templates/admin_dashboard.html
+{% extends 'base.html' %}
+{% block content %}
+<h1>Admin Dashboard</h1>
+<a href="{% url 'add_room' %}">Add Room</a>
+<h2>Rooms</h2>
+<ul>
+    {% for room in rooms %}
+    <li>{{ room.room_number }} - {{ room.room_type }} - {{ room.price }}</li>
+    {% endfor %}
+</ul>
+<h2>Reports</h2>
+<ul>
+    {% for report in reports %}
+    <li>{{ report.date }} - {{ report.total_reservations }} - {{ report.total_revenue }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+# templates/add_room.html
+{% extends 'base.html' %}
+{% block content %}
+<h1>Add Room</h1>
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="room_number" placeholder="Room Number" required>
+    <input type="text" name="room_type" placeholder="Room Type" required>
+    <input type="number" name="price" placeholder="Price" required>
+    <button type="submit">Add Room</button>
+</form>
+{% endblock %}
+
+# templates/staff_dashboard.html
+{% extends 'base.html' %}
+{% block content %}
+<h1>Staff Dashboard</h1>
+<h2>Reservations</h2>
+<ul>
+    {% for reservation in reservations %}
+    <li>{{ reservation.user.username }} - {{ reservation.room.room_number }} - {{ reservation.check_in_date }} to {{ reservation.check_out_date }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+# templates/guest_dashboard.html
+{% extends 'base.html' %}
+{% block content %}
+<h1>Guest Dashboard</h1>
+<h2>Tours</h2>
+<ul>
+    {% for tour in tours %}
+    <li>{{ tour.name }} - {{ tour.price }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+# templates/book_room.html
+{% extends 'base.html' %}
+{% block content %}
+<h1>Book Room: {{ room.room_number }}</h1>
+<form method="post">
+    {% csrf_token %}
+    <input type="date" name="check_in_date" required>
+    <input type="date" name="check_out_date" required>
+    <button type="submit">Book Room</button>
+</form>
+{% endblock %}
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 52.56 seconds
+Total Tokens: 7,115 (Input: 3,466, Output: 3,649)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 17.39      320          1,610        1         
+Planning_Generation_1     6.20       555          135          1         
+Planning_Verification_1   1.75       297          121          1         
+Planning_Generation_2     2.17       550          119          1         
+Planning_Verification_2   3.00       281          137          1         
+Planning_Generation_3     2.53       547          186          1         
+Planning_Verification_3   4.22       348          131          1         
+Final_Code_Generation     15.31      568          1,210        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-09-02 16:03:29.537347
+##########################
+

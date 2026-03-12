@@ -1,0 +1,91 @@
+classDiagram
+    %% Shared Data Structures
+    class PlayerModel {
+        +str name
+        +list[Vertex] vertices
+        +list[Face] faces
+        +RigData rig
+        +dict metadata
+        +list[TextureMap] textures
+        +from_json(json_path: str) PlayerModel
+        +to_json(json_path: str)
+    }
+    class Vertex {
+        +float x
+        +float y
+        +float z
+        +list[float] weights
+        +list[int] bone_indices
+    }
+    class Face {
+        +int v1
+        +int v2
+        +int v3
+    }
+    class RigData {
+        +list[Bone] bones
+        +dict constraints
+    }
+    class Bone {
+        +str name
+        +int parent
+        +list[float] head
+        +list[float] tail
+    }
+    class TextureMap {
+        +str type
+        +str dds_path
+        +bytes data
+    }
+    %% Windows Tool
+    class AssetParser {
+        +__init__(asset_path: str)
+        +parse() PlayerModel
+    }
+    class Exporter {
+        +__init__(output_dir: str)
+        +export_json(model: PlayerModel)
+        +export_dds(textures: list[TextureMap])
+    }
+    class BatchProcessor {
+        +process_all(asset_paths: list[str])
+    }
+    class GUI {
+        +show()
+        +select_assets()
+        +preview_model(model: PlayerModel)
+        +export_selected()
+    }
+    %% Blender Add-on
+    class ImportJSONDDS {
+        +import_model(json_path: str, dds_paths: list[str]) PlayerModel
+    }
+    class ExportJSONDDS {
+        +export_model(model: PlayerModel, json_path: str, dds_paths: list[str])
+    }
+    class RiggingUtils {
+        +apply_rig(model: PlayerModel)
+        +extract_rig(obj) RigData
+    }
+    class TextureUtils {
+        +apply_textures(model: PlayerModel)
+        +extract_textures(obj) list[TextureMap]
+    }
+    class UIPanel {
+        +draw()
+        +show_validation()
+    }
+    %% Relationships
+    AssetParser --> PlayerModel
+    Exporter --> PlayerModel
+    Exporter --> TextureMap
+    BatchProcessor --> AssetParser
+    BatchProcessor --> Exporter
+    GUI --> AssetParser
+    GUI --> Exporter
+    ImportJSONDDS --> PlayerModel
+    ExportJSONDDS --> PlayerModel
+    RiggingUtils --> PlayerModel
+    TextureUtils --> PlayerModel
+    UIPanel --> ImportJSONDDS
+    UIPanel --> ExportJSONDDS

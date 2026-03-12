@@ -1,0 +1,1388 @@
+2026-01-13 19:05:46,131 WARNING  No vLLM server running at the specified URL.
+2026-01-13 19:05:46,155 WARNING  BMTools is not installed, tools in the simulation environment cannot be used. To install BMTools, please follow the instruction in the README.md file. If you aren't running a *simulation* case with tool, you can ignore this warning.
+2026-01-13 19:05:47,567 INFO  Loop Round 0
+2026-01-13 19:05:50,390 INFO Role Assignment:
+a software engineer specialized in Python development and API integration, with experience in creating standalone .exe applications and handling multi-client environments
+a data engineer skilled in database design and management, particularly with SQLite and JSON, and knowledgeable in building RAG (Retrieval-Augmented Generation) knowledge bases for logging and improving AI-driven workflows 
+2026-01-13 19:06:07,509 INFO Initial Plan:
+import os
+import sys
+import json
+import sqlite3
+import openai
+import threading
+from datetime import datetime
+from typing import Dict, Any, List
+import pandas as pd
+
+# Set your OpenAI API key here or via environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Database setup for RAG knowledge base
+DB_FILE = "rag_knowledge_base.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT,
+            timestamp TEXT,
+            input_data TEXT,
+            output_data TEXT,
+            errors TEXT,
+            category TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_to_db(client_id: str, input_data: str, output_data: str, errors: str, category: str):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO logs (client_id, timestamp, input_data, output_data, errors, category)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (client_id, datetime.utcnow().isoformat(), input_data, output_data, errors, category))
+    conn.commit()
+    conn.close()
+
+def generate_test_input(client_id: str, prompt: str) -> pd.DataFrame:
+    """
+    Use GPT-4 API to generate test input data in JSON format, then convert to DataFrame.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You generate JSON data for automated test input Excel files."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=1000
+    )
+    content = response['choices'][0]['message']['content']
+    try:
+        data = json.loads(content)
+        df = pd.DataFrame(data)
+        return df
+    except Exception as e:
+        raise ValueError(f"Failed to parse GPT-4 output as JSON: {e}")
+
+def analyze_output(client_id: str, output_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Analyze output DataFrame for errors and categorize them.
+    """
+    errors = []
+    category = "No Errors"
+    # Example error detection: any row with 'error' column not empty
+    if 'error' in output_df.columns:
+        error_rows = output_df[output_df['error'].notnull() & (output_df['error'] != "")]
+        if not error_rows.empty:
+            errors = error_rows['error'].tolist()
+            category = "Errors Found"
+    return {"errors": errors, "category": category}
+
+def improve_prompt(client_id: str, previous_prompt: str, logs: List[Dict[str, Any]]) -> str:
+    """
+    Use GPT-4 to improve future input generation prompts based on past logs.
+    """
+    system_msg = "You are an assistant improving prompts for generating test input Excel files."
+    user_msg = f"Previous prompt:\n{previous_prompt}\n\nLogs:\n{json.dumps(logs, indent=2)}\n\nSuggest an improved prompt."
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg}
+        ],
+        temperature=0.5,
+        max_tokens=500
+    )
+    improved_prompt = response['choices'][0]['message']['content']
+    return improved_prompt
+
+def save_excel(df: pd.DataFrame, filename: str):
+    df.to_excel(filename, index=False)
+
+def load_excel(filename: str) -> pd.DataFrame:
+    return pd.read_excel(filename)
+
+class ClientSession:
+    def __init__(self, client_id: str):
+        self.client_id = client_id
+        self.prompt = "Generate a JSON array of test input data with fields: id, name, value."
+        self.logs = []
+
+    def generate_and_save_input(self, filename: str):
+        df = generate_test_input(self.client_id, self.prompt)
+        save_excel(df, filename)
+        return df
+
+    def analyze_and_log_output(self, output_filename: str):
+        output_df = load_excel(output_filename)
+        analysis = analyze_output(self.client_id, output_df)
+        errors_str = json.dumps(analysis["errors"])
+        category = analysis["category"]
+        # Log input and output data as JSON strings for simplicity
+        log_to_db(self.client_id, self.prompt, output_df.to_json(orient='records'), errors_str, category)
+        self.logs.append({
+            "input": self.prompt,
+            "output": output_df.to_dict(orient='records'),
+            "errors": analysis["errors"],
+            "category": category
+        })
+        return analysis
+
+    def improve_prompt_based_on_logs(self):
+        if not self.logs:
+            return
+        self.prompt = improve_prompt(self.client_id, self.prompt, self.logs)
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Standalone .exe for GPT-4 test input generation and analysis")
+    parser.add_argument("--client", required=True, help="Client ID")
+    parser.add_argument("--generate", help="Filename to save generated input Excel")
+    parser.add_argument("--analyze", help="Filename of output Excel to analyze")
+    parser.add_argument("--improve", action="store_true", help="Improve prompt based on logs")
+    args = parser.parse_args()
+
+    init_db()
+    session = ClientSession(args.client)
+
+    if args.generate:
+        df = session.generate_and_save_input(args.generate)
+        print(f"Generated input Excel saved to {args.generate}")
+
+    if args.analyze:
+        analysis = session.analyze_and_log_output(args.analyze)
+        print(f"Analysis: {analysis}")
+
+    if args.improve:
+        session.improve_prompt_based_on_logs()
+        print(f"Improved prompt:\n{session.prompt}")
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 19:06:22,166 INFO Reviews:
+[a data engineer skilled in database design and management, particularly with SQLite and JSON, and knowledgeable in building RAG (Retrieval-Augmented Generation) knowledge bases for logging and improving AI-driven workflows]: ```python
+# Given code and completion to analyze:
+
+"""
+import os
+import sys
+import json
+import sqlite3
+import openai
+import threading
+from datetime import datetime
+from typing import Dict, Any, List
+import pandas as pd
+
+# Set your OpenAI API key here or via environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Database setup for RAG knowledge base
+DB_FILE = "rag_knowledge_base.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT,
+            timestamp TEXT,
+            input_data TEXT,
+            output_data TEXT,
+            errors TEXT,
+            category TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_to_db(client_id: str, input_data: str, output_data: str, errors: str, category: str):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO logs (client_id, timestamp, input_data, output_data, errors, category)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (client_id, datetime.utcnow().isoformat(), input_data, output_data, errors, category))
+    conn.commit()
+    conn.close()
+
+def generate_test_input(client_id: str, prompt: str) -> pd.DataFrame:
+    """
+    Use GPT-4 API to generate test input data in JSON format, then convert to DataFrame.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You generate JSON data for automated test input Excel files."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=1000
+    )
+    content = response['choices'][0]['message']['content']
+    try:
+        data = json.loads(content)
+        df = pd.DataFrame(data)
+        return df
+    except Exception as e:
+        raise ValueError(f"Failed to parse GPT-4 output as JSON: {e}")
+
+def analyze_output(client_id: str, output_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Analyze output DataFrame for errors and categorize them.
+    """
+    errors = []
+    category = "No Errors"
+    # Example error detection: any row with 'error' column not empty
+    if 'error' in output_df.columns:
+        error_rows = output_df[output_df['error'].notnull() & (output_df['error'] != "")]
+        if not error_rows.empty:
+            errors = error_rows['error'].tolist()
+            category = "Errors Found"
+    return {"errors": errors, "category": category}
+
+def improve_prompt(client_id: str, previous_prompt: str, logs: List[Dict[str, Any]]) -> str:
+    """
+    Use GPT-4 to improve future input generation prompts based on past logs.
+    """
+    system_msg = "You are an assistant improving prompts for generating test input Excel files."
+    user_msg = f"Previous prompt:\n{previous_prompt}\n\nLogs:\n{json.dumps(logs, indent=2)}\n\nSuggest an improved prompt."
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg}
+        ],
+        temperature=0.5,
+        max_tokens=500
+    )
+    improved_prompt = response['choices'][0]['message']['content']
+    return improved_prompt
+
+def save_excel(df: pd.DataFrame, filename: str):
+    df.to_excel(filename, index=False)
+
+def load_excel(filename: str) -> pd.DataFrame:
+    return pd.read_excel(filename)
+
+class ClientSession:
+    def __init__(self, client_id: str):
+        self.client_id = client_id
+        self.prompt = "Generate a JSON array of test input data with fields: id, name, value."
+        self.logs = []
+
+    def generate_and_save_input(self, filename: str):
+        df = generate_test_input(self.client_id, self.prompt)
+        save_excel(df, filename)
+        return df
+
+    def analyze_and_log_output(self, output_filename: str):
+        output_df = load_excel(output_filename)
+        analysis = analyze_output(self.client_id, output_df)
+        errors_str = json.dumps(analysis["errors"])
+        category = analysis["category"]
+        # Log input and output data as JSON strings for simplicity
+        log_to_db(self.client_id, self.prompt, output_df.to_json(orient='records'), errors_str, category)
+        self.logs.append({
+            "input": self.prompt,
+            "output": output_df.to_dict(orient='records'),
+            "errors": analysis 
+2026-01-13 19:06:48,046 INFO Updated Plan:
+import os
+import sys
+import json
+import sqlite3
+import openai
+import threading
+from datetime import datetime
+from typing import Dict, Any, List
+import pandas as pd
+
+# Set your OpenAI API key here or via environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Database setup for RAG knowledge base
+DB_FILE = "rag_knowledge_base.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT,
+            timestamp TEXT,
+            input_data TEXT,
+            output_data TEXT,
+            errors TEXT,
+            category TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_to_db(client_id: str, input_data: str, output_data: str, errors: str, category: str):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO logs (client_id, timestamp, input_data, output_data, errors, category)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (client_id, datetime.utcnow().isoformat(), input_data, output_data, errors, category))
+    conn.commit()
+    conn.close()
+
+def generate_test_input(client_id: str, prompt: str) -> pd.DataFrame:
+    """
+    Use GPT-4 API to generate test input data in JSON format, then convert to DataFrame.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You generate JSON data for automated test input Excel files."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=1000
+    )
+    content = response['choices'][0]['message']['content']
+    try:
+        data = json.loads(content)
+        df = pd.DataFrame(data)
+        return df
+    except Exception as e:
+        raise ValueError(f"Failed to parse GPT-4 output as JSON: {e}")
+
+def analyze_output(client_id: str, output_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Analyze output DataFrame for errors and categorize them.
+    """
+    errors = []
+    category = "No Errors"
+    # Example error detection: any row with 'error' column not empty
+    if 'error' in output_df.columns:
+        error_rows = output_df[output_df['error'].notnull() & (output_df['error'] != "")]
+        if not error_rows.empty:
+            errors = error_rows['error'].tolist()
+            category = "Errors Found"
+    return {"errors": errors, "category": category}
+
+def improve_prompt(client_id: str, previous_prompt: str, logs: List[Dict[str, Any]]) -> str:
+    """
+    Use GPT-4 to improve future input generation prompts based on past logs.
+    """
+    system_msg = "You are an assistant improving prompts for generating test input Excel files."
+    user_msg = f"Previous prompt:\n{previous_prompt}\n\nLogs:\n{json.dumps(logs, indent=2)}\n\nSuggest an improved prompt."
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg}
+        ],
+        temperature=0.5,
+        max_tokens=500
+    )
+    improved_prompt = response['choices'][0]['message']['content']
+    return improved_prompt
+
+def save_excel(df: pd.DataFrame, filename: str):
+    df.to_excel(filename, index=False)
+
+def load_excel(filename: str) -> pd.DataFrame:
+    return pd.read_excel(filename)
+
+class ClientSession:
+    def __init__(self, client_id: str):
+        self.client_id = client_id
+        self.prompt = "Generate a JSON array of test input data with fields: id, name, value."
+        self.logs = []
+
+    def generate_and_save_input(self, filename: str):
+        df = generate_test_input(self.client_id, self.prompt)
+        save_excel(df, filename)
+        return df
+
+    def analyze_and_log_output(self, output_filename: str):
+        output_df = load_excel(output_filename)
+        analysis = analyze_output(self.client_id, output_df)
+        errors_str = json.dumps(analysis["errors"])
+        category = analysis["category"]
+        # Log input and output data as JSON strings for simplicity
+        log_to_db(self.client_id, self.prompt, output_df.to_json(orient='records'), errors_str, category)
+        self.logs.append({
+            "input": self.prompt,
+            "output": output_df.to_dict(orient='records'),
+            "errors": analysis["errors"],
+            "category": category
+        })
+        return analysis
+
+    def improve_prompt_based_on_logs(self):
+        if not self.logs:
+            return
+        self.prompt = improve_prompt(self.client_id, self.prompt, self.logs)
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Standalone .exe for GPT-4 test input generation and analysis")
+    parser.add_argument("--client", required=True, help="Client ID")
+    parser.add_argument("--generate", help="Filename to save generated input Excel")
+    parser.add_argument("--analyze", help="Filename of output Excel to analyze")
+    parser.add_argument("--improve", action="store_true", help="Improve prompt based on logs")
+    args = parser.parse_args()
+
+    init_db()
+    session = ClientSession(args.client)
+
+    if args.generate:
+        df = session.generate_and_save_input(args.generate)
+        print(f"Generated input Excel saved to {args.generate}")
+
+    if args.analyze:
+        analysis = session.analyze_and_log_output(args.analyze)
+        print(f"Analysis: {analysis}")
+
+    if args.improve:
+        session.improve_prompt_based_on_logs()
+        print(f"Improved prompt:\n{session.prompt}")
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 19:07:05,473 INFO Reviews:
+[a data engineer skilled in database design and management, particularly with SQLite and JSON, and knowledgeable in building RAG (Retrieval-Augmented Generation) knowledge bases for logging and improving AI-driven workflows]: ```python
+# Given code and completion to analyze:
+
+"""
+import os
+import sys
+import json
+import sqlite3
+import openai
+import threading
+from datetime import datetime
+from typing import Dict, Any, List
+import pandas as pd
+
+# Set your OpenAI API key here or via environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Database setup for RAG knowledge base
+DB_FILE = "rag_knowledge_base.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT,
+            timestamp TEXT,
+            input_data TEXT,
+            output_data TEXT,
+            errors TEXT,
+            category TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_to_db(client_id: str, input_data: str, output_data: str, errors: str, category: str):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO logs (client_id, timestamp, input_data, output_data, errors, category)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (client_id, datetime.utcnow().isoformat(), input_data, output_data, errors, category))
+    conn.commit()
+    conn.close()
+
+def generate_test_input(client_id: str, prompt: str) -> pd.DataFrame:
+    """
+    Use GPT-4 API to generate test input data in JSON format, then convert to DataFrame.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You generate JSON data for automated test input Excel files."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=1000
+    )
+    content = response['choices'][0]['message']['content']
+    try:
+        data = json.loads(content)
+        df = pd.DataFrame(data)
+        return df
+    except Exception as e:
+        raise ValueError(f"Failed to parse GPT-4 output as JSON: {e}")
+
+def analyze_output(client_id: str, output_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Analyze output DataFrame for errors and categorize them.
+    """
+    errors = []
+    category = "No Errors"
+    # Example error detection: any row with 'error' column not empty
+    if 'error' in output_df.columns:
+        error_rows = output_df[output_df['error'].notnull() & (output_df['error'] != "")]
+        if not error_rows.empty:
+            errors = error_rows['error'].tolist()
+            category = "Errors Found"
+    return {"errors": errors, "category": category}
+
+def improve_prompt(client_id: str, previous_prompt: str, logs: List[Dict[str, Any]]) -> str:
+    """
+    Use GPT-4 to improve future input generation prompts based on past logs.
+    """
+    system_msg = "You are an assistant improving prompts for generating test input Excel files."
+    user_msg = f"Previous prompt:\n{previous_prompt}\n\nLogs:\n{json.dumps(logs, indent=2)}\n\nSuggest an improved prompt."
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg}
+        ],
+        temperature=0.5,
+        max_tokens=500
+    )
+    improved_prompt = response['choices'][0]['message']['content']
+    return improved_prompt
+
+def save_excel(df: pd.DataFrame, filename: str):
+    df.to_excel(filename, index=False)
+
+def load_excel(filename: str) -> pd.DataFrame:
+    return pd.read_excel(filename)
+
+class ClientSession:
+    def __init__(self, client_id: str):
+        self.client_id = client_id
+        self.prompt = "Generate a JSON array of test input data with fields: id, name, value."
+        self.logs = []
+
+    def generate_and_save_input(self, filename: str):
+        df = generate_test_input(self.client_id, self.prompt)
+        save_excel(df, filename)
+        return df
+
+    def analyze_and_log_output(self, output_filename: str):
+        output_df = load_excel(output_filename)
+        analysis = analyze_output(self.client_id, output_df)
+        errors_str = json.dumps(analysis["errors"])
+        category = analysis["category"]
+        # Log input and output data as JSON strings for simplicity
+        log_to_db(self.client_id, self.prompt, output_df.to_json(orient='records'), errors_str, category)
+        self.logs.append({
+            "input": self.prompt,
+            "output": output_df.to_dict(orient='records'),
+            "errors": analysis 
+2026-01-13 19:07:22,245 INFO Updated Plan:
+import os
+import sys
+import json
+import sqlite3
+import openai
+import threading
+from datetime import datetime
+from typing import Dict, Any, List
+import pandas as pd
+
+# Set your OpenAI API key here or via environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Database setup for RAG knowledge base
+DB_FILE = "rag_knowledge_base.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT,
+            timestamp TEXT,
+            input_data TEXT,
+            output_data TEXT,
+            errors TEXT,
+            category TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_to_db(client_id: str, input_data: str, output_data: str, errors: str, category: str):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO logs (client_id, timestamp, input_data, output_data, errors, category)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (client_id, datetime.utcnow().isoformat(), input_data, output_data, errors, category))
+    conn.commit()
+    conn.close()
+
+def generate_test_input(client_id: str, prompt: str) -> pd.DataFrame:
+    """
+    Use GPT-4 API to generate test input data in JSON format, then convert to DataFrame.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You generate JSON data for automated test input Excel files."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=1000
+    )
+    content = response['choices'][0]['message']['content']
+    try:
+        data = json.loads(content)
+        df = pd.DataFrame(data)
+        return df
+    except Exception as e:
+        raise ValueError(f"Failed to parse GPT-4 output as JSON: {e}")
+
+def analyze_output(client_id: str, output_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Analyze output DataFrame for errors and categorize them.
+    """
+    errors = []
+    category = "No Errors"
+    # Example error detection: any row with 'error' column not empty
+    if 'error' in output_df.columns:
+        error_rows = output_df[output_df['error'].notnull() & (output_df['error'] != "")]
+        if not error_rows.empty:
+            errors = error_rows['error'].tolist()
+            category = "Errors Found"
+    return {"errors": errors, "category": category}
+
+def improve_prompt(client_id: str, previous_prompt: str, logs: List[Dict[str, Any]]) -> str:
+    """
+    Use GPT-4 to improve future input generation prompts based on past logs.
+    """
+    system_msg = "You are an assistant improving prompts for generating test input Excel files."
+    user_msg = f"Previous prompt:\n{previous_prompt}\n\nLogs:\n{json.dumps(logs, indent=2)}\n\nSuggest an improved prompt."
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg}
+        ],
+        temperature=0.5,
+        max_tokens=500
+    )
+    improved_prompt = response['choices'][0]['message']['content']
+    return improved_prompt
+
+def save_excel(df: pd.DataFrame, filename: str):
+    df.to_excel(filename, index=False)
+
+def load_excel(filename: str) -> pd.DataFrame:
+    return pd.read_excel(filename)
+
+class ClientSession:
+    def __init__(self, client_id: str):
+        self.client_id = client_id
+        self.prompt = "Generate a JSON array of test input data with fields: id, name, value."
+        self.logs = []
+
+    def generate_and_save_input(self, filename: str):
+        df = generate_test_input(self.client_id, self.prompt)
+        save_excel(df, filename)
+        return df
+
+    def analyze_and_log_output(self, output_filename: str):
+        output_df = load_excel(output_filename)
+        analysis = analyze_output(self.client_id, output_df)
+        errors_str = json.dumps(analysis["errors"])
+        category = analysis["category"]
+        # Log input and output data as JSON strings for simplicity
+        log_to_db(self.client_id, self.prompt, output_df.to_json(orient='records'), errors_str, category)
+        self.logs.append({
+            "input": self.prompt,
+            "output": output_df.to_dict(orient='records'),
+            "errors": analysis["errors"],
+            "category": category
+        })
+        return analysis
+
+    def improve_prompt_based_on_logs(self):
+        if not self.logs:
+            return
+        self.prompt = improve_prompt(self.client_id, self.prompt, self.logs)
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Standalone .exe for GPT-4 test input generation and analysis")
+    parser.add_argument("--client", required=True, help="Client ID")
+    parser.add_argument("--generate", help="Filename to save generated input Excel")
+    parser.add_argument("--analyze", help="Filename of output Excel to analyze")
+    parser.add_argument("--improve", action="store_true", help="Improve prompt based on logs")
+    args = parser.parse_args()
+
+    init_db()
+    session = ClientSession(args.client)
+
+    if args.generate:
+        df = session.generate_and_save_input(args.generate)
+        print(f"Generated input Excel saved to {args.generate}")
+
+    if args.analyze:
+        analysis = session.analyze_and_log_output(args.analyze)
+        print(f"Analysis: {analysis}")
+
+    if args.improve:
+        session.improve_prompt_based_on_logs()
+        print(f"Improved prompt:\n{session.prompt}")
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 19:07:36,787 INFO Reviews:
+[a data engineer skilled in database design and management, particularly with SQLite and JSON, and knowledgeable in building RAG (Retrieval-Augmented Generation) knowledge bases for logging and improving AI-driven workflows]: ```python
+# Given code and completion to analyze:
+
+"""
+import os
+import sys
+import json
+import sqlite3
+import openai
+import threading
+from datetime import datetime
+from typing import Dict, Any, List
+import pandas as pd
+
+# Set your OpenAI API key here or via environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Database setup for RAG knowledge base
+DB_FILE = "rag_knowledge_base.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT,
+            timestamp TEXT,
+            input_data TEXT,
+            output_data TEXT,
+            errors TEXT,
+            category TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_to_db(client_id: str, input_data: str, output_data: str, errors: str, category: str):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO logs (client_id, timestamp, input_data, output_data, errors, category)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (client_id, datetime.utcnow().isoformat(), input_data, output_data, errors, category))
+    conn.commit()
+    conn.close()
+
+def generate_test_input(client_id: str, prompt: str) -> pd.DataFrame:
+    """
+    Use GPT-4 API to generate test input data in JSON format, then convert to DataFrame.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You generate JSON data for automated test input Excel files."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=1000
+    )
+    content = response['choices'][0]['message']['content']
+    try:
+        data = json.loads(content)
+        df = pd.DataFrame(data)
+        return df
+    except Exception as e:
+        raise ValueError(f"Failed to parse GPT-4 output as JSON: {e}")
+
+def analyze_output(client_id: str, output_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Analyze output DataFrame for errors and categorize them.
+    """
+    errors = []
+    category = "No Errors"
+    # Example error detection: any row with 'error' column not empty
+    if 'error' in output_df.columns:
+        error_rows = output_df[output_df['error'].notnull() & (output_df['error'] != "")]
+        if not error_rows.empty:
+            errors = error_rows['error'].tolist()
+            category = "Errors Found"
+    return {"errors": errors, "category": category}
+
+def improve_prompt(client_id: str, previous_prompt: str, logs: List[Dict[str, Any]]) -> str:
+    """
+    Use GPT-4 to improve future input generation prompts based on past logs.
+    """
+    system_msg = "You are an assistant improving prompts for generating test input Excel files."
+    user_msg = f"Previous prompt:\n{previous_prompt}\n\nLogs:\n{json.dumps(logs, indent=2)}\n\nSuggest an improved prompt."
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg}
+        ],
+        temperature=0.5,
+        max_tokens=500
+    )
+    improved_prompt = response['choices'][0]['message']['content']
+    return improved_prompt
+
+def save_excel(df: pd.DataFrame, filename: str):
+    df.to_excel(filename, index=False)
+
+def load_excel(filename: str) -> pd.DataFrame:
+    return pd.read_excel(filename)
+
+class ClientSession:
+    def __init__(self, client_id: str):
+        self.client_id = client_id
+        self.prompt = "Generate a JSON array of test input data with fields: id, name, value."
+        self.logs = []
+
+    def generate_and_save_input(self, filename: str):
+        df = generate_test_input(self.client_id, self.prompt)
+        save_excel(df, filename)
+        return df
+
+    def analyze_and_log_output(self, output_filename: str):
+        output_df = load_excel(output_filename)
+        analysis = analyze_output(self.client_id, output_df)
+        errors_str = json.dumps(analysis["errors"])
+        category = analysis["category"]
+        # Log input and output data as JSON strings for simplicity
+        log_to_db(self.client_id, self.prompt, output_df.to_json(orient='records'), errors_str, category)
+        self.logs.append({
+            "input": self.prompt,
+            "output": output_df.to_dict(orient='records'),
+            "errors": analysis 
+2026-01-13 19:07:59,566 INFO Updated Plan:
+import os
+import sys
+import json
+import sqlite3
+import openai
+import threading
+from datetime import datetime
+from typing import Dict, Any, List
+import pandas as pd
+
+# Set your OpenAI API key here or via environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Database setup for RAG knowledge base
+DB_FILE = "rag_knowledge_base.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT,
+            timestamp TEXT,
+            input_data TEXT,
+            output_data TEXT,
+            errors TEXT,
+            category TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_to_db(client_id: str, input_data: str, output_data: str, errors: str, category: str):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO logs (client_id, timestamp, input_data, output_data, errors, category)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (client_id, datetime.utcnow().isoformat(), input_data, output_data, errors, category))
+    conn.commit()
+    conn.close()
+
+def generate_test_input(client_id: str, prompt: str) -> pd.DataFrame:
+    """
+    Use GPT-4 API to generate test input data in JSON format, then convert to DataFrame.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You generate JSON data for automated test input Excel files."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=1000
+    )
+    content = response['choices'][0]['message']['content']
+    try:
+        data = json.loads(content)
+        df = pd.DataFrame(data)
+        return df
+    except Exception as e:
+        raise ValueError(f"Failed to parse GPT-4 output as JSON: {e}")
+
+def analyze_output(client_id: str, output_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Analyze output DataFrame for errors and categorize them.
+    """
+    errors = []
+    category = "No Errors"
+    # Example error detection: any row with 'error' column not empty
+    if 'error' in output_df.columns:
+        error_rows = output_df[output_df['error'].notnull() & (output_df['error'] != "")]
+        if not error_rows.empty:
+            errors = error_rows['error'].tolist()
+            category = "Errors Found"
+    return {"errors": errors, "category": category}
+
+def improve_prompt(client_id: str, previous_prompt: str, logs: List[Dict[str, Any]]) -> str:
+    """
+    Use GPT-4 to improve future input generation prompts based on past logs.
+    """
+    system_msg = "You are an assistant improving prompts for generating test input Excel files."
+    user_msg = f"Previous prompt:\n{previous_prompt}\n\nLogs:\n{json.dumps(logs, indent=2)}\n\nSuggest an improved prompt."
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg}
+        ],
+        temperature=0.5,
+        max_tokens=500
+    )
+    improved_prompt = response['choices'][0]['message']['content']
+    return improved_prompt
+
+def save_excel(df: pd.DataFrame, filename: str):
+    df.to_excel(filename, index=False)
+
+def load_excel(filename: str) -> pd.DataFrame:
+    return pd.read_excel(filename)
+
+class ClientSession:
+    def __init__(self, client_id: str):
+        self.client_id = client_id
+        self.prompt = "Generate a JSON array of test input data with fields: id, name, value."
+        self.logs = []
+
+    def generate_and_save_input(self, filename: str):
+        df = generate_test_input(self.client_id, self.prompt)
+        save_excel(df, filename)
+        return df
+
+    def analyze_and_log_output(self, output_filename: str):
+        output_df = load_excel(output_filename)
+        analysis = analyze_output(self.client_id, output_df)
+        errors_str = json.dumps(analysis["errors"])
+        category = analysis["category"]
+        # Log input and output data as JSON strings for simplicity
+        log_to_db(self.client_id, self.prompt, output_df.to_json(orient='records'), errors_str, category)
+        self.logs.append({
+            "input": self.prompt,
+            "output": output_df.to_dict(orient='records'),
+            "errors": analysis["errors"],
+            "category": category
+        })
+        return analysis
+
+    def improve_prompt_based_on_logs(self):
+        if not self.logs:
+            return
+        self.prompt = improve_prompt(self.client_id, self.prompt, self.logs)
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Standalone .exe for GPT-4 test input generation and analysis")
+    parser.add_argument("--client", required=True, help="Client ID")
+    parser.add_argument("--generate", help="Filename to save generated input Excel")
+    parser.add_argument("--analyze", help="Filename of output Excel to analyze")
+    parser.add_argument("--improve", action="store_true", help="Improve prompt based on logs")
+    args = parser.parse_args()
+
+    init_db()
+    session = ClientSession(args.client)
+
+    if args.generate:
+        df = session.generate_and_save_input(args.generate)
+        print(f"Generated input Excel saved to {args.generate}")
+
+    if args.analyze:
+        analysis = session.analyze_and_log_output(args.analyze)
+        print(f"Analysis: {analysis}")
+
+    if args.improve:
+        session.improve_prompt_based_on_logs()
+        print(f"Improved prompt:\n{session.prompt}")
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 19:07:59,567 INFO Decision Plan:
+import os
+import sys
+import json
+import sqlite3
+import openai
+import threading
+from datetime import datetime
+from typing import Dict, Any, List
+import pandas as pd
+
+# Set your OpenAI API key here or via environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Database setup for RAG knowledge base
+DB_FILE = "rag_knowledge_base.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT,
+            timestamp TEXT,
+            input_data TEXT,
+            output_data TEXT,
+            errors TEXT,
+            category TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_to_db(client_id: str, input_data: str, output_data: str, errors: str, category: str):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO logs (client_id, timestamp, input_data, output_data, errors, category)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (client_id, datetime.utcnow().isoformat(), input_data, output_data, errors, category))
+    conn.commit()
+    conn.close()
+
+def generate_test_input(client_id: str, prompt: str) -> pd.DataFrame:
+    """
+    Use GPT-4 API to generate test input data in JSON format, then convert to DataFrame.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You generate JSON data for automated test input Excel files."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=1000
+    )
+    content = response['choices'][0]['message']['content']
+    try:
+        data = json.loads(content)
+        df = pd.DataFrame(data)
+        return df
+    except Exception as e:
+        raise ValueError(f"Failed to parse GPT-4 output as JSON: {e}")
+
+def analyze_output(client_id: str, output_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Analyze output DataFrame for errors and categorize them.
+    """
+    errors = []
+    category = "No Errors"
+    # Example error detection: any row with 'error' column not empty
+    if 'error' in output_df.columns:
+        error_rows = output_df[output_df['error'].notnull() & (output_df['error'] != "")]
+        if not error_rows.empty:
+            errors = error_rows['error'].tolist()
+            category = "Errors Found"
+    return {"errors": errors, "category": category}
+
+def improve_prompt(client_id: str, previous_prompt: str, logs: List[Dict[str, Any]]) -> str:
+    """
+    Use GPT-4 to improve future input generation prompts based on past logs.
+    """
+    system_msg = "You are an assistant improving prompts for generating test input Excel files."
+    user_msg = f"Previous prompt:\n{previous_prompt}\n\nLogs:\n{json.dumps(logs, indent=2)}\n\nSuggest an improved prompt."
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg}
+        ],
+        temperature=0.5,
+        max_tokens=500
+    )
+    improved_prompt = response['choices'][0]['message']['content']
+    return improved_prompt
+
+def save_excel(df: pd.DataFrame, filename: str):
+    df.to_excel(filename, index=False)
+
+def load_excel(filename: str) -> pd.DataFrame:
+    return pd.read_excel(filename)
+
+class ClientSession:
+    def __init__(self, client_id: str):
+        self.client_id = client_id
+        self.prompt = "Generate a JSON array of test input data with fields: id, name, value."
+        self.logs = []
+
+    def generate_and_save_input(self, filename: str):
+        df = generate_test_input(self.client_id, self.prompt)
+        save_excel(df, filename)
+        return df
+
+    def analyze_and_log_output(self, output_filename: str):
+        output_df = load_excel(output_filename)
+        analysis = analyze_output(self.client_id, output_df)
+        errors_str = json.dumps(analysis["errors"])
+        category = analysis["category"]
+        # Log input and output data as JSON strings for simplicity
+        log_to_db(self.client_id, self.prompt, output_df.to_json(orient='records'), errors_str, category)
+        self.logs.append({
+            "input": self.prompt,
+            "output": output_df.to_dict(orient='records'),
+            "errors": analysis["errors"],
+            "category": category
+        })
+        return analysis
+
+    def improve_prompt_based_on_logs(self):
+        if not self.logs:
+            return
+        self.prompt = improve_prompt(self.client_id, self.prompt, self.logs)
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Standalone .exe for GPT-4 test input generation and analysis")
+    parser.add_argument("--client", required=True, help="Client ID")
+    parser.add_argument("--generate", help="Filename to save generated input Excel")
+    parser.add_argument("--analyze", help="Filename of output Excel to analyze")
+    parser.add_argument("--improve", action="store_true", help="Improve prompt based on logs")
+    args = parser.parse_args()
+
+    init_db()
+    session = ClientSession(args.client)
+
+    if args.generate:
+        df = session.generate_and_save_input(args.generate)
+        print(f"Generated input Excel saved to {args.generate}")
+
+    if args.analyze:
+        analysis = session.analyze_and_log_output(args.analyze)
+        print(f"Analysis: {analysis}")
+
+    if args.improve:
+        session.improve_prompt_based_on_logs()
+        print(f"Improved prompt:\n{session.prompt}")
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 19:07:59,567 INFO Execution Result: 
+2026-01-13 19:07:59,567 INFO  
+2026-01-13 19:08:05,621 INFO Evaluation result:
+Score: True
+Advice: The provided solution is well-structured and addresses the key requirements: it uses the GPT-4 API to generate JSON test input data, converts it to Excel, analyzes output Excel files for errors, logs all relevant data into a SQLite-based RAG knowledge base, and supports multi-client environments by associating logs with client IDs. The prompt improvement mechanism based on past logs is a good approach to iteratively enhance input generation. The use of pandas for Excel handling and SQLite for local storage is appropriate and practical for a standalone .exe application.
+A few minor suggestions to consider for improvement:  
+- Ensure robust error handling around the OpenAI API calls, including rate limits and network errors, to make the app more resilient.  
+- When parsing GPT-4 output as JSON, consider adding validation or fallback strategies if the model output is malformed.  
+- The multi-client support is implemented via client_id parameters, but concurrency or session persistence across runs is not explicitly handled; if the app is expected to be used by multiple clients simultaneously, you might want to consider thread-safe database access or a more advanced session management.  
+- For packaging as a standalone .exe, ensure dependencies like pandas and openai are properly bundled (e.g., using PyInstaller), and environment variables for API keys are handled securely.
+For the next round, recruiting experts with experience in:  
+- Python application deployment and packaging (PyInstaller or similar) for creating robust standalone executables.  
+- API error handling and retry strategies to improve reliability of GPT-4 integration.  
+- Concurrent programming or multi-threading in Python to ensure safe multi-client usage.  
+- UX/UI design if a graphical interface is desired for easier client interaction. 
+2026-01-13 19:08:05,621 INFO Good score! Accept! Final Result:
+import os
+import sys
+import json
+import sqlite3
+import openai
+import threading
+from datetime import datetime
+from typing import Dict, Any, List
+import pandas as pd
+
+# Set your OpenAI API key here or via environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Database setup for RAG knowledge base
+DB_FILE = "rag_knowledge_base.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT,
+            timestamp TEXT,
+            input_data TEXT,
+            output_data TEXT,
+            errors TEXT,
+            category TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_to_db(client_id: str, input_data: str, output_data: str, errors: str, category: str):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO logs (client_id, timestamp, input_data, output_data, errors, category)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (client_id, datetime.utcnow().isoformat(), input_data, output_data, errors, category))
+    conn.commit()
+    conn.close()
+
+def generate_test_input(client_id: str, prompt: str) -> pd.DataFrame:
+    """
+    Use GPT-4 API to generate test input data in JSON format, then convert to DataFrame.
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You generate JSON data for automated test input Excel files."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=1000
+    )
+    content = response['choices'][0]['message']['content']
+    try:
+        data = json.loads(content)
+        df = pd.DataFrame(data)
+        return df
+    except Exception as e:
+        raise ValueError(f"Failed to parse GPT-4 output as JSON: {e}")
+
+def analyze_output(client_id: str, output_df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Analyze output DataFrame for errors and categorize them.
+    """
+    errors = []
+    category = "No Errors"
+    # Example error detection: any row with 'error' column not empty
+    if 'error' in output_df.columns:
+        error_rows = output_df[output_df['error'].notnull() & (output_df['error'] != "")]
+        if not error_rows.empty:
+            errors = error_rows['error'].tolist()
+            category = "Errors Found"
+    return {"errors": errors, "category": category}
+
+def improve_prompt(client_id: str, previous_prompt: str, logs: List[Dict[str, Any]]) -> str:
+    """
+    Use GPT-4 to improve future input generation prompts based on past logs.
+    """
+    system_msg = "You are an assistant improving prompts for generating test input Excel files."
+    user_msg = f"Previous prompt:\n{previous_prompt}\n\nLogs:\n{json.dumps(logs, indent=2)}\n\nSuggest an improved prompt."
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg}
+        ],
+        temperature=0.5,
+        max_tokens=500
+    )
+    improved_prompt = response['choices'][0]['message']['content']
+    return improved_prompt
+
+def save_excel(df: pd.DataFrame, filename: str):
+    df.to_excel(filename, index=False)
+
+def load_excel(filename: str) -> pd.DataFrame:
+    return pd.read_excel(filename)
+
+class ClientSession:
+    def __init__(self, client_id: str):
+        self.client_id = client_id
+        self.prompt = "Generate a JSON array of test input data with fields: id, name, value."
+        self.logs = []
+
+    def generate_and_save_input(self, filename: str):
+        df = generate_test_input(self.client_id, self.prompt)
+        save_excel(df, filename)
+        return df
+
+    def analyze_and_log_output(self, output_filename: str):
+        output_df = load_excel(output_filename)
+        analysis = analyze_output(self.client_id, output_df)
+        errors_str = json.dumps(analysis["errors"])
+        category = analysis["category"]
+        # Log input and output data as JSON strings for simplicity
+        log_to_db(self.client_id, self.prompt, output_df.to_json(orient='records'), errors_str, category)
+        self.logs.append({
+            "input": self.prompt,
+            "output": output_df.to_dict(orient='records'),
+            "errors": analysis["errors"],
+            "category": category
+        })
+        return analysis
+
+    def improve_prompt_based_on_logs(self):
+        if not self.logs:
+            return
+        self.prompt = improve_prompt(self.client_id, self.prompt, self.logs)
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Standalone .exe for GPT-4 test input generation and analysis")
+    parser.add_argument("--client", required=True, help="Client ID")
+    parser.add_argument("--generate", help="Filename to save generated input Excel")
+    parser.add_argument("--analyze", help="Filename of output Excel to analyze")
+    parser.add_argument("--improve", action="store_true", help="Improve prompt based on logs")
+    args = parser.parse_args()
+
+    init_db()
+    session = ClientSession(args.client)
+
+    if args.generate:
+        df = session.generate_and_save_input(args.generate)
+        print(f"Generated input Excel saved to {args.generate}")
+
+    if args.analyze:
+        analysis = session.analyze_and_log_output(args.analyze)
+        print(f"Analysis: {analysis}")
+
+    if args.improve:
+        session.improve_prompt_based_on_logs()
+        print(f"Improved prompt:\n{session.prompt}")
+
+if __name__ == "__main__":
+    main()
+ 
+2026-01-13 19:08:05,623 INFO Agent spend: 
+2026-01-13 19:08:05,623 INFO Agent (Role: AGENT_TYPES.ROLE_ASSIGNMENT) role assigner: $0.000213 
+2026-01-13 19:08:05,623 INFO Agent (Role: AGENT_TYPES.SOLVER) a software engineer specialized in Python development and API integration, with experience in creating standalone .exe applications and handling multi-client environments: $0.01 
+2026-01-13 19:08:05,623 INFO Agent (Role: AGENT_TYPES.CRITIC) a data engineer skilled in database design and management, particularly with SQLite and JSON, and knowledgeable in building RAG (Retrieval-Augmented Generation) knowledge bases for logging and improving AI-driven workflows: $0.01 
+2026-01-13 19:08:05,623 INFO Agent (Role: AGENT_TYPES.EXECUTION) Executor: $0.000000 
+2026-01-13 19:08:05,623 INFO Agent (Role: AGENT_TYPES.EVALUATION) Evaluator: $0.001298 
+2026-01-13 19:08:05,623 INFO Agent (Role: AGENT_TYPES.MANAGER) Manager: $0.000000 
+2026-01-13 19:08:05,623 INFO Total spent: $0.025349 

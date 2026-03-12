@@ -1,0 +1,1377 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:38:11.649081
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python/Django or Node/Express web application with a React/Vue front end that enables bulk upload of documents, generates concise summaries using NLP, and includes a flexible formula builder for financial calculations, allowing users to save and edit formulas.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+A web application that allows users to upload images in bulk, automatically detects and tags objects in each image using computer vision, and provides an interface for users to search images by detected tags.
+]]></description>
+<code><![CDATA[
+# Step 1: Install necessary libraries
+# pip install pillow torchvision torch
+
+from PIL import Image
+import torch
+from torchvision import models, transforms
+
+# Step 2: Load a pre-trained model for object detection (e.g., Faster R-CNN)
+model = models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+model.eval()
+
+# Step 3: Define image preprocessing
+preprocess = transforms.Compose([
+    transforms.ToTensor()
+])
+
+# Step 4: Function to detect objects in an image
+def detect_objects(image_path):
+    image = Image.open(image_path).convert("RGB")
+    img_tensor = preprocess(image)
+    with torch.no_grad():
+        predictions = model([img_tensor])
+    labels = predictions[0]['labels'].numpy()
+    # For simplicity, map label indices to COCO class names
+    COCO_INSTANCE_CATEGORY_NAMES = [
+        '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
+        'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign',
+        'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+        'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag',
+        'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite',
+        'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
+        'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana',
+        'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
+        'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table',
+        'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+        'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock',
+        'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+    ]
+    detected_tags = set([COCO_INSTANCE_CATEGORY_NAMES[label] for label in labels])
+    return detected_tags
+
+# Step 5: Bulk process images
+import os
+
+def bulk_tag_images(image_folder):
+    tags_dict = {}
+    for filename in os.listdir(image_folder):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            path = os.path.join(image_folder, filename)
+            tags = detect_objects(path)
+            tags_dict[filename] = tags
+    return tags_dict
+
+# Example usage:
+# tags = bulk_tag_images('path_to_images_folder')
+# print(tags)
+]]></code>
+<planning><![CDATA[
+1. Set up a web interface for bulk image upload.
+2. Store uploaded images on the server.
+3. For each image, use a pre-trained object detection model to identify objects and generate tags.
+4. Store the mapping of images to detected tags in a database.
+5. Implement a search interface that allows users to find images by tags.
+6. Allow users to view, edit, or add tags manually if needed.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+A web application that enables users to upload CSV files containing transaction data, automatically categorizes each transaction using NLP (e.g., by merchant or description), and provides a dashboard for users to create, save, and edit custom financial reports using a formula builder.
+]]></description>
+<code><![CDATA[
+# Step 1: Install pandas and scikit-learn
+# pip install pandas scikit-learn
+
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+
+# Step 2: Load CSV data
+df = pd.read_csv('transactions.csv')  # columns: ['date', 'description', 'amount']
+
+# Step 3: Prepare training data for categorization (assume we have labeled data)
+train_df = pd.read_csv('labeled_transactions.csv')  # columns: ['description', 'category']
+
+# Step 4: Train a simple text classifier
+vectorizer = TfidfVectorizer()
+X_train = vectorizer.fit_transform(train_df['description'])
+y_train = train_df['category']
+clf = MultinomialNB()
+clf.fit(X_train, y_train)
+
+# Step 5: Predict categories for new transactions
+X_test = vectorizer.transform(df['description'])
+df['predicted_category'] = clf.predict(X_test)
+
+# Step 6: Formula builder (simple example: sum of amounts by category)
+def sum_by_category(df, category):
+    return df[df['predicted_category'] == category]['amount'].sum()
+
+# Example usage:
+# print(sum_by_category(df, 'Groceries'))
+]]></code>
+<planning><![CDATA[
+1. Build a web interface for uploading CSV files.
+2. Store uploaded transaction data in a database.
+3. Use an NLP classifier to categorize transactions based on their descriptions.
+4. Store predicted categories with each transaction.
+5. Implement a formula builder UI that allows users to define custom reports (e.g., sum, average, filter by category).
+6. Allow users to save and edit their custom report formulas.
+7. Display results in a dashboard.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+A web application for bulk uploading resumes (PDF/DOCX), extracting key information (name, skills, experience) using NLP, and allowing HR users to build and save custom filters (formulas) to shortlist candidates based on extracted data.
+]]></description>
+<code><![CDATA[
+# Step 1: Install necessary libraries
+# pip install pdfplumber python-docx spacy
+# python -m spacy download en_core_web_sm
+
+import pdfplumber
+import docx
+import spacy
+import os
+
+nlp = spacy.load("en_core_web_sm")
+
+# Step 2: Extract text from PDF
+def extract_text_pdf(path):
+    with pdfplumber.open(path) as pdf:
+        text = ''
+        for page in pdf.pages:
+            text += page.extract_text() + '\n'
+    return text
+
+# Step 3: Extract text from DOCX
+def extract_text_docx(path):
+    doc = docx.Document(path)
+    return '\n'.join([para.text for para in doc.paragraphs])
+
+# Step 4: Extract entities (name, skills, experience)
+def extract_entities(text):
+    doc = nlp(text)
+    # For simplicity, just extract PERSON entities as names
+    names = [ent.text for ent in doc.ents if ent.label_ == 'PERSON']
+    # Skills and experience extraction would require custom patterns or ML models
+    # Here, we just search for keywords as a placeholder
+    skills = []
+    for token in doc:
+        if token.text.lower() in ['python', 'java', 'sql', 'excel']:
+            skills.append(token.text)
+    return {'names': names, 'skills': list(set(skills))}
+
+# Step 5: Bulk process resumes
+def process_resumes(folder):
+    results = []
+    for filename in os.listdir(folder):
+        path = os.path.join(folder, filename)
+        if filename.lower().endswith('.pdf'):
+            text = extract_text_pdf(path)
+        elif filename.lower().endswith('.docx'):
+            text = extract_text_docx(path)
+        else:
+            continue
+        entities = extract_entities(text)
+        results.append({'filename': filename, **entities})
+    return results
+
+# Example usage:
+# resumes = process_resumes('resumes_folder')
+# print(resumes)
+]]></code>
+<planning><![CDATA[
+1. Build a web interface for bulk uploading resumes (PDF/DOCX).
+2. Store uploaded files on the server.
+3. Extract text from each resume using PDF and DOCX parsers.
+4. Use NLP to extract key information (names, skills, experience).
+5. Store extracted data in a database.
+6. Implement a filter builder UI for HR users to define and save custom filters (e.g., skills contains 'Python', experience > 5 years).
+7. Allow users to apply, save, and edit filters to shortlist candidates.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem involves:
+- Bulk upload and processing (batch handling)
+- NLP summarization (text summarization, information extraction)
+- Formula builder (customizable computation, expression parsing and evaluation)
+
+The main algorithms involved are:
+1. NLP Summarization: Sequence-to-sequence models, extractive/abstractive summarization (often using Transformer-based models).
+2. Formula Builder: Expression parsing and evaluation (e.g., using Abstract Syntax Trees, recursive descent parsing).
+3. Bulk Processing: Efficient batch handling, possibly with asynchronous processing.
+
+Tutorial:
+---
+**NLP Summarization (Abstractive/Extractive):**
+- Summarization is the process of reducing a text document to a concise version while preserving key information.
+- Extractive summarization selects important sentences/phrases from the original text.
+- Abstractive summarization generates new sentences that capture the meaning of the original text.
+- Modern approaches use Transformer-based models (e.g., BERT, T5, GPT) for both extractive and abstractive summarization.
+- Steps:
+  1. Preprocess the text (cleaning, tokenization).
+  2. Feed the text into a pre-trained summarization model.
+  3. Post-process the output (detokenization, formatting).
+- Libraries: HuggingFace Transformers, spaCy, NLTK.
+
+**Formula Builder (Expression Parsing and Evaluation):**
+- Allows users to define custom formulas (e.g., "SUM(amount * tax_rate)").
+- The system parses the formula string, builds an Abstract Syntax Tree (AST), and evaluates it against data.
+- Steps:
+  1. Parse the formula string (using a parser or regular expressions).
+  2. Validate the formula (check for errors, allowed variables).
+  3. Evaluate the formula using the data context (e.g., using Python's eval with safety checks, or a custom evaluator).
+- Libraries: pyparsing, asteval, or custom parser.
+
+**Bulk Processing:**
+- Efficiently handle multiple files or records at once.
+- Use batch processing, asynchronous tasks (e.g., Celery for Django), and progress tracking.
+- Steps:
+  1. Accept multiple files/records in a single request.
+  2. Store files and queue processing tasks.
+  3. Process each file/record (e.g., extract text, summarize, evaluate formulas).
+  4. Store and display results.
+
+**High-Level Steps for Such Applications:**
+1. Design the data model to store uploaded documents, summaries, and formulas.
+2. Implement bulk upload endpoints and storage.
+3. Integrate NLP summarization using a pre-trained model.
+4. Build a formula parser and evaluator for financial calculations.
+5. Provide a user interface for uploading, viewing summaries, and building formulas.
+6. Allow users to save and edit their formulas.
+7. Ensure security and validation for user-defined expressions.
+
+This approach combines NLP, parsing, and batch processing to deliver the required functionality.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+A web application that allows users to upload images in bulk, automatically detects and tags objects in each image using computer vision, and provides an interface for users to search images by detected tags.
+
+# Planning:
+
+1. Set up a web interface for bulk image upload.
+2. Store uploaded images on the server.
+3. For each image, use a pre-trained object detection model to identify objects and generate tags.
+4. Store the mapping of images to detected tags in a database.
+5. Implement a search interface that allows users to find images by tags.
+6. Allow users to view, edit, or add tags manually if needed.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem involves:
+- Bulk upload and processing (batch handling)
+- NLP summarization (text summarization, information extraction)
+- Formula builder (customizable computation, expression parsing and evaluation)
+
+The main algorithms involved are:
+1. NLP Summarization: Sequence-to-sequence models, extractive/abstractive summarization (often using Transformer-based models).
+2. Formula Builder: Expression parsing and evaluation (e.g., using Abstract Syntax Trees, recursive descent parsing).
+3. Bulk Processing: Efficient batch handling, possibly with asynchronous processing.
+
+Tutorial:
+---
+**NLP Summarization (Abstractive/Extractive):**
+- Summarization is the process of reducing a text document to a concise version while preserving key information.
+- Extractive summarization selects important sentences/phrases from the original text.
+- Abstractive summarization generates new sentences that capture the meaning of the original text.
+- Modern approaches use Transformer-based models (e.g., BERT, T5, GPT) for both extractive and abstractive summarization.
+- Steps:
+  1. Preprocess the text (cleaning, tokenization).
+  2. Feed the text into a pre-trained summarization model.
+  3. Post-process the output (detokenization, formatting).
+- Libraries: HuggingFace Transformers, spaCy, NLTK.
+
+**Formula Builder (Expression Parsing and Evaluation):**
+- Allows users to define custom formulas (e.g., "SUM(amount * tax_rate)").
+- The system parses the formula string, builds an Abstract Syntax Tree (AST), and evaluates it against data.
+- Steps:
+  1. Parse the formula string (using a parser or regular expressions).
+  2. Validate the formula (check for errors, allowed variables).
+  3. Evaluate the formula using the data context (e.g., using Python's eval with safety checks, or a custom evaluator).
+- Libraries: pyparsing, asteval, or custom parser.
+
+**Bulk Processing:**
+- Efficiently handle multiple files or records at once.
+- Use batch processing, asynchronous tasks (e.g., Celery for Django), and progress tracking.
+- Steps:
+  1. Accept multiple files/records in a single request.
+  2. Store files and queue processing tasks.
+  3. Process each file/record (e.g., extract text, summarize, evaluate formulas).
+  4. Store and display results.
+
+**High-Level Steps for Such Applications:**
+1. Design the data model to store uploaded documents, summaries, and formulas.
+2. Implement bulk upload endpoints and storage.
+3. Integrate NLP summarization using a pre-trained model.
+4. Build a formula parser and evaluator for financial calculations.
+5. Provide a user interface for uploading, viewing summaries, and building formulas.
+6. Allow users to save and edit their formulas.
+7. Ensure security and validation for user-defined expressions.
+
+This approach combines NLP, parsing, and batch processing to deliver the required functionality.
+
+## Problem to be solved:
+
+Please help me implement a Python/Django or Node/Express web application with a React/Vue front end that enables bulk upload of documents, generates concise summaries using NLP, and includes a flexible formula builder for financial calculations, allowing users to save and edit formulas.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. **Project Setup**
+   - Initialize backend (Django or Node/Express) and frontend (React or Vue) projects.
+   - Configure environment, dependencies, and version control.
+
+2. **User Authentication**
+   - Implement user registration, login, and session management.
+
+3. **Bulk Document Upload**
+   - Design frontend component for selecting and uploading multiple documents.
+   - Create backend API endpoint to handle bulk uploads.
+   - Store uploaded documents securely (filesystem or cloud storage).
+
+4. **Document Storage and Metadata**
+   - Define database models for documents, summaries, and formulas.
+   - Save document metadata (filename, upload date, user, etc.).
+
+5. **NLP Summarization Service**
+   - Integrate a pre-trained NLP summarization model (e.g., HuggingFace Transformers).
+   - Implement backend service to process uploaded documents and generate summaries.
+   - Store summaries in the database linked to each document.
+
+6. **Bulk Processing Workflow**
+   - Queue document processing tasks (use Celery for Django or Bull for Node).
+   - Track processing status and progress for each document.
+
+7. **Formula Builder Interface**
+   - Develop frontend UI for creating, editing, and saving formulas.
+   - Implement formula parsing and validation logic on the backend.
+   - Store user-defined formulas in the database.
+
+8. **Formula Evaluation Engine**
+   - Build backend service to evaluate formulas against document data (e.g., extracted financial fields).
+   - Return computed results to the frontend.
+
+9. **Results Display and Management**
+   - Create frontend views for listing documents, viewing summaries, and formula results.
+   - Allow users to edit summaries and formulas.
+
+10. **Security and Validation**
+    - Validate uploaded files, formulas, and user inputs.
+    - Implement permission checks for document and formula access.
+
+11. **Testing**
+    - Write unit and integration tests for upload, summarization, formula builder, and evaluation.
+
+12. **Deployment**
+    - Prepare production deployment (Docker, cloud hosting).
+    - Set up monitoring and error logging.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python/Django or Node/Express web application with a React/Vue front end that enables bulk upload of documents, generates concise summaries using NLP, and includes a flexible formula builder for financial calculations, allowing users to save and edit formulas.
+
+# Planning:
+**Planning:**
+
+1. **Project Setup**
+   - Initialize backend (Django or Node/Express) and frontend (React or Vue) projects.
+   - Configure environment, dependencies, and version control.
+
+2. **User Authentication**
+   - Implement user registration, login, and session management.
+
+3. **Bulk Document Upload**
+   - Design frontend component for selecting and uploading multiple documents.
+   - Create backend API endpoint to handle bulk uploads.
+   - Store uploaded documents securely (filesystem or cloud storage).
+
+4. **Document Storage and Metadata**
+   - Define database models for documents, summaries, and formulas.
+   - Save document metadata (filename, upload date, user, etc.).
+
+5. **NLP Summarization Service**
+   - Integrate a pre-trained NLP summarization model (e.g., HuggingFace Transformers).
+   - Implement backend service to process uploaded documents and generate summaries.
+   - Store summaries in the database linked to each document.
+
+6. **Bulk Processing Workflow**
+   - Queue document processing tasks (use Celery for Django or Bull for Node).
+   - Track processing status and progress for each document.
+
+7. **Formula Builder Interface**
+   - Develop frontend UI for creating, editing, and saving formulas.
+   - Implement formula parsing and validation logic on the backend.
+   - Store user-defined formulas in the database.
+
+8. **Formula Evaluation Engine**
+   - Build backend service to evaluate formulas against document data (e.g., extracted financial fields).
+   - Return computed results to the frontend.
+
+9. **Results Display and Management**
+   - Create frontend views for listing documents, viewing summaries, and formula results.
+   - Allow users to edit summaries and formulas.
+
+10. **Security and Validation**
+    - Validate uploaded files, formulas, and user inputs.
+    - Implement permission checks for document and formula access.
+
+11. **Testing**
+    - Write unit and integration tests for upload, summarization, formula builder, and evaluation.
+
+12. **Deployment**
+    - Prepare production deployment (Docker, cloud hosting).
+    - Set up monitoring and error logging.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a competitive programming problem; rather, it is a full-stack web application development task involving backend, frontend, NLP integration, and formula evaluation. The provided planning is comprehensive and covers all necessary aspects to implement the described application, including project setup, authentication, bulk upload, NLP summarization, formula builder, evaluation engine, security, testing, and deployment. Therefore, the plan is correct and sufficient to solve the stated problem, but it is not related to competitive programming, which typically involves algorithmic challenges solved with code snippets rather than full application architecture.\n', 'confidence': 100}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+A web application that enables users to upload CSV files containing transaction data, automatically categorizes each transaction using NLP (e.g., by merchant or description), and provides a dashboard for users to create, save, and edit custom financial reports using a formula builder.
+
+# Planning:
+
+1. Build a web interface for uploading CSV files.
+2. Store uploaded transaction data in a database.
+3. Use an NLP classifier to categorize transactions based on their descriptions.
+4. Store predicted categories with each transaction.
+5. Implement a formula builder UI that allows users to define custom reports (e.g., sum, average, filter by category).
+6. Allow users to save and edit their custom report formulas.
+7. Display results in a dashboard.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem involves:
+- Bulk upload and processing (batch handling)
+- NLP summarization (text summarization, information extraction)
+- Formula builder (customizable computation, expression parsing and evaluation)
+
+The main algorithms involved are:
+1. NLP Summarization: Sequence-to-sequence models, extractive/abstractive summarization (often using Transformer-based models).
+2. Formula Builder: Expression parsing and evaluation (e.g., using Abstract Syntax Trees, recursive descent parsing).
+3. Bulk Processing: Efficient batch handling, possibly with asynchronous processing.
+
+Tutorial:
+---
+**NLP Summarization (Abstractive/Extractive):**
+- Summarization is the process of reducing a text document to a concise version while preserving key information.
+- Extractive summarization selects important sentences/phrases from the original text.
+- Abstractive summarization generates new sentences that capture the meaning of the original text.
+- Modern approaches use Transformer-based models (e.g., BERT, T5, GPT) for both extractive and abstractive summarization.
+- Steps:
+  1. Preprocess the text (cleaning, tokenization).
+  2. Feed the text into a pre-trained summarization model.
+  3. Post-process the output (detokenization, formatting).
+- Libraries: HuggingFace Transformers, spaCy, NLTK.
+
+**Formula Builder (Expression Parsing and Evaluation):**
+- Allows users to define custom formulas (e.g., "SUM(amount * tax_rate)").
+- The system parses the formula string, builds an Abstract Syntax Tree (AST), and evaluates it against data.
+- Steps:
+  1. Parse the formula string (using a parser or regular expressions).
+  2. Validate the formula (check for errors, allowed variables).
+  3. Evaluate the formula using the data context (e.g., using Python's eval with safety checks, or a custom evaluator).
+- Libraries: pyparsing, asteval, or custom parser.
+
+**Bulk Processing:**
+- Efficiently handle multiple files or records at once.
+- Use batch processing, asynchronous tasks (e.g., Celery for Django), and progress tracking.
+- Steps:
+  1. Accept multiple files/records in a single request.
+  2. Store files and queue processing tasks.
+  3. Process each file/record (e.g., extract text, summarize, evaluate formulas).
+  4. Store and display results.
+
+**High-Level Steps for Such Applications:**
+1. Design the data model to store uploaded documents, summaries, and formulas.
+2. Implement bulk upload endpoints and storage.
+3. Integrate NLP summarization using a pre-trained model.
+4. Build a formula parser and evaluator for financial calculations.
+5. Provide a user interface for uploading, viewing summaries, and building formulas.
+6. Allow users to save and edit their formulas.
+7. Ensure security and validation for user-defined expressions.
+
+This approach combines NLP, parsing, and batch processing to deliver the required functionality.
+
+## Problem to be solved:
+
+Please help me implement a Python/Django or Node/Express web application with a React/Vue front end that enables bulk upload of documents, generates concise summaries using NLP, and includes a flexible formula builder for financial calculations, allowing users to save and edit formulas.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. **Backend Setup**
+   - Initialize Django or Node/Express project.
+   - Set up user authentication (register, login, sessions/tokens).
+
+2. **Data Model Design**
+   - Create models for Users, UploadedDocuments, Summaries, and Formulas.
+   - Define relationships (e.g., each document belongs to a user).
+
+3. **File Upload API**
+   - Implement REST API endpoint for bulk document upload (CSV, PDF, TXT).
+   - Validate and store uploaded files.
+
+4. **Asynchronous Processing**
+   - Integrate task queue (Celery for Django, Bull for Node) for background processing.
+   - On upload, queue document processing tasks.
+
+5. **NLP Summarization Integration**
+   - Integrate pre-trained NLP summarization model (e.g., HuggingFace Transformers).
+   - For each document, extract text and generate a concise summary.
+   - Store summaries in the database.
+
+6. **Formula Builder Backend**
+   - Implement API endpoints for creating, saving, editing, and deleting formulas.
+   - Build a safe formula parser and evaluator (e.g., asteval, pyparsing, or custom).
+   - Validate formulas and restrict to allowed variables/operations.
+
+7. **Financial Calculation Engine**
+   - On formula execution, fetch relevant data (e.g., transaction amounts, categories).
+   - Evaluate formulas against user data and return results.
+
+8. **Frontend Setup**
+   - Initialize React or Vue project.
+   - Implement authentication flows.
+
+9. **Document Management UI**
+   - Build interface for uploading documents (drag-and-drop, progress bar).
+   - Display list of uploaded documents and their summaries.
+
+10. **Formula Builder UI**
+    - Create interactive formula builder (input fields, variable selection, operators).
+    - Allow users to save, edit, and delete formulas.
+    - Display validation errors and formula results.
+
+11. **Dashboard**
+    - Show summarized documents and calculated financial metrics.
+    - Allow users to select and apply saved formulas.
+
+12. **Testing**
+    - Write unit and integration tests for backend and frontend.
+    - Test bulk upload, summarization, formula creation, and evaluation.
+
+13. **Security & Validation**
+    - Sanitize file uploads and user inputs.
+    - Restrict formula evaluation to prevent code injection.
+
+14. **Deployment**
+    - Containerize application (Docker).
+    - Set up CI/CD pipeline.
+    - Deploy to cloud platform (AWS, GCP, Azure, or Heroku).
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python/Django or Node/Express web application with a React/Vue front end that enables bulk upload of documents, generates concise summaries using NLP, and includes a flexible formula builder for financial calculations, allowing users to save and edit formulas.
+
+# Planning:
+**Planning:**
+
+1. **Backend Setup**
+   - Initialize Django or Node/Express project.
+   - Set up user authentication (register, login, sessions/tokens).
+
+2. **Data Model Design**
+   - Create models for Users, UploadedDocuments, Summaries, and Formulas.
+   - Define relationships (e.g., each document belongs to a user).
+
+3. **File Upload API**
+   - Implement REST API endpoint for bulk document upload (CSV, PDF, TXT).
+   - Validate and store uploaded files.
+
+4. **Asynchronous Processing**
+   - Integrate task queue (Celery for Django, Bull for Node) for background processing.
+   - On upload, queue document processing tasks.
+
+5. **NLP Summarization Integration**
+   - Integrate pre-trained NLP summarization model (e.g., HuggingFace Transformers).
+   - For each document, extract text and generate a concise summary.
+   - Store summaries in the database.
+
+6. **Formula Builder Backend**
+   - Implement API endpoints for creating, saving, editing, and deleting formulas.
+   - Build a safe formula parser and evaluator (e.g., asteval, pyparsing, or custom).
+   - Validate formulas and restrict to allowed variables/operations.
+
+7. **Financial Calculation Engine**
+   - On formula execution, fetch relevant data (e.g., transaction amounts, categories).
+   - Evaluate formulas against user data and return results.
+
+8. **Frontend Setup**
+   - Initialize React or Vue project.
+   - Implement authentication flows.
+
+9. **Document Management UI**
+   - Build interface for uploading documents (drag-and-drop, progress bar).
+   - Display list of uploaded documents and their summaries.
+
+10. **Formula Builder UI**
+    - Create interactive formula builder (input fields, variable selection, operators).
+    - Allow users to save, edit, and delete formulas.
+    - Display validation errors and formula results.
+
+11. **Dashboard**
+    - Show summarized documents and calculated financial metrics.
+    - Allow users to select and apply saved formulas.
+
+12. **Testing**
+    - Write unit and integration tests for backend and frontend.
+    - Test bulk upload, summarization, formula creation, and evaluation.
+
+13. **Security & Validation**
+    - Sanitize file uploads and user inputs.
+    - Restrict formula evaluation to prevent code injection.
+
+14. **Deployment**
+    - Containerize application (Docker).
+    - Set up CI/CD pipeline.
+    - Deploy to cloud platform (AWS, GCP, Azure, or Heroku).
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': 'The given problem is not a competitive programming problem; instead, it is a full-stack web application development task involving backend, frontend, NLP integration, and formula evaluation. The provided plan is comprehensive and well-structured for building such a web application using Python/Django or Node/Express with a React/Vue frontend. It covers all necessary aspects, including authentication, file upload, asynchronous processing, NLP summarization, formula builder, UI, testing, security, and deployment. Therefore, the plan is correct and sufficient for solving the described application development problem, but it is not relevant for a typical competitive programming problem, which usually involves algorithmic challenges to be solved with a single script or function.', 'confidence': 100}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+A web application for bulk uploading resumes (PDF/DOCX), extracting key information (name, skills, experience) using NLP, and allowing HR users to build and save custom filters (formulas) to shortlist candidates based on extracted data.
+
+# Planning:
+
+1. Build a web interface for bulk uploading resumes (PDF/DOCX).
+2. Store uploaded files on the server.
+3. Extract text from each resume using PDF and DOCX parsers.
+4. Use NLP to extract key information (names, skills, experience).
+5. Store extracted data in a database.
+6. Implement a filter builder UI for HR users to define and save custom filters (e.g., skills contains 'Python', experience > 5 years).
+7. Allow users to apply, save, and edit filters to shortlist candidates.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem involves:
+- Bulk upload and processing (batch handling)
+- NLP summarization (text summarization, information extraction)
+- Formula builder (customizable computation, expression parsing and evaluation)
+
+The main algorithms involved are:
+1. NLP Summarization: Sequence-to-sequence models, extractive/abstractive summarization (often using Transformer-based models).
+2. Formula Builder: Expression parsing and evaluation (e.g., using Abstract Syntax Trees, recursive descent parsing).
+3. Bulk Processing: Efficient batch handling, possibly with asynchronous processing.
+
+Tutorial:
+---
+**NLP Summarization (Abstractive/Extractive):**
+- Summarization is the process of reducing a text document to a concise version while preserving key information.
+- Extractive summarization selects important sentences/phrases from the original text.
+- Abstractive summarization generates new sentences that capture the meaning of the original text.
+- Modern approaches use Transformer-based models (e.g., BERT, T5, GPT) for both extractive and abstractive summarization.
+- Steps:
+  1. Preprocess the text (cleaning, tokenization).
+  2. Feed the text into a pre-trained summarization model.
+  3. Post-process the output (detokenization, formatting).
+- Libraries: HuggingFace Transformers, spaCy, NLTK.
+
+**Formula Builder (Expression Parsing and Evaluation):**
+- Allows users to define custom formulas (e.g., "SUM(amount * tax_rate)").
+- The system parses the formula string, builds an Abstract Syntax Tree (AST), and evaluates it against data.
+- Steps:
+  1. Parse the formula string (using a parser or regular expressions).
+  2. Validate the formula (check for errors, allowed variables).
+  3. Evaluate the formula using the data context (e.g., using Python's eval with safety checks, or a custom evaluator).
+- Libraries: pyparsing, asteval, or custom parser.
+
+**Bulk Processing:**
+- Efficiently handle multiple files or records at once.
+- Use batch processing, asynchronous tasks (e.g., Celery for Django), and progress tracking.
+- Steps:
+  1. Accept multiple files/records in a single request.
+  2. Store files and queue processing tasks.
+  3. Process each file/record (e.g., extract text, summarize, evaluate formulas).
+  4. Store and display results.
+
+**High-Level Steps for Such Applications:**
+1. Design the data model to store uploaded documents, summaries, and formulas.
+2. Implement bulk upload endpoints and storage.
+3. Integrate NLP summarization using a pre-trained model.
+4. Build a formula parser and evaluator for financial calculations.
+5. Provide a user interface for uploading, viewing summaries, and building formulas.
+6. Allow users to save and edit their formulas.
+7. Ensure security and validation for user-defined expressions.
+
+This approach combines NLP, parsing, and batch processing to deliver the required functionality.
+
+## Problem to be solved:
+
+Please help me implement a Python/Django or Node/Express web application with a React/Vue front end that enables bulk upload of documents, generates concise summaries using NLP, and includes a flexible formula builder for financial calculations, allowing users to save and edit formulas.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning to Solve the Problem:**
+
+1. **Project Setup**
+   - Initialize backend (Django or Node/Express) and frontend (React or Vue) projects.
+   - Set up version control (Git) and environment configuration.
+
+2. **Data Model Design**
+   - Define models for Users, UploadedDocuments, Summaries, and Formulas.
+   - Set up database (PostgreSQL/MySQL/MongoDB).
+
+3. **User Authentication**
+   - Implement user registration, login, and session management (JWT or session-based).
+
+4. **Bulk Document Upload**
+   - Create frontend UI for selecting and uploading multiple files.
+   - Implement backend API endpoint to accept and store multiple files.
+   - Store file metadata in the database.
+
+5. **Document Parsing and Text Extraction**
+   - Integrate PDF and DOCX parsers (e.g., pdfminer, python-docx, or Node equivalents).
+   - Extract raw text from uploaded documents.
+
+6. **NLP Summarization**
+   - Preprocess extracted text (cleaning, tokenization).
+   - Integrate a pre-trained NLP summarization model (e.g., HuggingFace Transformers).
+   - Generate concise summaries for each document.
+   - Store summaries in the database.
+
+7. **Formula Builder Implementation**
+   - Design frontend UI for building custom formulas (input fields, operators, variables).
+   - Implement backend formula parser and evaluator (using pyparsing/asteval or custom logic).
+   - Validate and securely evaluate user-defined formulas against document data.
+
+8. **Saving and Editing Formulas**
+   - Create API endpoints for saving, retrieving, updating, and deleting formulas.
+   - Store formulas linked to users in the database.
+
+9. **Applying Formulas to Summaries**
+   - Allow users to select and apply saved formulas to document summaries.
+   - Display computed results in the frontend.
+
+10. **Frontend Integration**
+    - Build dashboard for managing uploads, viewing summaries, and managing formulas.
+    - Implement progress indicators for bulk processing.
+    - Display results and allow formula application.
+
+11. **Asynchronous Processing**
+    - Use background task queue (Celery for Django, Bull/Agenda for Node) for parsing and summarization.
+    - Notify users upon completion.
+
+12. **Testing**
+    - Write unit and integration tests for all major components.
+    - Test with sample documents and formulas.
+
+13. **Security and Validation**
+    - Sanitize file uploads and user inputs.
+    - Secure formula evaluation to prevent code injection.
+    - Implement access controls.
+
+14. **Deployment**
+    - Containerize application (Docker).
+    - Set up CI/CD pipeline.
+    - Deploy to cloud platform (AWS/GCP/Azure/Heroku).
+
+15. **Documentation**
+    - Document API endpoints, data models, and usage instructions.
+    - Provide user guide for formula builder and bulk upload features.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python/Django or Node/Express web application with a React/Vue front end that enables bulk upload of documents, generates concise summaries using NLP, and includes a flexible formula builder for financial calculations, allowing users to save and edit formulas.
+
+# Planning:
+**Planning to Solve the Problem:**
+
+1. **Project Setup**
+   - Initialize backend (Django or Node/Express) and frontend (React or Vue) projects.
+   - Set up version control (Git) and environment configuration.
+
+2. **Data Model Design**
+   - Define models for Users, UploadedDocuments, Summaries, and Formulas.
+   - Set up database (PostgreSQL/MySQL/MongoDB).
+
+3. **User Authentication**
+   - Implement user registration, login, and session management (JWT or session-based).
+
+4. **Bulk Document Upload**
+   - Create frontend UI for selecting and uploading multiple files.
+   - Implement backend API endpoint to accept and store multiple files.
+   - Store file metadata in the database.
+
+5. **Document Parsing and Text Extraction**
+   - Integrate PDF and DOCX parsers (e.g., pdfminer, python-docx, or Node equivalents).
+   - Extract raw text from uploaded documents.
+
+6. **NLP Summarization**
+   - Preprocess extracted text (cleaning, tokenization).
+   - Integrate a pre-trained NLP summarization model (e.g., HuggingFace Transformers).
+   - Generate concise summaries for each document.
+   - Store summaries in the database.
+
+7. **Formula Builder Implementation**
+   - Design frontend UI for building custom formulas (input fields, operators, variables).
+   - Implement backend formula parser and evaluator (using pyparsing/asteval or custom logic).
+   - Validate and securely evaluate user-defined formulas against document data.
+
+8. **Saving and Editing Formulas**
+   - Create API endpoints for saving, retrieving, updating, and deleting formulas.
+   - Store formulas linked to users in the database.
+
+9. **Applying Formulas to Summaries**
+   - Allow users to select and apply saved formulas to document summaries.
+   - Display computed results in the frontend.
+
+10. **Frontend Integration**
+    - Build dashboard for managing uploads, viewing summaries, and managing formulas.
+    - Implement progress indicators for bulk processing.
+    - Display results and allow formula application.
+
+11. **Asynchronous Processing**
+    - Use background task queue (Celery for Django, Bull/Agenda for Node) for parsing and summarization.
+    - Notify users upon completion.
+
+12. **Testing**
+    - Write unit and integration tests for all major components.
+    - Test with sample documents and formulas.
+
+13. **Security and Validation**
+    - Sanitize file uploads and user inputs.
+    - Secure formula evaluation to prevent code injection.
+    - Implement access controls.
+
+14. **Deployment**
+    - Containerize application (Docker).
+    - Set up CI/CD pipeline.
+    - Deploy to cloud platform (AWS/GCP/Azure/Heroku).
+
+15. **Documentation**
+    - Document API endpoints, data models, and usage instructions.
+    - Provide user guide for formula builder and bulk upload features.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a full-stack web application development task involving backend, frontend, NLP, and formula evaluation features. The provided plan is comprehensive and well-structured for building such a web application using Python/Django or Node/Express with a React/Vue frontend. It covers all necessary aspects: project setup, data modeling, authentication, file upload, NLP summarization, formula builder, asynchronous processing, security, deployment, and documentation. However, this plan is not suitable for a competitive programming context, which usually requires algorithmic solutions in a single code file, not multi-component system design. Thus, while the plan is correct for the described application development, it does not align with competitive programming problem-solving.\n', 'confidence': 95}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem involves:
+- Bulk upload and processing (batch handling)
+- NLP summarization (text summarization, information extraction)
+- Formula builder (customizable computation, expression parsing and evaluation)
+
+The main algorithms involved are:
+1. NLP Summarization: Sequence-to-sequence models, extractive/abstractive summarization (often using Transformer-based models).
+2. Formula Builder: Expression parsing and evaluation (e.g., using Abstract Syntax Trees, recursive descent parsing).
+3. Bulk Processing: Efficient batch handling, possibly with asynchronous processing.
+
+Tutorial:
+---
+**NLP Summarization (Abstractive/Extractive):**
+- Summarization is the process of reducing a text document to a concise version while preserving key information.
+- Extractive summarization selects important sentences/phrases from the original text.
+- Abstractive summarization generates new sentences that capture the meaning of the original text.
+- Modern approaches use Transformer-based models (e.g., BERT, T5, GPT) for both extractive and abstractive summarization.
+- Steps:
+  1. Preprocess the text (cleaning, tokenization).
+  2. Feed the text into a pre-trained summarization model.
+  3. Post-process the output (detokenization, formatting).
+- Libraries: HuggingFace Transformers, spaCy, NLTK.
+
+**Formula Builder (Expression Parsing and Evaluation):**
+- Allows users to define custom formulas (e.g., "SUM(amount * tax_rate)").
+- The system parses the formula string, builds an Abstract Syntax Tree (AST), and evaluates it against data.
+- Steps:
+  1. Parse the formula string (using a parser or regular expressions).
+  2. Validate the formula (check for errors, allowed variables).
+  3. Evaluate the formula using the data context (e.g., using Python's eval with safety checks, or a custom evaluator).
+- Libraries: pyparsing, asteval, or custom parser.
+
+**Bulk Processing:**
+- Efficiently handle multiple files or records at once.
+- Use batch processing, asynchronous tasks (e.g., Celery for Django), and progress tracking.
+- Steps:
+  1. Accept multiple files/records in a single request.
+  2. Store files and queue processing tasks.
+  3. Process each file/record (e.g., extract text, summarize, evaluate formulas).
+  4. Store and display results.
+
+**High-Level Steps for Such Applications:**
+1. Design the data model to store uploaded documents, summaries, and formulas.
+2. Implement bulk upload endpoints and storage.
+3. Integrate NLP summarization using a pre-trained model.
+4. Build a formula parser and evaluator for financial calculations.
+5. Provide a user interface for uploading, viewing summaries, and building formulas.
+6. Allow users to save and edit their formulas.
+7. Ensure security and validation for user-defined expressions.
+
+This approach combines NLP, parsing, and batch processing to deliver the required functionality.
+
+## Problem to be solved:
+
+Please help me implement a Python/Django or Node/Express web application with a React/Vue front end that enables bulk upload of documents, generates concise summaries using NLP, and includes a flexible formula builder for financial calculations, allowing users to save and edit formulas.
+
+## Planning:
+**Planning:**
+
+1. **Project Setup**
+   - Initialize backend (Django or Node/Express) and frontend (React or Vue) projects.
+   - Configure environment, dependencies, and version control.
+
+2. **User Authentication**
+   - Implement user registration, login, and session management.
+
+3. **Bulk Document Upload**
+   - Design frontend component for selecting and uploading multiple documents.
+   - Create backend API endpoint to handle bulk uploads.
+   - Store uploaded documents securely (filesystem or cloud storage).
+
+4. **Document Storage and Metadata**
+   - Define database models for documents, summaries, and formulas.
+   - Save document metadata (filename, upload date, user, etc.).
+
+5. **NLP Summarization Service**
+   - Integrate a pre-trained NLP summarization model (e.g., HuggingFace Transformers).
+   - Implement backend service to process uploaded documents and generate summaries.
+   - Store summaries in the database linked to each document.
+
+6. **Bulk Processing Workflow**
+   - Queue document processing tasks (use Celery for Django or Bull for Node).
+   - Track processing status and progress for each document.
+
+7. **Formula Builder Interface**
+   - Develop frontend UI for creating, editing, and saving formulas.
+   - Implement formula parsing and validation logic on the backend.
+   - Store user-defined formulas in the database.
+
+8. **Formula Evaluation Engine**
+   - Build backend service to evaluate formulas against document data (e.g., extracted financial fields).
+   - Return computed results to the frontend.
+
+9. **Results Display and Management**
+   - Create frontend views for listing documents, viewing summaries, and formula results.
+   - Allow users to edit summaries and formulas.
+
+10. **Security and Validation**
+    - Validate uploaded files, formulas, and user inputs.
+    - Implement permission checks for document and formula access.
+
+11. **Testing**
+    - Write unit and integration tests for upload, summarization, formula builder, and evaluation.
+
+12. **Deployment**
+    - Prepare production deployment (Docker, cloud hosting).
+    - Set up monitoring and error logging.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+# backend/app/models.py
+
+from django.db import models
+from django.contrib.auth.models import User
+
+class Document(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    file = models.FileField(upload_to='documents/')
+    filename = models.CharField(max_length=255)
+    upload_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=32, default='pending')  # pending, processing, done, error
+
+class Summary(models.Model):
+    document = models.OneToOneField(Document, on_delete=models.CASCADE)
+    summary_text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class Formula(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=128)
+    formula_str = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class FormulaResult(models.Model):
+    formula = models.ForeignKey(Formula, on_delete=models.CASCADE)
+    document = models.ForeignKey(Document, on_delete=models.CASCADE)
+    result = models.FloatField(null=True, blank=True)
+    error = models.TextField(null=True, blank=True)
+    evaluated_at = models.DateTimeField(auto_now_add=True)
+
+# backend/app/serializers.py
+
+from rest_framework import serializers
+from .models import Document, Summary, Formula, FormulaResult
+
+class DocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Document
+        fields = '__all__'
+
+class SummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Summary
+        fields = '__all__'
+
+class FormulaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Formula
+        fields = '__all__'
+
+class FormulaResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FormulaResult
+        fields = '__all__'
+
+# backend/app/views.py
+
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .models import Document, Summary, Formula, FormulaResult
+from .serializers import DocumentSerializer, SummarySerializer, FormulaSerializer, FormulaResultSerializer
+from django.conf import settings
+from django.core.files.storage import default_storage
+from django.db import transaction
+import os
+
+# For NLP summarization
+from transformers import pipeline
+import threading
+
+summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+
+def summarize_document(doc_id):
+    doc = Document.objects.get(id=doc_id)
+    doc.status = 'processing'
+    doc.save()
+    try:
+        with default_storage.open(doc.file.name, 'r') as f:
+            text = f.read()
+        # Limit input size for summarizer
+        text = text[:1024*4]
+        summary = summarizer(text, max_length=130, min_length=30, do_sample=False)[0]['summary_text']
+        Summary.objects.create(document=doc, summary_text=summary)
+        doc.status = 'done'
+        doc.save()
+    except Exception as e:
+        doc.status = 'error'
+        doc.save()
+
+class DocumentViewSet(viewsets.ModelViewSet):
+    queryset = Document.objects.all()
+    serializer_class = DocumentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Document.objects.filter(user=self.request.user)
+
+    @action(detail=False, methods=['post'])
+    def bulk_upload(self, request):
+        files = request.FILES.getlist('files')
+        docs = []
+        with transaction.atomic():
+            for f in files:
+                doc = Document.objects.create(
+                    user=request.user,
+                    file=f,
+                    filename=f.name,
+                    status='pending'
+                )
+                docs.append(doc)
+        # Start summarization in background
+        for doc in docs:
+            threading.Thread(target=summarize_document, args=(doc.id,)).start()
+        return Response(DocumentSerializer(docs, many=True).data, status=201)
+
+    @action(detail=True, methods=['get'])
+    def summary(self, request, pk=None):
+        doc = self.get_object()
+        try:
+            summary = Summary.objects.get(document=doc)
+            return Response(SummarySerializer(summary).data)
+        except Summary.DoesNotExist:
+            return Response({'detail': 'Summary not ready.'}, status=404)
+
+class FormulaViewSet(viewsets.ModelViewSet):
+    queryset = Formula.objects.all()
+    serializer_class = FormulaSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Formula.objects.filter(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def evaluate(self, request, pk=None):
+        formula = self.get_object()
+        doc_id = request.data.get('document_id')
+        try:
+            doc = Document.objects.get(id=doc_id, user=request.user)
+            # For demo, extract some fake fields from summary
+            try:
+                summary = Summary.objects.get(document=doc)
+                context = extract_financial_fields(summary.summary_text)
+            except Summary.DoesNotExist:
+                return Response({'error': 'Summary not available.'}, status=400)
+            try:
+                result = safe_eval(formula.formula_str, context)
+                fr = FormulaResult.objects.create(
+                    formula=formula, document=doc, result=result
+                )
+                return Response({'result': result})
+            except Exception as e:
+                fr = FormulaResult.objects.create(
+                    formula=formula, document=doc, error=str(e)
+                )
+                return Response({'error': str(e)}, status=400)
+        except Document.DoesNotExist:
+            return Response({'error': 'Document not found.'}, status=404)
+
+# backend/app/utils.py
+
+import re
+import ast
+
+def extract_financial_fields(text):
+    # Dummy extractor: look for "amount: 123.45" and "tax_rate: 0.07"
+    fields = {}
+    amount = re.search(r'amount[:\s]+([\d\.]+)', text)
+    tax_rate = re.search(r'tax[_\s]?rate[:\s]+([\d\.]+)', text)
+    if amount:
+        fields['amount'] = float(amount.group(1))
+    if tax_rate:
+        fields['tax_rate'] = float(tax_rate.group(1))
+    return fields
+
+def safe_eval(expr, context):
+    allowed_names = set(context.keys())
+    node = ast.parse(expr, mode='eval')
+    for n in ast.walk(node):
+        if isinstance(n, ast.Name):
+            if n.id not in allowed_names:
+                raise ValueError(f"Use of variable '{n.id}' not allowed.")
+        elif isinstance(n, (ast.Call, ast.Import, ast.ImportFrom, ast.Attribute)):
+            raise ValueError("Function calls and imports are not allowed.")
+    code = compile(node, '<string>', 'eval')
+    return eval(code, {"__builtins__": {}}, context)
+
+# backend/app/urls.py
+
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import DocumentViewSet, FormulaViewSet
+
+router = DefaultRouter()
+router.register(r'documents', DocumentViewSet, basename='document')
+router.register(r'formulas', FormulaViewSet, basename='formula')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+
+# backend/app/settings.py (add to INSTALLED_APPS)
+INSTALLED_APPS = [
+    # ...
+    'rest_framework',
+    'app',
+]
+
+# backend/app/tests.py
+
+from django.test import TestCase
+from django.contrib.auth.models import User
+from rest_framework.test import APIClient
+from .models import Document, Formula
+
+class BulkUploadTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('test', 'test@test.com', 'pass')
+        self.client = APIClient()
+        self.client.login(username='test', password='pass')
+
+    def test_bulk_upload(self):
+        with open('test1.txt', 'w') as f:
+            f.write('amount: 100 tax_rate: 0.05')
+        with open('test2.txt', 'w') as f:
+            f.write('amount: 200 tax_rate: 0.10')
+        with open('test1.txt', 'rb') as f1, open('test2.txt', 'rb') as f2:
+            response = self.client.post('/documents/bulk_upload/', {'files': [f1, f2]}, format='multipart')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(response.data), 2)
+
+    def test_formula_eval(self):
+        doc = Document.objects.create(user=self.user, filename='d.txt', file='d.txt', status='done')
+        from .models import Summary
+        Summary.objects.create(document=doc, summary_text='amount: 100 tax_rate: 0.05')
+        formula = Formula.objects.create(user=self.user, name='Total', formula_str='amount * (1 + tax_rate)')
+        response = self.client.post(f'/formulas/{formula.id}/evaluate/', {'document_id': doc.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertAlmostEqual(response.data['result'], 105.0)
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 74.27 seconds
+Total Tokens: 12,444 (Input: 6,117, Output: 6,327)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 26.01      322          2,425        1         
+Planning_Generation_1     9.56       858          420          1         
+Planning_Verification_1   2.00       584          136          1         
+Planning_Generation_2     6.41       877          511          1         
+Planning_Verification_2   2.25       675          158          1         
+Planning_Generation_3     7.38       894          584          1         
+Planning_Verification_3   2.73       748          174          1         
+Final_Code_Generation     17.94      1,159        1,919        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:39:25.984918
+##########################
+

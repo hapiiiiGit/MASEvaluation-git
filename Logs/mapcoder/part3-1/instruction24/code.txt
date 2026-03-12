@@ -1,0 +1,79 @@
+import requests
+import json
+from datetime import datetime, timedelta
+
+class HotFinder:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.base_url = "https://www.googleapis.com/youtube/v3/"
+    
+    def get_videos(self, search_term, days=10):
+        search_url = f"{self.base_url}search"
+        today = datetime.now()
+        last_date = today - timedelta(days=days)
+        published_after = last_date.isoformat("T") + "Z"
+        
+        params = {
+            'part': 'snippet',
+            'q': search_term,
+            'type': 'video',
+            'publishedAfter': published_after,
+            'key': self.api_key,
+            'maxResults': 50
+        }
+        
+        response = requests.get(search_url, params=params)
+        if response.status_code != 200:
+            raise Exception(f"Error fetching data: {response.json()}")
+        
+        return response.json().get('items', [])
+    
+    def get_video_details(self, video_ids):
+        details_url = f"{self.base_url}videos"
+        params = {
+            'part': 'statistics,snippet',
+            'id': ','.join(video_ids),
+            'key': self.api_key
+        }
+        
+        response = requests.get(details_url, params=params)
+        if response.status_code != 200:
+            raise Exception(f"Error fetching video details: {response.json()}")
+        
+        return response.json().get('items', [])
+    
+    def filter_videos(self, videos, min_views=0, min_likes=0):
+        filtered_videos = []
+        for video in videos:
+            stats = video.get('statistics', {})
+            views = int(stats.get('viewCount', 0))
+            likes = int(stats.get('likeCount', 0))
+            if views >= min_views and likes >= min_likes:
+                filtered_videos.append({
+                    'title': video['snippet']['title'],
+                    'url': f"https://www.youtube.com/watch?v={video['id']}",
+                    'views': views,
+                    'likes': likes,
+                    'publishedAt': video['snippet']['publishedAt']
+                })
+        return filtered_videos
+    
+    def save_to_json(self, data, filename='results.json'):
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=4)
+    
+    def run(self, search_term, min_views=0, min_likes=0):
+        videos = self.get_videos(search_term)
+        video_ids = [video['id']['videoId'] for video in videos]
+        video_details = self.get_video_details(video_ids)
+        filtered_videos = self.filter_videos(video_details, min_views, min_likes)
+        self.save_to_json(filtered_videos)
+
+if __name__ == "__main__":
+    API_KEY = "YOUR_API_KEY"  # Replace with your actual API key
+    search_term = input("Enter a search term or channel ID: ")
+    min_views = int(input("Enter minimum views: "))
+    min_likes = int(input("Enter minimum likes: "))
+    
+    hot_finder = HotFinder(API_KEY)
+    hot_finder.run(search_term, min_views, min_likes)

@@ -1,0 +1,41 @@
+classDiagram
+    class ResUsers {
+        +id: int
+        +name: str
+        +email: str
+        +consent_ids: list[CustomerConsent]
+    }
+    class CustomerConsent {
+        +id: int
+        +user_id: int
+        +consent_given: bool
+        +consent_date: datetime
+        +terms_version: str
+        +jurisdiction: str
+        +audit_log: list[ConsentAudit]
+        +__init__(user_id: int, consent_given: bool, terms_version: str, jurisdiction: str)
+    }
+    class ConsentAudit {
+        +id: int
+        +consent_id: int
+        +action: str
+        +timestamp: datetime
+        +performed_by: int
+        +__init__(consent_id: int, action: str, performed_by: int)
+    }
+    class PortalController {
+        +show_portal()
+        +submit_consent(user_id: int, consent_given: bool, terms_version: str, jurisdiction: str)
+        +get_consent_status(user_id: int) -> CustomerConsent
+    }
+    class AdminConsentController {
+        +list_consents()
+        +view_consent(consent_id: int)
+        +update_consent(consent_id: int, consent_given: bool)
+        +get_audit_trail(consent_id: int) -> list[ConsentAudit]
+    }
+    ResUsers "1" -- "*" CustomerConsent : has
+    CustomerConsent "1" -- "*" ConsentAudit : logs
+    PortalController ..> CustomerConsent : manages
+    AdminConsentController ..> CustomerConsent : manages
+    AdminConsentController ..> ConsentAudit : audits

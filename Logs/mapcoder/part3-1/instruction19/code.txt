@@ -1,0 +1,59 @@
+import asyncio
+import logging
+from playwright.async_api import async_playwright
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+async def run_linkedin_automation(email, password, proxy):
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        context = await browser.new_context(proxy={"server": proxy})
+        page = await context.new_page()
+
+        try:
+            # Navigate to LinkedIn login page
+            await page.goto("https://www.linkedin.com/login")
+            await page.fill("input[name='session_key']", email)
+            await page.fill("input[name='session_password']", password)
+            await page.click("button[type='submit']")
+            await page.wait_for_navigation()
+
+            # Check if login was successful
+            if "feed" not in page.url:
+                logging.error("Login failed. Check credentials.")
+                return
+
+            logging.info("Login successful.")
+
+            # Navigate to job postings
+            await page.goto("https://www.linkedin.com/jobs/")
+            await page.wait_for_selector(".jobs-search-results")
+
+            # Simulate job interaction (e.g., clicking on a job)
+            job_links = await page.query_selector_all(".job-card-list__title")
+            for job in job_links[:5]:  # Interact with first 5 jobs
+                job_url = await job.get_attribute("href")
+                await page.goto(job_url)
+                logging.info(f"Interacted with job: {job_url}")
+                await page.go_back()
+                await page.wait_for_selector(".jobs-search-results")
+
+        except Exception as e:
+            logging.error(f"An error occurred: {e}")
+        finally:
+            await context.close()
+            await browser.close()
+
+async def main():
+    # Example user credentials and proxy
+    users = [
+        {"email": "user1@example.com", "password": "password1", "proxy": "http://proxy1:port"},
+        {"email": "user2@example.com", "password": "password2", "proxy": "http://proxy2:port"},
+    ]
+
+    tasks = [run_linkedin_automation(user['email'], user['password'], user['proxy']) for user in users]
+    await asyncio.gather(*tasks)
+
+if __name__ == "__main__":
+    asyncio.run(main())

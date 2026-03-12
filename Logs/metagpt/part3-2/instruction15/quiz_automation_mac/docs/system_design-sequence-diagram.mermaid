@@ -1,0 +1,33 @@
+sequenceDiagram
+    participant U as User
+    participant M as Main
+    participant DM as DependencyManager
+    participant C as Config
+    participant HL as HotkeyListener
+    participant SU as ScreenshotUtil
+    participant OCR as OCREngine
+
+    U->>M: Run setup or main.py
+    M->>DM: check_python_version()
+    DM-->>M: bool
+    M->>DM: install_homebrew()
+    DM-->>M: bool
+    M->>DM: install_tesseract()
+    DM-->>M: bool
+    M->>DM: install_pip_dependencies()
+    DM-->>M: bool
+    M->>DM: verify_installations()
+    DM-->>M: bool
+    M->>C: load_config(path)
+    C-->>M: config dict
+    M->>HL: __init__(hotkey, callback)
+    HL->>HL: start_listening()
+    Note over HL: Waits for hotkey
+    U->>HL: Press hotkey
+    HL->>SU: capture_screen(region)
+    SU->>SU: handle_retina_scaling(img)
+    SU-->>HL: Image
+    HL->>OCR: recognize_text(img)
+    OCR-->>HL: text
+    HL-->>M: OCR result
+    M->>U: Display result (console/popup)

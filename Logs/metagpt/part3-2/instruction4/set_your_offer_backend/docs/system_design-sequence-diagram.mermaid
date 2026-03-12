@@ -1,0 +1,43 @@
+sequenceDiagram
+    participant U as User
+    participant US as UserService
+    participant S as SessionService
+    participant A as AdService
+    participant SE as SearchService
+    participant R as RecommendationService
+    participant AN as AnalyticsService
+    participant AT as AdminTools
+
+    U->>US: register(data)
+    US->>US: validate_registration(data)
+    US-->>U: registration_success / error
+    US->>S: create_session(user)
+    S-->>U: session_token
+
+    U->>US: login(credentials)
+    US->>US: authenticate(credentials)
+    US-->>U: login_success / error
+    US->>S: create_session(user)
+    S-->>U: session_token
+
+    U->>A: create_ad(data)
+    A->>A: validate_ad(data)
+    A-->>U: ad_created / error
+    A->>AT: moderate_ad(ad_id, action)
+    AT-->>A: moderation_result
+
+    U->>SE: search(query, filters)
+    SE->>SE: process_search(query, filters)
+    SE-->>U: search_results
+    SE->>R: get_recommendations(user)
+    R-->>U: recommended_ads
+    SE->>AN: log_search(user, query, filters)
+    AN-->>SE: log_success
+
+    U->>R: get_recommendations(user)
+    R->>R: generate(user)
+    R-->>U: recommended_ads
+
+    U->>AN: get_dashboard_data(user)
+    AN->>AN: fetch_data(user)
+    AN-->>U: dashboard_data

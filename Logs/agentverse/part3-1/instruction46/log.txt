@@ -1,0 +1,633 @@
+2025-09-02 18:01:23,476 WARNING  No vLLM server running at the specified URL.
+2025-09-02 18:01:23,525 WARNING  BMTools is not installed, tools in the simulation environment cannot be used. To install BMTools, please follow the instruction in the README.md file. If you aren't running a *simulation* case with tool, you can ignore this warning.
+2025-09-02 18:01:25,272 INFO  Loop Round 0
+2025-09-02 18:01:27,880 INFO Role Assignment:
+a financial data analyst with expertise in historical financial data processing and performance metrics calculation
+a software engineer specialized in Python programming and algorithm optimization for trading systems 
+2025-09-02 18:01:33,319 INFO Initial Plan:
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        annual_return = self.data['Returns'].mean() * 252
+        annual_volatility = self.data['Returns'].std() * np.sqrt(252)
+        sharpe_ratio = annual_return / annual_volatility
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = self.data['Cumulative Returns'] - self.data['Peak']
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+ 
+2025-09-02 18:01:58,241 INFO Reviews:
+[a software engineer specialized in Python programming and algorithm optimization for trading systems]: ```python
+# Given code
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        annual_return = self.data['Returns'].mean() * 252
+        annual_volatility = self.data['Returns'].std() * np.sqrt(252)
+        sharpe_ratio = annual_return / annual_volatility
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = self.data['Cumulative Returns'] - self.data['Peak']
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+
+# Critique:
+# 1. The calculation of the annual return should consider the total number of trading days, not just 252.
+# 2. The Sharpe ratio calculation should handle the case where annual volatility is zero to avoid division by zero.
+# 3. The drawdown calculation should be based on the peak value relative to the current value, not just the cumulative returns.
+
+# Corrected code
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        # Adjusting annual return calculation to consider actual trading days
+        annual_return = self.data['Returns'].mean() * len(self.data)  # Use actual number of days
+        annual_volatility = self.data['Returns'].std() * np.sqrt(len(self.data))  # Adjust for actual days
+        sharpe_ratio = annual_return / annual_volatility if annual_volatility != 0 else 0  # Avoid division by zero
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = (self.data['Cumulative Returns'] - self.data['Peak']) / self.data['Peak']  # Relative drawdown
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+``` 
+2025-09-02 18:02:04,470 INFO Updated Plan:
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        # Adjusting annual return calculation to consider actual trading days
+        annual_return = self.data['Returns'].mean() * len(self.data)  # Use actual number of days
+        annual_volatility = self.data['Returns'].std() * np.sqrt(len(self.data))  # Adjust for actual days
+        sharpe_ratio = annual_return / annual_volatility if annual_volatility != 0 else 0  # Avoid division by zero
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = (self.data['Cumulative Returns'] - self.data['Peak']) / self.data['Peak']  # Relative drawdown
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+ 
+2025-09-02 18:02:20,589 INFO Reviews:
+[a software engineer specialized in Python programming and algorithm optimization for trading systems]: ```python
+# Given code
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        # Adjusting annual return calculation to consider actual trading days
+        annual_return = self.data['Returns'].mean() * len(self.data)  # Use actual number of days
+        annual_volatility = self.data['Returns'].std() * np.sqrt(len(self.data))  # Adjust for actual days
+        sharpe_ratio = annual_return / annual_volatility if annual_volatility != 0 else 0  # Avoid division by zero
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = (self.data['Cumulative Returns'] - self.data['Peak']) / self.data['Peak']  # Relative drawdown
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+
+# Critique:
+# 1. The calculation of annual return should consider the number of trading days in a year (typically 252).
+# 2. The annual return calculation should be based on the total number of trading days, not the length of the data.
+# 3. The Sharpe ratio calculation should handle the case where annual volatility is zero to avoid division by zero.
+# 4. The drawdown calculation should be based on the peak value relative to the current value, not just the cumulative returns.
+
+# Corrected code
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        # Correcting annual return calculation to use 252 trading days
+        annual_return = self.data['Returns'].mean() * 252  # Use 252 trading days
+        annual_volatility = self.data['Returns'].std() * np.sqrt(252)  # Adjust for 252 trading days
+        sharpe_ratio = annual_return / annual_volatility if annual_volatility != 0 else 0  # Avoid division by zero
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = (self.data['Cumulative Returns'] - self.data['Peak']) / self.data['Peak']  # Relative drawdown
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+``` 
+2025-09-02 18:02:35,895 INFO Updated Plan:
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        # Correcting annual return calculation to use 252 trading days
+        annual_return = self.data['Returns'].mean() * 252  # Use 252 trading days
+        annual_volatility = self.data['Returns'].std() * np.sqrt(252)  # Adjust for 252 trading days
+        sharpe_ratio = annual_return / annual_volatility if annual_volatility != 0 else 0  # Avoid division by zero
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = (self.data['Cumulative Returns'] - self.data['Peak']) / self.data['Peak']  # Relative drawdown
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+ 
+2025-09-02 18:02:44,713 INFO Reviews:
+[a software engineer specialized in Python programming and algorithm optimization for trading systems]: ```python
+# Given code
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        # Correcting annual return calculation to use 252 trading days
+        annual_return = self.data['Returns'].mean() * 252  # Use 252 trading days
+        annual_volatility = self.data['Returns'].std() * np.sqrt(252)  # Adjust for 252 trading days
+        sharpe_ratio = annual_return / annual_volatility if annual_volatility != 0 else 0  # Avoid division by zero
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = (self.data['Cumulative Returns'] - self.data['Peak']) / self.data['Peak']  # Relative drawdown
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+
+# Critique:
+# 1. The calculation of annual return should consider the number of trading days in a year (typically 252).
+# 2. The annual return calculation should be based on the total number of trading days, not the length of the data.
+# 3. The Sharpe ratio calculation should handle the case where annual volatility is zero to avoid division by zero.
+# 4. The drawdown calculation should be based on the peak value relative to the current value, not just the cumulative returns.
+
+# Corrected code
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        # Correcting annual return calculation to use 252 trading days
+        annual_return = self.data['Returns'].mean() * 252  # Use 252 trading days
+        annual_volatility = self.data['Returns'].std() * np.sqrt(252)  # Adjust for 252 trading days
+        sharpe_ratio = annual_return / annual_volatility if annual_volatility != 0 else 0  # Avoid division by zero
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = (self.data['Cumulative Returns'] - self.data['Peak']) / self.data['Peak']  # Relative drawdown
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+``` 
+2025-09-02 18:02:54,615 INFO Updated Plan:
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        # Correcting annual return calculation to use 252 trading days
+        annual_return = self.data['Returns'].mean() * 252  # Use 252 trading days
+        annual_volatility = self.data['Returns'].std() * np.sqrt(252)  # Adjust for 252 trading days
+        sharpe_ratio = annual_return / annual_volatility if annual_volatility != 0 else 0  # Avoid division by zero
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = (self.data['Cumulative Returns'] - self.data['Peak']) / self.data['Peak']  # Relative drawdown
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+ 
+2025-09-02 18:02:54,616 INFO Decision Plan:
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        # Correcting annual return calculation to use 252 trading days
+        annual_return = self.data['Returns'].mean() * 252  # Use 252 trading days
+        annual_volatility = self.data['Returns'].std() * np.sqrt(252)  # Adjust for 252 trading days
+        sharpe_ratio = annual_return / annual_volatility if annual_volatility != 0 else 0  # Avoid division by zero
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = (self.data['Cumulative Returns'] - self.data['Peak']) / self.data['Peak']  # Relative drawdown
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+ 
+2025-09-02 18:02:54,616 INFO Execution Result: 
+2025-09-02 18:02:54,616 INFO  
+2025-09-02 18:02:58,997 INFO Evaluation result:
+Score: True
+Advice: The provided code for the backtesting framework is functionally correct and well-structured. It effectively calculates returns, performance metrics, and drawdown. However, I would suggest a couple of improvements for clarity and robustness:
+1. **Documentation**: Ensure that each method has a docstring explaining its purpose, parameters, and return values. This will help others understand the code better and maintain it in the future.
+2. **Error Handling**: Consider adding error handling for scenarios such as missing data or incorrect data formats. This can prevent the program from crashing and provide informative messages to the user.
+3. **Parameterization**: Instead of hardcoding the number of trading days (252), consider making it a parameter of the class or methods. This would allow for flexibility in case the user wants to backtest on different markets with varying trading days.
+4. **Unit Tests**: Implement unit tests to validate the functionality of each method. This will help ensure that any future changes do not break existing functionality.
+For the next round, I suggest recruiting an expert in quantitative finance to provide insights on advanced performance metrics and risk management techniques that could enhance the backtesting framework. Additionally, a UI/UX designer could help create a user-friendly interface for users to interact with the backtesting results. 
+2025-09-02 18:02:58,997 INFO Good score! Accept! Final Result:
+import pandas as pd
+import numpy as np
+
+class Backtest:
+    def __init__(self, data):
+        self.data = data
+        self.results = None
+
+    def calculate_returns(self):
+        self.data['Returns'] = self.data['Close'].pct_change()
+        self.data.dropna(inplace=True)
+
+    def calculate_performance_metrics(self):
+        total_return = self.data['Returns'].sum()
+        # Correcting annual return calculation to use 252 trading days
+        annual_return = self.data['Returns'].mean() * 252  # Use 252 trading days
+        annual_volatility = self.data['Returns'].std() * np.sqrt(252)  # Adjust for 252 trading days
+        sharpe_ratio = annual_return / annual_volatility if annual_volatility != 0 else 0  # Avoid division by zero
+        drawdown = self.calculate_drawdown()
+        
+        self.results = {
+            'Total Return': total_return,
+            'Annual Return': annual_return,
+            'Annual Volatility': annual_volatility,
+            'Sharpe Ratio': sharpe_ratio,
+            'Max Drawdown': drawdown
+        }
+
+    def calculate_drawdown(self):
+        self.data['Cumulative Returns'] = (1 + self.data['Returns']).cumprod()
+        self.data['Peak'] = self.data['Cumulative Returns'].cummax()
+        self.data['Drawdown'] = (self.data['Cumulative Returns'] - self.data['Peak']) / self.data['Peak']  # Relative drawdown
+        max_drawdown = self.data['Drawdown'].min()
+        return max_drawdown
+
+    def run_backtest(self):
+        self.calculate_returns()
+        self.calculate_performance_metrics()
+        return self.results
+
+# Example usage
+if __name__ == "__main__":
+    # Load historical data
+    historical_data = pd.read_csv('historical_data.csv')  # Ensure this CSV has a 'Close' column
+    backtest = Backtest(historical_data)
+    results = backtest.run_backtest()
+    print(results)
+ 
+2025-09-02 18:02:59,000 INFO Agent spend: 
+2025-09-02 18:02:59,000 INFO Agent (Role: AGENT_TYPES.ROLE_ASSIGNMENT) role assigner: $0.000363 
+2025-09-02 18:02:59,000 INFO Agent (Role: AGENT_TYPES.SOLVER) a financial data analyst with expertise in historical financial data processing and performance metrics calculation: $0.02 
+2025-09-02 18:02:59,000 INFO Agent (Role: AGENT_TYPES.CRITIC) a software engineer specialized in Python programming and algorithm optimization for trading systems: $0.01 
+2025-09-02 18:02:59,000 INFO Agent (Role: AGENT_TYPES.EXECUTION) Executor: $0.000000 
+2025-09-02 18:02:59,000 INFO Agent (Role: AGENT_TYPES.EVALUATION) Evaluator: $0.001499 
+2025-09-02 18:02:59,000 INFO Agent (Role: AGENT_TYPES.MANAGER) Manager: $0.000000 
+2025-09-02 18:02:59,000 INFO Total spent: $0.030309 

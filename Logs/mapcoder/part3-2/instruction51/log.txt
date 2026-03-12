@@ -1,0 +1,1134 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:36:21.968148
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a browser-based Python/Django application that allows users to upload multiple documents (PDF, Word, plain text), generates concise summaries for each document, and features a formula builder for custom financial calculations with the ability to save and reuse formulas.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+A web application that allows users to upload images (JPEG, PNG), automatically detects and extracts text from each image using Optical Character Recognition (OCR), and provides a searchable interface for users to find specific text snippets within their uploaded images.
+]]></description>
+<code><![CDATA[
+# Step 1: Install required libraries
+# pip install django pillow pytesseract
+
+# Step 2: Django model for storing images and extracted text
+from django.db import models
+
+class UploadedImage(models.Model):
+    image = models.ImageField(upload_to='images/')
+    extracted_text = models.TextField(blank=True)
+
+# Step 3: View to handle image upload and OCR extraction
+from django.shortcuts import render, redirect
+from .models import UploadedImage
+from .forms import ImageUploadForm
+import pytesseract
+from PIL import Image
+
+def upload_image(request):
+    if request.method == 'POST':
+        form = ImageUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            img_instance = form.save()
+            img_path = img_instance.image.path
+            text = pytesseract.image_to_string(Image.open(img_path))
+            img_instance.extracted_text = text
+            img_instance.save()
+            return redirect('image_list')
+    else:
+        form = ImageUploadForm()
+    return render(request, 'upload.html', {'form': form})
+
+# Step 4: Search view
+def search_text(request):
+    query = request.GET.get('q', '')
+    results = UploadedImage.objects.filter(extracted_text__icontains=query)
+    return render(request, 'search.html', {'results': results, 'query': query})
+]]></code>
+<planning><![CDATA[
+1. Set up Django project and app.
+2. Create a model to store uploaded images and their extracted text.
+3. Implement a form and view to handle image uploads.
+4. Use pytesseract to extract text from uploaded images.
+5. Save extracted text in the database.
+6. Create a search interface to allow users to find images by text.
+7. Test the application with various image formats and text queries.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+A browser-based Python/Django application that enables users to upload CSV files containing financial transaction data, automatically categorizes transactions using machine learning, and visualizes spending patterns with interactive charts.
+]]></description>
+<code><![CDATA[
+# Step 1: Install required libraries
+# pip install django pandas scikit-learn matplotlib
+
+# Step 2: Django model for storing uploaded CSV and categorized data
+from django.db import models
+
+class Transaction(models.Model):
+    date = models.DateField()
+    description = models.CharField(max_length=255)
+    amount = models.FloatField()
+    category = models.CharField(max_length=100, blank=True)
+
+# Step 3: View to handle CSV upload and categorization
+import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+
+def upload_csv(request):
+    if request.method == 'POST':
+        csv_file = request.FILES['file']
+        df = pd.read_csv(csv_file)
+        # Assume 'description' and 'amount' columns exist
+        # Load or train a simple classifier
+        vectorizer = CountVectorizer()
+        classifier = MultinomialNB()
+        # For demonstration, use dummy training data
+        train_desc = ['grocery', 'salary', 'rent', 'restaurant']
+        train_cat = ['Food', 'Income', 'Housing', 'Food']
+        X_train = vectorizer.fit_transform(train_desc)
+        classifier.fit(X_train, train_cat)
+        X_test = vectorizer.transform(df['description'])
+        df['category'] = classifier.predict(X_test)
+        # Save transactions to DB
+        for _, row in df.iterrows():
+            Transaction.objects.create(
+                date=row['date'],
+                description=row['description'],
+                amount=row['amount'],
+                category=row['category']
+            )
+        return redirect('transaction_list')
+    return render(request, 'upload_csv.html')
+
+# Step 4: Visualization view
+import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
+
+def spending_chart(request):
+    transactions = Transaction.objects.all()
+    df = pd.DataFrame(list(transactions.values()))
+    chart = None
+    if not df.empty:
+        chart_data = df.groupby('category')['amount'].sum()
+        plt.figure(figsize=(6,4))
+        chart_data.plot(kind='bar')
+        buf = BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        chart = base64.b64encode(buf.read()).decode('utf-8')
+    return render(request, 'chart.html', {'chart': chart})
+]]></code>
+<planning><![CDATA[
+1. Set up Django project and app.
+2. Create a model for transactions.
+3. Implement a view to handle CSV uploads and parse data.
+4. Use a simple machine learning model to categorize transactions.
+5. Store categorized transactions in the database.
+6. Create a view to visualize spending patterns using charts.
+7. Test with various CSV files and improve categorization accuracy.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+A web-based Python/Django tool that allows users to upload multiple audio files (MP3, WAV), transcribes the audio to text using speech recognition, and provides a summary of the main topics discussed in each audio file.
+]]></description>
+<code><![CDATA[
+# Step 1: Install required libraries
+# pip install django speechrecognition pydub transformers
+
+# Step 2: Django model for storing audio files and transcriptions
+from django.db import models
+
+class UploadedAudio(models.Model):
+    audio = models.FileField(upload_to='audio/')
+    transcription = models.TextField(blank=True)
+    summary = models.TextField(blank=True)
+
+# Step 3: View to handle audio upload and transcription
+import speech_recognition as sr
+from pydub import AudioSegment
+
+def transcribe_audio(file_path):
+    # Convert to wav if necessary
+    if not file_path.endswith('.wav'):
+        sound = AudioSegment.from_file(file_path)
+        file_path_wav = file_path + '.wav'
+        sound.export(file_path_wav, format='wav')
+        file_path = file_path_wav
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(file_path) as source:
+        audio = recognizer.record(source)
+    return recognizer.recognize_google(audio)
+
+# Step 4: Summarize transcription using transformers
+from transformers import pipeline
+
+summarizer = pipeline('summarization')
+
+def upload_audio(request):
+    if request.method == 'POST':
+        form = AudioUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            audio_instance = form.save()
+            audio_path = audio_instance.audio.path
+            transcription = transcribe_audio(audio_path)
+            audio_instance.transcription = transcription
+            summary = summarizer(transcription, max_length=50, min_length=25, do_sample=False)[0]['summary_text']
+            audio_instance.summary = summary
+            audio_instance.save()
+            return redirect('audio_list')
+    else:
+        form = AudioUploadForm()
+    return render(request, 'upload_audio.html', {'form': form})
+]]></code>
+<planning><![CDATA[
+1. Set up Django project and app.
+2. Create a model to store uploaded audio files, transcriptions, and summaries.
+3. Implement a form and view to handle audio uploads.
+4. Use speech recognition to transcribe audio files.
+5. Use a transformer-based summarization model to summarize transcriptions.
+6. Display transcriptions and summaries to users.
+7. Test with various audio formats and improve transcription accuracy.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem involves document upload, text extraction, summarization, and a formula builder for custom financial calculations. The main algorithms involved are:
+
+1. Text Extraction and Summarization: This typically uses Natural Language Processing (NLP) techniques, including transformer-based models (e.g., BERT, GPT, T5) for summarization. The process involves parsing documents, extracting text, and generating concise summaries using pre-trained or fine-tuned models.
+
+2. Formula Builder and Calculation: This involves parsing user-defined formulas, validating them, and evaluating them securely. The algorithm here is often a combination of parsing (using recursive descent or shunting yard algorithm for mathematical expressions) and safe evaluation (using restricted eval or custom interpreters).
+
+Tutorial:
+
+**High-Level Tutorial for Document Summarization and Formula Builder Applications**
+
+1. **Document Upload and Text Extraction**
+   - Accept multiple file formats (PDF, Word, TXT).
+   - Use libraries like PyPDF2, python-docx, or textract to extract text from documents.
+   - Store extracted text in a database for further processing.
+
+2. **Text Summarization**
+   - Use NLP models (e.g., HuggingFace transformers) for summarization.
+   - Preprocess extracted text (cleaning, tokenization).
+   - Pass text to a summarization pipeline to generate concise summaries.
+   - Store and display summaries to users.
+
+3. **Formula Builder for Financial Calculations**
+   - Provide a user interface for building custom formulas (e.g., using JavaScript or Python).
+   - Parse formulas to ensure they are valid and safe.
+   - Use a parsing algorithm (e.g., shunting yard) to convert formulas to an evaluable format.
+   - Evaluate formulas using user-provided data, ensuring security (avoid arbitrary code execution).
+   - Allow users to save and reuse formulas by storing them in the database.
+
+4. **Saving and Reusing Formulas**
+   - Store formulas with metadata (name, description, variables) in the database.
+   - Provide an interface to select and apply saved formulas to new data.
+
+5. **Security Considerations**
+   - Always validate and sanitize user inputs.
+   - Restrict formula evaluation to safe operations.
+   - Use sandboxed environments for evaluation if possible.
+
+6. **Testing and Iteration**
+   - Test with various document types and formula complexities.
+   - Iterate on user interface and backend logic for usability and robustness.
+
+This approach combines NLP for summarization and parsing/evaluation algorithms for formula building, ensuring a secure and user-friendly application.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+A web application that allows users to upload images (JPEG, PNG), automatically detects and extracts text from each image using Optical Character Recognition (OCR), and provides a searchable interface for users to find specific text snippets within their uploaded images.
+
+# Planning:
+
+1. Set up Django project and app.
+2. Create a model to store uploaded images and their extracted text.
+3. Implement a form and view to handle image uploads.
+4. Use pytesseract to extract text from uploaded images.
+5. Save extracted text in the database.
+6. Create a search interface to allow users to find images by text.
+7. Test the application with various image formats and text queries.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem involves document upload, text extraction, summarization, and a formula builder for custom financial calculations. The main algorithms involved are:
+
+1. Text Extraction and Summarization: This typically uses Natural Language Processing (NLP) techniques, including transformer-based models (e.g., BERT, GPT, T5) for summarization. The process involves parsing documents, extracting text, and generating concise summaries using pre-trained or fine-tuned models.
+
+2. Formula Builder and Calculation: This involves parsing user-defined formulas, validating them, and evaluating them securely. The algorithm here is often a combination of parsing (using recursive descent or shunting yard algorithm for mathematical expressions) and safe evaluation (using restricted eval or custom interpreters).
+
+Tutorial:
+
+**High-Level Tutorial for Document Summarization and Formula Builder Applications**
+
+1. **Document Upload and Text Extraction**
+   - Accept multiple file formats (PDF, Word, TXT).
+   - Use libraries like PyPDF2, python-docx, or textract to extract text from documents.
+   - Store extracted text in a database for further processing.
+
+2. **Text Summarization**
+   - Use NLP models (e.g., HuggingFace transformers) for summarization.
+   - Preprocess extracted text (cleaning, tokenization).
+   - Pass text to a summarization pipeline to generate concise summaries.
+   - Store and display summaries to users.
+
+3. **Formula Builder for Financial Calculations**
+   - Provide a user interface for building custom formulas (e.g., using JavaScript or Python).
+   - Parse formulas to ensure they are valid and safe.
+   - Use a parsing algorithm (e.g., shunting yard) to convert formulas to an evaluable format.
+   - Evaluate formulas using user-provided data, ensuring security (avoid arbitrary code execution).
+   - Allow users to save and reuse formulas by storing them in the database.
+
+4. **Saving and Reusing Formulas**
+   - Store formulas with metadata (name, description, variables) in the database.
+   - Provide an interface to select and apply saved formulas to new data.
+
+5. **Security Considerations**
+   - Always validate and sanitize user inputs.
+   - Restrict formula evaluation to safe operations.
+   - Use sandboxed environments for evaluation if possible.
+
+6. **Testing and Iteration**
+   - Test with various document types and formula complexities.
+   - Iterate on user interface and backend logic for usability and robustness.
+
+This approach combines NLP for summarization and parsing/evaluation algorithms for formula building, ensuring a secure and user-friendly application.
+
+## Problem to be solved:
+
+Please help me implement a browser-based Python/Django application that allows users to upload multiple documents (PDF, Word, plain text), generates concise summaries for each document, and features a formula builder for custom financial calculations with the ability to save and reuse formulas.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Set up Django project and app.
+2. Create models for uploaded documents, extracted text, summaries, and formulas.
+3. Implement file upload functionality supporting PDF, Word, and TXT formats.
+4. Extract text from uploaded documents using PyPDF2, python-docx, and plain text parsing.
+5. Generate document summaries using a pre-trained NLP model (e.g., HuggingFace transformers).
+6. Store extracted text and summaries in the database.
+7. Build a formula builder interface for custom financial calculations (frontend: JavaScript; backend: Python).
+8. Parse and validate user-defined formulas using a safe parsing algorithm (e.g., shunting yard).
+9. Evaluate formulas securely with user-provided data.
+10. Enable saving, editing, and reusing formulas with metadata in the database.
+11. Create views and templates for document management, summary display, formula building, and formula application.
+12. Implement user authentication for document and formula access.
+13. Test the application with various document types, summary generation, and formula complexities.
+14. Ensure input validation, security, and error handling throughout the application.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a browser-based Python/Django application that allows users to upload multiple documents (PDF, Word, plain text), generates concise summaries for each document, and features a formula builder for custom financial calculations with the ability to save and reuse formulas.
+
+# Planning:
+**Planning:**
+
+1. Set up Django project and app.
+2. Create models for uploaded documents, extracted text, summaries, and formulas.
+3. Implement file upload functionality supporting PDF, Word, and TXT formats.
+4. Extract text from uploaded documents using PyPDF2, python-docx, and plain text parsing.
+5. Generate document summaries using a pre-trained NLP model (e.g., HuggingFace transformers).
+6. Store extracted text and summaries in the database.
+7. Build a formula builder interface for custom financial calculations (frontend: JavaScript; backend: Python).
+8. Parse and validate user-defined formulas using a safe parsing algorithm (e.g., shunting yard).
+9. Evaluate formulas securely with user-provided data.
+10. Enable saving, editing, and reusing formulas with metadata in the database.
+11. Create views and templates for document management, summary display, formula building, and formula application.
+12. Implement user authentication for document and formula access.
+13. Test the application with various document types, summary generation, and formula complexities.
+14. Ensure input validation, security, and error handling throughout the application.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a full-stack web application development task involving Django, file handling, NLP, and frontend/backend integration. The provided plan is comprehensive and covers all major aspects required to implement the described application: project setup, models, file upload and parsing, summary generation, formula builder, security, and testing. Each step logically addresses a requirement from the problem statement. Therefore, the plan is correct and sufficient to solve the problem as described.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+A browser-based Python/Django application that enables users to upload CSV files containing financial transaction data, automatically categorizes transactions using machine learning, and visualizes spending patterns with interactive charts.
+
+# Planning:
+
+1. Set up Django project and app.
+2. Create a model for transactions.
+3. Implement a view to handle CSV uploads and parse data.
+4. Use a simple machine learning model to categorize transactions.
+5. Store categorized transactions in the database.
+6. Create a view to visualize spending patterns using charts.
+7. Test with various CSV files and improve categorization accuracy.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem involves document upload, text extraction, summarization, and a formula builder for custom financial calculations. The main algorithms involved are:
+
+1. Text Extraction and Summarization: This typically uses Natural Language Processing (NLP) techniques, including transformer-based models (e.g., BERT, GPT, T5) for summarization. The process involves parsing documents, extracting text, and generating concise summaries using pre-trained or fine-tuned models.
+
+2. Formula Builder and Calculation: This involves parsing user-defined formulas, validating them, and evaluating them securely. The algorithm here is often a combination of parsing (using recursive descent or shunting yard algorithm for mathematical expressions) and safe evaluation (using restricted eval or custom interpreters).
+
+Tutorial:
+
+**High-Level Tutorial for Document Summarization and Formula Builder Applications**
+
+1. **Document Upload and Text Extraction**
+   - Accept multiple file formats (PDF, Word, TXT).
+   - Use libraries like PyPDF2, python-docx, or textract to extract text from documents.
+   - Store extracted text in a database for further processing.
+
+2. **Text Summarization**
+   - Use NLP models (e.g., HuggingFace transformers) for summarization.
+   - Preprocess extracted text (cleaning, tokenization).
+   - Pass text to a summarization pipeline to generate concise summaries.
+   - Store and display summaries to users.
+
+3. **Formula Builder for Financial Calculations**
+   - Provide a user interface for building custom formulas (e.g., using JavaScript or Python).
+   - Parse formulas to ensure they are valid and safe.
+   - Use a parsing algorithm (e.g., shunting yard) to convert formulas to an evaluable format.
+   - Evaluate formulas using user-provided data, ensuring security (avoid arbitrary code execution).
+   - Allow users to save and reuse formulas by storing them in the database.
+
+4. **Saving and Reusing Formulas**
+   - Store formulas with metadata (name, description, variables) in the database.
+   - Provide an interface to select and apply saved formulas to new data.
+
+5. **Security Considerations**
+   - Always validate and sanitize user inputs.
+   - Restrict formula evaluation to safe operations.
+   - Use sandboxed environments for evaluation if possible.
+
+6. **Testing and Iteration**
+   - Test with various document types and formula complexities.
+   - Iterate on user interface and backend logic for usability and robustness.
+
+This approach combines NLP for summarization and parsing/evaluation algorithms for formula building, ensuring a secure and user-friendly application.
+
+## Problem to be solved:
+
+Please help me implement a browser-based Python/Django application that allows users to upload multiple documents (PDF, Word, plain text), generates concise summaries for each document, and features a formula builder for custom financial calculations with the ability to save and reuse formulas.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+1. Set up Django project and app.
+2. Create models for documents, summaries, and formulas.
+3. Implement file upload functionality supporting PDF, Word, and TXT.
+4. Extract text from uploaded documents using appropriate libraries.
+5. Integrate NLP summarization pipeline to generate concise summaries.
+6. Store extracted text and summaries in the database.
+7. Build a formula builder interface for custom financial calculations.
+8. Parse and safely evaluate user-defined formulas using a secure algorithm.
+9. Allow users to save, edit, and reuse formulas with metadata.
+10. Create views to display uploaded documents, summaries, and formula results.
+11. Implement user authentication for secure access and formula management.
+12. Test with various document types and formula complexities.
+13. Optimize UI/UX for document upload, summarization, and formula building.
+14. Ensure security and validation for file uploads and formula evaluation.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a browser-based Python/Django application that allows users to upload multiple documents (PDF, Word, plain text), generates concise summaries for each document, and features a formula builder for custom financial calculations with the ability to save and reuse formulas.
+
+# Planning:
+1. Set up Django project and app.
+2. Create models for documents, summaries, and formulas.
+3. Implement file upload functionality supporting PDF, Word, and TXT.
+4. Extract text from uploaded documents using appropriate libraries.
+5. Integrate NLP summarization pipeline to generate concise summaries.
+6. Store extracted text and summaries in the database.
+7. Build a formula builder interface for custom financial calculations.
+8. Parse and safely evaluate user-defined formulas using a secure algorithm.
+9. Allow users to save, edit, and reuse formulas with metadata.
+10. Create views to display uploaded documents, summaries, and formula results.
+11. Implement user authentication for secure access and formula management.
+12. Test with various document types and formula complexities.
+13. Optimize UI/UX for document upload, summarization, and formula building.
+14. Ensure security and validation for file uploads and formula evaluation.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a full-stack web application development task involving Django, file handling, NLP, and formula evaluation. The provided plan is comprehensive and covers all major aspects required to implement the described application: project setup, models, file uploads, text extraction, summarization, formula builder, secure evaluation, user management, and UI/UX considerations. Each step logically follows from the requirements, and the plan addresses both backend and frontend needs, as well as security and testing. Therefore, the plan is correct and sufficient to solve the described problem.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+A web-based Python/Django tool that allows users to upload multiple audio files (MP3, WAV), transcribes the audio to text using speech recognition, and provides a summary of the main topics discussed in each audio file.
+
+# Planning:
+
+1. Set up Django project and app.
+2. Create a model to store uploaded audio files, transcriptions, and summaries.
+3. Implement a form and view to handle audio uploads.
+4. Use speech recognition to transcribe audio files.
+5. Use a transformer-based summarization model to summarize transcriptions.
+6. Display transcriptions and summaries to users.
+7. Test with various audio formats and improve transcription accuracy.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem involves document upload, text extraction, summarization, and a formula builder for custom financial calculations. The main algorithms involved are:
+
+1. Text Extraction and Summarization: This typically uses Natural Language Processing (NLP) techniques, including transformer-based models (e.g., BERT, GPT, T5) for summarization. The process involves parsing documents, extracting text, and generating concise summaries using pre-trained or fine-tuned models.
+
+2. Formula Builder and Calculation: This involves parsing user-defined formulas, validating them, and evaluating them securely. The algorithm here is often a combination of parsing (using recursive descent or shunting yard algorithm for mathematical expressions) and safe evaluation (using restricted eval or custom interpreters).
+
+Tutorial:
+
+**High-Level Tutorial for Document Summarization and Formula Builder Applications**
+
+1. **Document Upload and Text Extraction**
+   - Accept multiple file formats (PDF, Word, TXT).
+   - Use libraries like PyPDF2, python-docx, or textract to extract text from documents.
+   - Store extracted text in a database for further processing.
+
+2. **Text Summarization**
+   - Use NLP models (e.g., HuggingFace transformers) for summarization.
+   - Preprocess extracted text (cleaning, tokenization).
+   - Pass text to a summarization pipeline to generate concise summaries.
+   - Store and display summaries to users.
+
+3. **Formula Builder for Financial Calculations**
+   - Provide a user interface for building custom formulas (e.g., using JavaScript or Python).
+   - Parse formulas to ensure they are valid and safe.
+   - Use a parsing algorithm (e.g., shunting yard) to convert formulas to an evaluable format.
+   - Evaluate formulas using user-provided data, ensuring security (avoid arbitrary code execution).
+   - Allow users to save and reuse formulas by storing them in the database.
+
+4. **Saving and Reusing Formulas**
+   - Store formulas with metadata (name, description, variables) in the database.
+   - Provide an interface to select and apply saved formulas to new data.
+
+5. **Security Considerations**
+   - Always validate and sanitize user inputs.
+   - Restrict formula evaluation to safe operations.
+   - Use sandboxed environments for evaluation if possible.
+
+6. **Testing and Iteration**
+   - Test with various document types and formula complexities.
+   - Iterate on user interface and backend logic for usability and robustness.
+
+This approach combines NLP for summarization and parsing/evaluation algorithms for formula building, ensuring a secure and user-friendly application.
+
+## Problem to be solved:
+
+Please help me implement a browser-based Python/Django application that allows users to upload multiple documents (PDF, Word, plain text), generates concise summaries for each document, and features a formula builder for custom financial calculations with the ability to save and reuse formulas.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Set up Django project and app.
+2. Create models for uploaded documents, extracted text, summaries, formulas, and formula metadata.
+3. Implement forms and views for uploading multiple documents.
+4. Integrate libraries (PyPDF2, python-docx, textract) for text extraction from PDF, Word, and TXT files.
+5. Use transformer-based NLP models for document summarization.
+6. Build a formula builder interface (frontend and backend) for custom financial calculations.
+7. Implement formula parsing, validation, and secure evaluation logic.
+8. Enable saving, editing, and reusing formulas with metadata.
+9. Display extracted text, summaries, and calculation results to users.
+10. Add user authentication for personalized formula and document management.
+11. Test with various document types and formula complexities.
+12. Optimize for security, usability, and performance.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a browser-based Python/Django application that allows users to upload multiple documents (PDF, Word, plain text), generates concise summaries for each document, and features a formula builder for custom financial calculations with the ability to save and reuse formulas.
+
+# Planning:
+**Planning:**
+
+1. Set up Django project and app.
+2. Create models for uploaded documents, extracted text, summaries, formulas, and formula metadata.
+3. Implement forms and views for uploading multiple documents.
+4. Integrate libraries (PyPDF2, python-docx, textract) for text extraction from PDF, Word, and TXT files.
+5. Use transformer-based NLP models for document summarization.
+6. Build a formula builder interface (frontend and backend) for custom financial calculations.
+7. Implement formula parsing, validation, and secure evaluation logic.
+8. Enable saving, editing, and reusing formulas with metadata.
+9. Display extracted text, summaries, and calculation results to users.
+10. Add user authentication for personalized formula and document management.
+11. Test with various document types and formula complexities.
+12. Optimize for security, usability, and performance.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': 'The given problem is not a competitive programming problem; it is a full-stack web application development task involving Django, file uploads, NLP summarization, and a formula builder. The provided plan is comprehensive and covers all necessary steps to implement the described application in Python/Django, including document handling, text extraction, summarization, formula management, and user authentication. The plan is correct and feasible for solving the stated problem, assuming access to the required libraries and models. However, this is not a typical competitive programming problem, which usually involves algorithmic challenges rather than application development.', 'confidence': 95}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem involves document upload, text extraction, summarization, and a formula builder for custom financial calculations. The main algorithms involved are:
+
+1. Text Extraction and Summarization: This typically uses Natural Language Processing (NLP) techniques, including transformer-based models (e.g., BERT, GPT, T5) for summarization. The process involves parsing documents, extracting text, and generating concise summaries using pre-trained or fine-tuned models.
+
+2. Formula Builder and Calculation: This involves parsing user-defined formulas, validating them, and evaluating them securely. The algorithm here is often a combination of parsing (using recursive descent or shunting yard algorithm for mathematical expressions) and safe evaluation (using restricted eval or custom interpreters).
+
+Tutorial:
+
+**High-Level Tutorial for Document Summarization and Formula Builder Applications**
+
+1. **Document Upload and Text Extraction**
+   - Accept multiple file formats (PDF, Word, TXT).
+   - Use libraries like PyPDF2, python-docx, or textract to extract text from documents.
+   - Store extracted text in a database for further processing.
+
+2. **Text Summarization**
+   - Use NLP models (e.g., HuggingFace transformers) for summarization.
+   - Preprocess extracted text (cleaning, tokenization).
+   - Pass text to a summarization pipeline to generate concise summaries.
+   - Store and display summaries to users.
+
+3. **Formula Builder for Financial Calculations**
+   - Provide a user interface for building custom formulas (e.g., using JavaScript or Python).
+   - Parse formulas to ensure they are valid and safe.
+   - Use a parsing algorithm (e.g., shunting yard) to convert formulas to an evaluable format.
+   - Evaluate formulas using user-provided data, ensuring security (avoid arbitrary code execution).
+   - Allow users to save and reuse formulas by storing them in the database.
+
+4. **Saving and Reusing Formulas**
+   - Store formulas with metadata (name, description, variables) in the database.
+   - Provide an interface to select and apply saved formulas to new data.
+
+5. **Security Considerations**
+   - Always validate and sanitize user inputs.
+   - Restrict formula evaluation to safe operations.
+   - Use sandboxed environments for evaluation if possible.
+
+6. **Testing and Iteration**
+   - Test with various document types and formula complexities.
+   - Iterate on user interface and backend logic for usability and robustness.
+
+This approach combines NLP for summarization and parsing/evaluation algorithms for formula building, ensuring a secure and user-friendly application.
+
+## Problem to be solved:
+
+Please help me implement a browser-based Python/Django application that allows users to upload multiple documents (PDF, Word, plain text), generates concise summaries for each document, and features a formula builder for custom financial calculations with the ability to save and reuse formulas.
+
+## Planning:
+**Planning:**
+
+1. Set up Django project and app.
+2. Create models for uploaded documents, extracted text, summaries, and formulas.
+3. Implement file upload functionality supporting PDF, Word, and TXT formats.
+4. Extract text from uploaded documents using PyPDF2, python-docx, and plain text parsing.
+5. Generate document summaries using a pre-trained NLP model (e.g., HuggingFace transformers).
+6. Store extracted text and summaries in the database.
+7. Build a formula builder interface for custom financial calculations (frontend: JavaScript; backend: Python).
+8. Parse and validate user-defined formulas using a safe parsing algorithm (e.g., shunting yard).
+9. Evaluate formulas securely with user-provided data.
+10. Enable saving, editing, and reusing formulas with metadata in the database.
+11. Create views and templates for document management, summary display, formula building, and formula application.
+12. Implement user authentication for document and formula access.
+13. Test the application with various document types, summary generation, and formula complexities.
+14. Ensure input validation, security, and error handling throughout the application.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+# settings.py (add required packages to INSTALLED_APPS and configure media)
+INSTALLED_APPS = [
+    # ... other apps ...
+    'django.contrib.staticfiles',
+    'docapp',
+    'rest_framework',
+]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+class Document(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    file = models.FileField(upload_to='documents/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    name = models.CharField(max_length=255)
+    extracted_text = models.TextField(blank=True)
+    summary = models.TextField(blank=True)
+
+class Formula(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    formula = models.TextField()
+    variables = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+# forms.py
+from django import forms
+from .models import Document, Formula
+
+class DocumentForm(forms.ModelForm):
+    class Meta:
+        model = Document
+        fields = ['file']
+
+class FormulaForm(forms.ModelForm):
+    class Meta:
+        model = Formula
+        fields = ['name', 'description', 'formula']
+
+# utils.py
+import os
+import PyPDF2
+import docx
+from transformers import pipeline
+
+def extract_text_from_file(file_path):
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == '.pdf':
+        with open(file_path, 'rb') as f:
+            reader = PyPDF2.PdfReader(f)
+            text = ''
+            for page in reader.pages:
+                text += page.extract_text() or ''
+            return text
+    elif ext in ['.docx', '.doc']:
+        doc = docx.Document(file_path)
+        return '\n'.join([para.text for para in doc.paragraphs])
+    elif ext == '.txt':
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            return f.read()
+    else:
+        return ''
+
+summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+
+def summarize_text(text):
+    if not text.strip():
+        return ''
+    # HuggingFace models have a max token limit, so chunk if needed
+    max_chunk = 1000
+    text = text.replace('\n', ' ')
+    chunks = [text[i:i+max_chunk] for i in range(0, len(text), max_chunk)]
+    summary = ''
+    for chunk in chunks:
+        out = summarizer(chunk, max_length=130, min_length=30, do_sample=False)
+        summary += out[0]['summary_text'] + ' '
+    return summary.strip()
+
+# Safe formula evaluation
+import ast
+import operator as op
+
+SAFE_OPERATORS = {
+    ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul, ast.Div: op.truediv,
+    ast.Pow: op.pow, ast.USub: op.neg, ast.Mod: op.mod
+}
+
+def eval_expr(expr, variables):
+    """
+    Safely evaluate a mathematical expression with variables.
+    """
+    def _eval(node):
+        if isinstance(node, ast.Num):  # <number>
+            return node.n
+        elif isinstance(node, ast.BinOp):  # <left> <operator> <right>
+            return SAFE_OPERATORS[type(node.op)](_eval(node.left), _eval(node.right))
+        elif isinstance(node, ast.UnaryOp):  # - <operand>
+            return SAFE_OPERATORS[type(node.op)](_eval(node.operand))
+        elif isinstance(node, ast.Name):
+            if node.id in variables:
+                return variables[node.id]
+            else:
+                raise ValueError(f"Unknown variable: {node.id}")
+        else:
+            raise TypeError(node)
+    node = ast.parse(expr, mode='eval').body
+    return _eval(node)
+
+# views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from .models import Document, Formula
+from .forms import DocumentForm, FormulaForm
+from .utils import extract_text_from_file, summarize_text, eval_expr
+
+@login_required
+def upload_document(request):
+    if request.method == 'POST':
+        form = DocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            doc = form.save(commit=False)
+            doc.user = request.user
+            doc.name = doc.file.name
+            doc.save()
+            # Extract text and summarize
+            file_path = doc.file.path
+            text = extract_text_from_file(file_path)
+            doc.extracted_text = text
+            doc.summary = summarize_text(text)
+            doc.save()
+            return redirect('document_list')
+    else:
+        form = DocumentForm()
+    return render(request, 'upload.html', {'form': form})
+
+@login_required
+def document_list(request):
+    docs = Document.objects.filter(user=request.user).order_by('-uploaded_at')
+    return render(request, 'document_list.html', {'documents': docs})
+
+@login_required
+def document_detail(request, pk):
+    doc = get_object_or_404(Document, pk=pk, user=request.user)
+    return render(request, 'document_detail.html', {'document': doc})
+
+@login_required
+def formula_builder(request):
+    if request.method == 'POST':
+        form = FormulaForm(request.POST)
+        if form.is_valid():
+            formula = form.save(commit=False)
+            formula.user = request.user
+            # Optionally parse variables from formula
+            formula.variables = {}
+            formula.save()
+            return redirect('formula_list')
+    else:
+        form = FormulaForm()
+    return render(request, 'formula_builder.html', {'form': form})
+
+@login_required
+def formula_list(request):
+    formulas = Formula.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'formula_list.html', {'formulas': formulas})
+
+@login_required
+def formula_apply(request, pk):
+    formula = get_object_or_404(Formula, pk=pk, user=request.user)
+    result = None
+    error = None
+    variables = {}
+    # Extract variable names from formula
+    import re
+    var_names = set(re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', formula.formula))
+    reserved = {'pow', 'abs', 'min', 'max', 'sum'}
+    var_names = [v for v in var_names if v not in reserved]
+    if request.method == 'POST':
+        for v in var_names:
+            try:
+                variables[v] = float(request.POST.get(v, 0))
+            except:
+                variables[v] = 0
+        try:
+            result = eval_expr(formula.formula, variables)
+        except Exception as e:
+            error = str(e)
+    return render(request, 'formula_apply.html', {
+        'formula': formula,
+        'variables': var_names,
+        'result': result,
+        'error': error
+    })
+
+# urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('upload/', views.upload_document, name='upload_document'),
+    path('documents/', views.document_list, name='document_list'),
+    path('documents/<int:pk>/', views.document_detail, name='document_detail'),
+    path('formulas/', views.formula_list, name='formula_list'),
+    path('formulas/new/', views.formula_builder, name='formula_builder'),
+    path('formulas/<int:pk>/apply/', views.formula_apply, name='formula_apply'),
+]
+
+# templates/upload.html
+"""
+{% extends 'base.html' %}
+{% block content %}
+<h2>Upload Document</h2>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Upload</button>
+</form>
+{% endblock %}
+"""
+
+# templates/document_list.html
+"""
+{% extends 'base.html' %}
+{% block content %}
+<h2>Your Documents</h2>
+<ul>
+  {% for doc in documents %}
+    <li>
+      <a href="{% url 'document_detail' doc.pk %}">{{ doc.name }}</a>
+      ({{ doc.uploaded_at }})
+    </li>
+  {% endfor %}
+</ul>
+<a href="{% url 'upload_document' %}">Upload New Document</a>
+{% endblock %}
+"""
+
+# templates/document_detail.html
+"""
+{% extends 'base.html' %}
+{% block content %}
+<h2>{{ document.name }}</h2>
+<h3>Summary</h3>
+<p>{{ document.summary }}</p>
+<h3>Extracted Text</h3>
+<pre>{{ document.extracted_text }}</pre>
+{% endblock %}
+"""
+
+# templates/formula_builder.html
+"""
+{% extends 'base.html' %}
+{% block content %}
+<h2>New Formula</h2>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Save Formula</button>
+</form>
+{% endblock %}
+"""
+
+# templates/formula_list.html
+"""
+{% extends 'base.html' %}
+{% block content %}
+<h2>Your Formulas</h2>
+<ul>
+  {% for f in formulas %}
+    <li>
+      <a href="{% url 'formula_apply' f.pk %}">{{ f.name }}</a>
+      ({{ f.created_at }})
+    </li>
+  {% endfor %}
+</ul>
+<a href="{% url 'formula_builder' %}">New Formula</a>
+{% endblock %}
+"""
+
+# templates/formula_apply.html
+"""
+{% extends 'base.html' %}
+{% block content %}
+<h2>Apply Formula: {{ formula.name }}</h2>
+<p>{{ formula.description }}</p>
+<form method="post">
+  {% csrf_token %}
+  {% for v in variables %}
+    <label>{{ v }}: <input type="text" name="{{ v }}" /></label><br>
+  {% endfor %}
+  <button type="submit">Calculate</button>
+</form>
+{% if result %}
+  <h3>Result: {{ result }}</h3>
+{% endif %}
+{% if error %}
+  <p style="color:red;">Error: {{ error }}</p>
+{% endif %}
+{% endblock %}
+"""
+
+# templates/base.html
+"""
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Document Summarizer & Formula Builder</title>
+</head>
+<body>
+  {% if user.is_authenticated %}
+    <p>Logged in as {{ user.username }} | <a href="/logout/">Logout</a></p>
+  {% else %}
+    <p><a href="/login/">Login</a></p>
+  {% endif %}
+  <nav>
+    <a href="{% url 'document_list' %}">Documents</a> |
+    <a href="{% url 'formula_list' %}">Formulas</a>
+  </nav>
+  <hr>
+  {% block content %}{% endblock %}
+</body>
+</html>
+"""
+
+# requirements.txt
+"""
+Django>=3.2
+PyPDF2
+python-docx
+transformers
+torch
+"""
+
+# Note: For production, configure authentication, static/media files, and install required packages.
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 66.39 seconds
+Total Tokens: 10,039 (Input: 4,572, Output: 5,467)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 15.71      321          2,108        1         
+Planning_Generation_1     5.97       773          230          1         
+Planning_Verification_1   2.11       393          121          1         
+Planning_Generation_2     2.62       754          180          1         
+Planning_Verification_2   2.39       343          141          1         
+Planning_Generation_3     4.51       772          177          1         
+Planning_Verification_3   5.84       340          134          1         
+Final_Code_Generation     27.26      876          2,376        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:37:28.400813
+##########################
+

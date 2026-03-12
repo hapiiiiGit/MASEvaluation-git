@@ -1,0 +1,71 @@
+import os
+import moviepy.editor as mp
+import numpy as np
+from pydub import AudioSegment
+from flask import Flask, request, jsonify, render_template
+from flask_sqlalchemy import SQLAlchemy
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import librosa
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///subscriptions.db'
+db = SQLAlchemy(app)
+
+class Subscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    license_key = db.Column(db.String(120), unique=True, nullable=False)
+
+def extract_features(audio_path, video_path):
+    audio, sr = librosa.load(audio_path)
+    video = mp.VideoFileClip(video_path)
+    video_audio = video.audio.to_soundarray(fps=sr)
+    video_audio = np.mean(video_audio, axis=1)
+    return audio, video_audio
+
+def synchronize_audio_video(audio, video_audio):
+    correlation = np.correlate(audio, video_audio, mode='full')
+    lag = np.argmax(correlation) - (len(audio) - 1)
+    return lag
+
+def sync_and_export(video_path, audio_path, output_path):
+    audio, video_audio = extract_features(audio_path, video_path)
+    lag = synchronize_audio_video(audio, video_audio)
+    
+    video = mp.VideoFileClip(video_path)
+    audio_segment = AudioSegment.from_file(audio_path)
+    
+    if lag > 0:
+        audio_segment = audio_segment[lag * 1000:]  # lag in milliseconds
+    else:
+        video = video.subclip(-lag / video.fps, video.duration)
+    
+    final_audio = audio_segment.set_frame_rate(44100)
+    final_video = video.set_audio(mp.AudioFileClip(audio_path))
+    final_video.write_videofile(output_path, codec='libx264')
+
+@app.route('/upload', methods=['POST'])
+def upload_files():
+    video_file = request.files['video']
+    audio_file = request.files['audio']
+    output_file = 'output.mp4'
+    
+    video_path = os.path.join('uploads', video_file.filename)
+    audio_path = os.path.join('uploads', audio_file.filename)
+    
+    video_file.save(video_path)
+    audio_file.save(audio_path)
+    
+    sync_and_export(video_path, audio_path, output_file)
+    
+    return jsonify({"message": "Files synchronized and exported successfully!"})
+
+@app.route('/admin', methods=['GET'])
+def admin_panel():
+    subscriptions = Subscription.query.all()
+    return render_template('admin.html', subscriptions=subscriptions)
+
+if __name__ == '__main__':
+    db.create_all()
+    app.run(debug=True)

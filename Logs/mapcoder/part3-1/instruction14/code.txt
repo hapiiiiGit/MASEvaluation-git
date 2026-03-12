@@ -1,0 +1,77 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+from sklearn.metrics import accuracy_score
+from sklearn.ensemble import RandomForestClassifier
+from scipy.optimize import minimize
+
+# Step 1: Define the Objective Function
+def objective_function(params, X_train, y_train, X_val, y_val):
+    n_estimators = int(params[0])
+    max_depth = int(params[1])
+    
+    model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_val)
+    
+    return -accuracy_score(y_val, predictions)  # Minimize negative accuracy
+
+# Step 2: Bayesian Optimization
+def bayesian_optimization(X_train, y_train, X_val, y_val, n_iter=10):
+    # Define the bounds for hyper-parameters
+    bounds = [(10, 200),  # n_estimators
+              (1, 20)]    # max_depth
+
+    # Initialize Gaussian Process
+    kernel = C(1.0, (1e-3, 1e3)) * RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2))
+    gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10)
+
+    # Store results
+    results = []
+
+    # Initial random points
+    for _ in range(5):
+        params = [np.random.uniform(low, high) for low, high in bounds]
+        score = objective_function(params, X_train, y_train, X_val, y_val)
+        results.append((params, score))
+
+    for _ in range(n_iter):
+        # Fit GP to the results
+        X_sample = np.array([r[0] for r in results])
+        y_sample = np.array([r[1] for r in results])
+        gp.fit(X_sample, y_sample)
+
+        # Acquisition function: Expected Improvement
+        def acquisition_function(x):
+            mu, sigma = gp.predict(np.array([x]).reshape(1, -1), return_std=True)
+            return -mu + 1.96 * sigma  # Upper Confidence Bound
+
+        # Optimize acquisition function
+        res = minimize(acquisition_function, x0=np.random.uniform(bounds[0][0], bounds[0][1], len(bounds)), bounds=bounds)
+        next_params = res.x
+        next_score = objective_function(next_params, X_train, y_train, X_val, y_val)
+        
+        results.append((next_params, next_score))
+
+    # Select the best hyper-parameters
+    best_params = min(results, key=lambda x: x[1])[0]
+    return best_params
+
+# Step 3: Data Preparation
+def prepare_data(data):
+    # Assuming 'data' is a DataFrame with features and target
+    X = data.drop('target', axis=1)
+    y = data['target']
+    return train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Main function to run the optimization
+def main(data):
+    X_train, X_val, y_train, y_val = prepare_data(data)
+    best_hyperparams = bayesian_optimization(X_train, y_train, X_val, y_val)
+    print("Best Hyper-parameters:", best_hyperparams)
+
+# Example usage
+# data = pd.read_csv('stock_options_data.csv')  # Load your dataset here
+# main(data)

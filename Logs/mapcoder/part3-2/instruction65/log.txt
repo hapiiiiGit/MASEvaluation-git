@@ -1,0 +1,963 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:49:20.959455
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python program that uses a WhatsApp Business API to create a missed-call text-back solution that logs caller information, sends automated replies, stores call and message data with timestamps, supports message scheduling, and provides a web dashboard with real-time logs and CSV export functionality.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+A company wants to implement an automated email responder system that logs incoming emails, sends predefined replies, stores email and response data with timestamps, supports scheduling of follow-up emails, and provides a web dashboard for real-time logs and CSV export.
+]]></description>
+<code><![CDATA[
+# Step 1: Set up an email listener using IMAP to fetch incoming emails.
+# Step 2: For each new email, log the sender, subject, and timestamp in a database.
+# Step 3: Send an automated reply using SMTP.
+# Step 4: Store the sent message and timestamp in the database.
+# Step 5: Implement scheduling for follow-up emails using a task scheduler like Celery.
+# Step 6: Create a Flask web dashboard to display logs in real-time and allow CSV export.
+
+import imaplib
+import smtplib
+import email
+from email.mime.text import MIMEText
+import sqlite3
+from flask import Flask, render_template, send_file
+import csv
+import threading
+import time
+
+# Database setup
+conn = sqlite3.connect('emails.db', check_same_thread=False)
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS logs
+             (id INTEGER PRIMARY KEY, sender TEXT, subject TEXT, received TIMESTAMP, reply_sent TIMESTAMP)''')
+conn.commit()
+
+# Email listener (simplified)
+def check_emails():
+    while True:
+        mail = imaplib.IMAP4_SSL('imap.example.com')
+        mail.login('user@example.com', 'password')
+        mail.select('inbox')
+        typ, data = mail.search(None, 'UNSEEN')
+        for num in data[0].split():
+            typ, msg_data = mail.fetch(num, '(RFC822)')
+            msg = email.message_from_bytes(msg_data[0][1])
+            sender = msg['From']
+            subject = msg['Subject']
+            received = time.strftime('%Y-%m-%d %H:%M:%S')
+            # Log email
+            c.execute("INSERT INTO logs (sender, subject, received) VALUES (?, ?, ?)", (sender, subject, received))
+            conn.commit()
+            # Send reply
+            send_reply(sender)
+        mail.logout()
+        time.sleep(60)
+
+def send_reply(to_addr):
+    smtp = smtplib.SMTP('smtp.example.com', 587)
+    smtp.starttls()
+    smtp.login('user@example.com', 'password')
+    msg = MIMEText('Thank you for your email. We will get back to you soon.')
+    msg['Subject'] = 'Re: Your Email'
+    msg['From'] = 'user@example.com'
+    msg['To'] = to_addr
+    smtp.sendmail('user@example.com', to_addr, msg.as_string())
+    reply_sent = time.strftime('%Y-%m-%d %H:%M:%S')
+    c.execute("UPDATE logs SET reply_sent=? WHERE sender=? AND reply_sent IS NULL", (reply_sent, to_addr))
+    conn.commit()
+    smtp.quit()
+
+# Flask dashboard
+app = Flask(__name__)
+
+@app.route('/')
+def dashboard():
+    c.execute("SELECT * FROM logs ORDER BY received DESC")
+    logs = c.fetchall()
+    return render_template('dashboard.html', logs=logs)
+
+@app.route('/export')
+def export_csv():
+    c.execute("SELECT * FROM logs")
+    logs = c.fetchall()
+    with open('logs.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['ID', 'Sender', 'Subject', 'Received', 'Reply Sent'])
+        writer.writerows(logs)
+    return send_file('logs.csv', as_attachment=True)
+
+if __name__ == '__main__':
+    threading.Thread(target=check_emails, daemon=True).start()
+    app.run(debug=True)
+]]></code>
+<planning><![CDATA[
+1. Set up an email listener using IMAP to fetch new emails.
+2. Log incoming email details (sender, subject, timestamp) in a database.
+3. Send automated replies using SMTP.
+4. Store sent message details and timestamps.
+5. Implement scheduling for follow-up emails using a task scheduler.
+6. Build a Flask web dashboard to display logs and allow CSV export.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+A customer support center wants to implement a missed-call callback system using Twilio Voice API. The system should log missed calls, send SMS notifications to callers, store call and message data with timestamps, support scheduling of callback calls, and provide a web dashboard for real-time logs and CSV export.
+]]></description>
+<code><![CDATA[
+# Step 1: Set up a Twilio webhook to receive call events.
+# Step 2: Log missed calls in a database with caller info and timestamp.
+# Step 3: Send SMS notifications to missed callers using Twilio SMS API.
+# Step 4: Store SMS data and timestamps.
+# Step 5: Implement scheduling for callback calls.
+# Step 6: Build a Flask web dashboard for logs and CSV export.
+
+from flask import Flask, request, render_template, send_file
+from twilio.rest import Client
+import sqlite3
+import csv
+import threading
+import time
+
+app = Flask(__name__)
+conn = sqlite3.connect('calls.db', check_same_thread=False)
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS logs
+             (id INTEGER PRIMARY KEY, caller TEXT, call_time TIMESTAMP, sms_sent TIMESTAMP)''')
+conn.commit()
+
+TWILIO_SID = 'your_sid'
+TWILIO_AUTH = 'your_auth'
+TWILIO_NUMBER = '+1234567890'
+client = Client(TWILIO_SID, TWILIO_AUTH)
+
+@app.route('/twilio_webhook', methods=['POST'])
+def twilio_webhook():
+    from_number = request.form['From']
+    call_time = time.strftime('%Y-%m-%d %H:%M:%S')
+    c.execute("INSERT INTO logs (caller, call_time) VALUES (?, ?)", (from_number, call_time))
+    conn.commit()
+    send_sms(from_number)
+    return '', 200
+
+def send_sms(to_number):
+    message = client.messages.create(
+        body="We missed your call. We'll get back to you soon.",
+        from_=TWILIO_NUMBER,
+        to=to_number
+    )
+    sms_sent = time.strftime('%Y-%m-%d %H:%M:%S')
+    c.execute("UPDATE logs SET sms_sent=? WHERE caller=? AND sms_sent IS NULL", (sms_sent, to_number))
+    conn.commit()
+
+@app.route('/')
+def dashboard():
+    c.execute("SELECT * FROM logs ORDER BY call_time DESC")
+    logs = c.fetchall()
+    return render_template('dashboard.html', logs=logs)
+
+@app.route('/export')
+def export_csv():
+    c.execute("SELECT * FROM logs")
+    logs = c.fetchall()
+    with open('calls.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['ID', 'Caller', 'Call Time', 'SMS Sent'])
+        writer.writerows(logs)
+    return send_file('calls.csv', as_attachment=True)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+]]></code>
+<planning><![CDATA[
+1. Set up a Twilio webhook to receive call events.
+2. Log missed calls in a database with caller info and timestamp.
+3. Send SMS notifications to missed callers using Twilio SMS API.
+4. Store SMS data and timestamps.
+5. Implement scheduling for callback calls.
+6. Build a Flask web dashboard for logs and CSV export.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+A school wants to automate attendance notifications. When a student is marked absent, the system should log the absence, send an SMS to the parent, store notification data with timestamps, support scheduling of reminder messages, and provide a web dashboard for real-time logs and CSV export.
+]]></description>
+<code><![CDATA[
+# Step 1: Teacher marks student absent in the system.
+# Step 2: Log absence in a database with student and parent info, and timestamp.
+# Step 3: Send SMS notification to parent using an SMS API.
+# Step 4: Store notification data and timestamps.
+# Step 5: Implement scheduling for reminder messages.
+# Step 6: Build a Flask web dashboard for logs and CSV export.
+
+from flask import Flask, request, render_template, send_file
+import sqlite3
+import csv
+import threading
+import time
+
+app = Flask(__name__)
+conn = sqlite3.connect('attendance.db', check_same_thread=False)
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS absences
+             (id INTEGER PRIMARY KEY, student TEXT, parent TEXT, absent_time TIMESTAMP, sms_sent TIMESTAMP)''')
+conn.commit()
+
+def send_sms(to_number, message):
+    # Placeholder for SMS API integration
+    print(f"Sending SMS to {to_number}: {message}")
+
+@app.route('/mark_absent', methods=['POST'])
+def mark_absent():
+    student = request.form['student']
+    parent = request.form['parent']
+    absent_time = time.strftime('%Y-%m-%d %H:%M:%S')
+    c.execute("INSERT INTO absences (student, parent, absent_time) VALUES (?, ?, ?)", (student, parent, absent_time))
+    conn.commit()
+    send_sms(parent, f"Your child {student} was absent today.")
+    sms_sent = time.strftime('%Y-%m-%d %H:%M:%S')
+    c.execute("UPDATE absences SET sms_sent=? WHERE student=? AND sms_sent IS NULL", (sms_sent, student))
+    conn.commit()
+    return 'Absent marked and SMS sent.'
+
+@app.route('/')
+def dashboard():
+    c.execute("SELECT * FROM absences ORDER BY absent_time DESC")
+    logs = c.fetchall()
+    return render_template('dashboard.html', logs=logs)
+
+@app.route('/export')
+def export_csv():
+    c.execute("SELECT * FROM absences")
+    logs = c.fetchall()
+    with open('absences.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['ID', 'Student', 'Parent', 'Absent Time', 'SMS Sent'])
+        writer.writerows(logs)
+    return send_file('absences.csv', as_attachment=True)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+]]></code>
+<planning><![CDATA[
+1. Teacher marks student absent in the system.
+2. Log absence in a database with student and parent info, and timestamp.
+3. Send SMS notification to parent using an SMS API.
+4. Store notification data and timestamps.
+5. Implement scheduling for reminder messages.
+6. Build a Flask web dashboard for logs and CSV export.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem is best solved using the Event-driven Programming paradigm, combined with Database Management and Web Development techniques. The core algorithmic approach is Event-driven, where actions (missed calls, messages, scheduling) trigger automated workflows.
+
+Tutorial:
+Event-driven Programming is a paradigm in which the flow of the program is determined by events such as user actions (mouse clicks, key presses), sensor outputs, or messages from other programs/threads. In the context of automation (like WhatsApp Business API, email, or SMS), events are typically incoming messages, calls, or scheduled tasks.
+
+High-level steps for solving such problems:
+1. **Event Listener/Handler**: Set up listeners (webhooks, polling, or API endpoints) to detect events (missed calls, incoming messages).
+2. **Data Logging**: Store event data (caller info, timestamps, message content) in a persistent database.
+3. **Automated Response**: Trigger automated actions (send reply, SMS, email) in response to events.
+4. **Scheduling**: Use a scheduler (like Celery, APScheduler, or cron) to handle delayed or recurring tasks (e.g., scheduled messages).
+5. **Web Dashboard**: Build a web interface (using Flask, Django, etc.) to display logs, provide real-time updates, and allow data export (CSV).
+6. **Concurrency**: Use threading or asynchronous programming to handle multiple events and scheduled tasks efficiently.
+
+This approach is modular and scalable, allowing you to add new event types, actions, and reporting features as needed. The key is to design robust event handlers and ensure reliable data storage and retrieval for logs and dashboards.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+A company wants to implement an automated email responder system that logs incoming emails, sends predefined replies, stores email and response data with timestamps, supports scheduling of follow-up emails, and provides a web dashboard for real-time logs and CSV export.
+
+# Planning:
+
+1. Set up an email listener using IMAP to fetch new emails.
+2. Log incoming email details (sender, subject, timestamp) in a database.
+3. Send automated replies using SMTP.
+4. Store sent message details and timestamps.
+5. Implement scheduling for follow-up emails using a task scheduler.
+6. Build a Flask web dashboard to display logs and allow CSV export.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is best solved using the Event-driven Programming paradigm, combined with Database Management and Web Development techniques. The core algorithmic approach is Event-driven, where actions (missed calls, messages, scheduling) trigger automated workflows.
+
+Tutorial:
+Event-driven Programming is a paradigm in which the flow of the program is determined by events such as user actions (mouse clicks, key presses), sensor outputs, or messages from other programs/threads. In the context of automation (like WhatsApp Business API, email, or SMS), events are typically incoming messages, calls, or scheduled tasks.
+
+High-level steps for solving such problems:
+1. **Event Listener/Handler**: Set up listeners (webhooks, polling, or API endpoints) to detect events (missed calls, incoming messages).
+2. **Data Logging**: Store event data (caller info, timestamps, message content) in a persistent database.
+3. **Automated Response**: Trigger automated actions (send reply, SMS, email) in response to events.
+4. **Scheduling**: Use a scheduler (like Celery, APScheduler, or cron) to handle delayed or recurring tasks (e.g., scheduled messages).
+5. **Web Dashboard**: Build a web interface (using Flask, Django, etc.) to display logs, provide real-time updates, and allow data export (CSV).
+6. **Concurrency**: Use threading or asynchronous programming to handle multiple events and scheduled tasks efficiently.
+
+This approach is modular and scalable, allowing you to add new event types, actions, and reporting features as needed. The key is to design robust event handlers and ensure reliable data storage and retrieval for logs and dashboards.
+
+## Problem to be solved:
+
+Please help me implement a Python program that uses a WhatsApp Business API to create a missed-call text-back solution that logs caller information, sends automated replies, stores call and message data with timestamps, supports message scheduling, and provides a web dashboard with real-time logs and CSV export functionality.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+1. Set up a webhook endpoint to receive missed call events from WhatsApp Business API.
+2. Parse incoming event data to extract caller information and timestamp.
+3. Log missed call details in a database (e.g., SQLite or PostgreSQL).
+4. Send automated text-back replies using WhatsApp Business API.
+5. Store sent message details and timestamps in the database.
+6. Implement message scheduling using a task scheduler (e.g., APScheduler or Celery).
+7. Build a Flask web dashboard to display real-time logs from the database.
+8. Add CSV export functionality to the dashboard for call and message logs.
+9. Ensure concurrency/asynchronous handling for event processing and scheduled tasks.
+10. Write unit tests for event handling, logging, messaging, scheduling, and dashboard endpoints.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program that uses a WhatsApp Business API to create a missed-call text-back solution that logs caller information, sends automated replies, stores call and message data with timestamps, supports message scheduling, and provides a web dashboard with real-time logs and CSV export functionality.
+
+# Planning:
+1. Set up a webhook endpoint to receive missed call events from WhatsApp Business API.
+2. Parse incoming event data to extract caller information and timestamp.
+3. Log missed call details in a database (e.g., SQLite or PostgreSQL).
+4. Send automated text-back replies using WhatsApp Business API.
+5. Store sent message details and timestamps in the database.
+6. Implement message scheduling using a task scheduler (e.g., APScheduler or Celery).
+7. Build a Flask web dashboard to display real-time logs from the database.
+8. Add CSV export functionality to the dashboard for call and message logs.
+9. Ensure concurrency/asynchronous handling for event processing and scheduled tasks.
+10. Write unit tests for event handling, logging, messaging, scheduling, and dashboard endpoints.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a real-world software engineering task involving integration with the WhatsApp Business API, database management, web development, and asynchronous processing. The provided plan outlines a comprehensive approach to building a missed-call text-back solution, including event handling, automated messaging, data storage, scheduling, dashboard creation, CSV export, concurrency, and testing. The plan is well-structured and covers all necessary components to solve the problem as described. However, this is not a problem that would be solved in a competitive programming context, which usually involves algorithmic challenges with input/output constraints, not full-stack application development.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+A customer support center wants to implement a missed-call callback system using Twilio Voice API. The system should log missed calls, send SMS notifications to callers, store call and message data with timestamps, support scheduling of callback calls, and provide a web dashboard for real-time logs and CSV export.
+
+# Planning:
+
+1. Set up a Twilio webhook to receive call events.
+2. Log missed calls in a database with caller info and timestamp.
+3. Send SMS notifications to missed callers using Twilio SMS API.
+4. Store SMS data and timestamps.
+5. Implement scheduling for callback calls.
+6. Build a Flask web dashboard for logs and CSV export.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is best solved using the Event-driven Programming paradigm, combined with Database Management and Web Development techniques. The core algorithmic approach is Event-driven, where actions (missed calls, messages, scheduling) trigger automated workflows.
+
+Tutorial:
+Event-driven Programming is a paradigm in which the flow of the program is determined by events such as user actions (mouse clicks, key presses), sensor outputs, or messages from other programs/threads. In the context of automation (like WhatsApp Business API, email, or SMS), events are typically incoming messages, calls, or scheduled tasks.
+
+High-level steps for solving such problems:
+1. **Event Listener/Handler**: Set up listeners (webhooks, polling, or API endpoints) to detect events (missed calls, incoming messages).
+2. **Data Logging**: Store event data (caller info, timestamps, message content) in a persistent database.
+3. **Automated Response**: Trigger automated actions (send reply, SMS, email) in response to events.
+4. **Scheduling**: Use a scheduler (like Celery, APScheduler, or cron) to handle delayed or recurring tasks (e.g., scheduled messages).
+5. **Web Dashboard**: Build a web interface (using Flask, Django, etc.) to display logs, provide real-time updates, and allow data export (CSV).
+6. **Concurrency**: Use threading or asynchronous programming to handle multiple events and scheduled tasks efficiently.
+
+This approach is modular and scalable, allowing you to add new event types, actions, and reporting features as needed. The key is to design robust event handlers and ensure reliable data storage and retrieval for logs and dashboards.
+
+## Problem to be solved:
+
+Please help me implement a Python program that uses a WhatsApp Business API to create a missed-call text-back solution that logs caller information, sends automated replies, stores call and message data with timestamps, supports message scheduling, and provides a web dashboard with real-time logs and CSV export functionality.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+1. Set up a webhook endpoint to receive WhatsApp message events (using Flask).
+2. Parse incoming messages to detect missed-call requests (e.g., specific keywords or call events).
+3. Log caller information, message content, and timestamps in a database (e.g., SQLite or PostgreSQL).
+4. Send automated WhatsApp replies to missed-call messages using the WhatsApp Business API.
+5. Store outgoing message data and timestamps in the database.
+6. Implement message scheduling using a task scheduler (e.g., APScheduler or Celery) for delayed replies.
+7. Build a Flask web dashboard to display real-time logs of calls and messages.
+8. Add CSV export functionality for logs via the dashboard.
+9. Ensure concurrency/asynchronous handling for webhook events and scheduled tasks.
+10. Secure the webhook and dashboard endpoints (authentication, validation).
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program that uses a WhatsApp Business API to create a missed-call text-back solution that logs caller information, sends automated replies, stores call and message data with timestamps, supports message scheduling, and provides a web dashboard with real-time logs and CSV export functionality.
+
+# Planning:
+1. Set up a webhook endpoint to receive WhatsApp message events (using Flask).
+2. Parse incoming messages to detect missed-call requests (e.g., specific keywords or call events).
+3. Log caller information, message content, and timestamps in a database (e.g., SQLite or PostgreSQL).
+4. Send automated WhatsApp replies to missed-call messages using the WhatsApp Business API.
+5. Store outgoing message data and timestamps in the database.
+6. Implement message scheduling using a task scheduler (e.g., APScheduler or Celery) for delayed replies.
+7. Build a Flask web dashboard to display real-time logs of calls and messages.
+8. Add CSV export functionality for logs via the dashboard.
+9. Ensure concurrency/asynchronous handling for webhook events and scheduled tasks.
+10. Secure the webhook and dashboard endpoints (authentication, validation).
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a full-stack software engineering task involving integration with the WhatsApp Business API, web development, database management, and asynchronous task scheduling. The provided plan is comprehensive and covers all necessary steps to implement the described solution in Python3, including webhook setup, message parsing, database logging, automated replies, scheduling, dashboard creation, CSV export, concurrency handling, and security. Each step logically addresses a requirement from the problem statement. However, this is not a problem that would be solved in a competitive programming context, as it requires building and deploying a web application with external API integration, not writing an algorithmic solution.\n', 'confidence': 100}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+A school wants to automate attendance notifications. When a student is marked absent, the system should log the absence, send an SMS to the parent, store notification data with timestamps, support scheduling of reminder messages, and provide a web dashboard for real-time logs and CSV export.
+
+# Planning:
+
+1. Teacher marks student absent in the system.
+2. Log absence in a database with student and parent info, and timestamp.
+3. Send SMS notification to parent using an SMS API.
+4. Store notification data and timestamps.
+5. Implement scheduling for reminder messages.
+6. Build a Flask web dashboard for logs and CSV export.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is best solved using the Event-driven Programming paradigm, combined with Database Management and Web Development techniques. The core algorithmic approach is Event-driven, where actions (missed calls, messages, scheduling) trigger automated workflows.
+
+Tutorial:
+Event-driven Programming is a paradigm in which the flow of the program is determined by events such as user actions (mouse clicks, key presses), sensor outputs, or messages from other programs/threads. In the context of automation (like WhatsApp Business API, email, or SMS), events are typically incoming messages, calls, or scheduled tasks.
+
+High-level steps for solving such problems:
+1. **Event Listener/Handler**: Set up listeners (webhooks, polling, or API endpoints) to detect events (missed calls, incoming messages).
+2. **Data Logging**: Store event data (caller info, timestamps, message content) in a persistent database.
+3. **Automated Response**: Trigger automated actions (send reply, SMS, email) in response to events.
+4. **Scheduling**: Use a scheduler (like Celery, APScheduler, or cron) to handle delayed or recurring tasks (e.g., scheduled messages).
+5. **Web Dashboard**: Build a web interface (using Flask, Django, etc.) to display logs, provide real-time updates, and allow data export (CSV).
+6. **Concurrency**: Use threading or asynchronous programming to handle multiple events and scheduled tasks efficiently.
+
+This approach is modular and scalable, allowing you to add new event types, actions, and reporting features as needed. The key is to design robust event handlers and ensure reliable data storage and retrieval for logs and dashboards.
+
+## Problem to be solved:
+
+Please help me implement a Python program that uses a WhatsApp Business API to create a missed-call text-back solution that logs caller information, sends automated replies, stores call and message data with timestamps, supports message scheduling, and provides a web dashboard with real-time logs and CSV export functionality.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. **Set up WhatsApp Business API Integration**
+   - Register and configure WhatsApp Business API.
+   - Set up webhook endpoint to receive incoming call/message events.
+
+2. **Event Listener/Handler**
+   - Implement webhook endpoint (e.g., using Flask) to listen for missed call events.
+   - Parse incoming event data to extract caller information and timestamps.
+
+3. **Data Logging**
+   - Design and set up a database (e.g., SQLite/PostgreSQL) to store:
+     - Caller phone number
+     - Event type (missed call, message)
+     - Timestamp
+     - Message content (if any)
+     - Status (replied, scheduled, etc.)
+
+4. **Automated Reply**
+   - On receiving a missed call event, trigger an automated WhatsApp message reply to the caller using the API.
+   - Log the reply and timestamp in the database.
+
+5. **Message Scheduling**
+   - Implement scheduling functionality (e.g., using APScheduler or Celery) to send follow-up messages at specified times.
+   - Store scheduled message data and update status after sending.
+
+6. **Web Dashboard**
+   - Build a Flask web dashboard to:
+     - Display real-time logs of missed calls and replies.
+     - Show message scheduling status.
+     - Provide search/filter functionality.
+
+7. **CSV Export**
+   - Add functionality to export logs and message data as CSV files from the dashboard.
+
+8. **Concurrency and Reliability**
+   - Ensure webhook and scheduler can handle concurrent events.
+   - Implement error handling and logging for API failures.
+
+9. **Testing**
+   - Simulate missed call events and verify logging, replies, scheduling, and dashboard features.
+
+10. **Deployment**
+    - Deploy the solution on a server with HTTPS for webhook and dashboard access.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program that uses a WhatsApp Business API to create a missed-call text-back solution that logs caller information, sends automated replies, stores call and message data with timestamps, supports message scheduling, and provides a web dashboard with real-time logs and CSV export functionality.
+
+# Planning:
+**Planning:**
+
+1. **Set up WhatsApp Business API Integration**
+   - Register and configure WhatsApp Business API.
+   - Set up webhook endpoint to receive incoming call/message events.
+
+2. **Event Listener/Handler**
+   - Implement webhook endpoint (e.g., using Flask) to listen for missed call events.
+   - Parse incoming event data to extract caller information and timestamps.
+
+3. **Data Logging**
+   - Design and set up a database (e.g., SQLite/PostgreSQL) to store:
+     - Caller phone number
+     - Event type (missed call, message)
+     - Timestamp
+     - Message content (if any)
+     - Status (replied, scheduled, etc.)
+
+4. **Automated Reply**
+   - On receiving a missed call event, trigger an automated WhatsApp message reply to the caller using the API.
+   - Log the reply and timestamp in the database.
+
+5. **Message Scheduling**
+   - Implement scheduling functionality (e.g., using APScheduler or Celery) to send follow-up messages at specified times.
+   - Store scheduled message data and update status after sending.
+
+6. **Web Dashboard**
+   - Build a Flask web dashboard to:
+     - Display real-time logs of missed calls and replies.
+     - Show message scheduling status.
+     - Provide search/filter functionality.
+
+7. **CSV Export**
+   - Add functionality to export logs and message data as CSV files from the dashboard.
+
+8. **Concurrency and Reliability**
+   - Ensure webhook and scheduler can handle concurrent events.
+   - Implement error handling and logging for API failures.
+
+9. **Testing**
+   - Simulate missed call events and verify logging, replies, scheduling, and dashboard features.
+
+10. **Deployment**
+    - Deploy the solution on a server with HTTPS for webhook and dashboard access.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a full-stack software engineering task involving API integration, web development, database management, scheduling, and deployment. The provided plan is comprehensive and correctly outlines the steps needed to implement the described WhatsApp Business API solution in Python3. It covers all required features: API integration, event handling, data logging, automated replies, scheduling, dashboard creation, CSV export, concurrency, reliability, testing, and deployment. However, this plan is not suitable for a competitive programming context, which usually involves algorithmic challenges solvable within a single code file and does not require external integrations or web development. For the described software solution, the plan is correct and feasible.\n', 'confidence': 100}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem is best solved using the Event-driven Programming paradigm, combined with Database Management and Web Development techniques. The core algorithmic approach is Event-driven, where actions (missed calls, messages, scheduling) trigger automated workflows.
+
+Tutorial:
+Event-driven Programming is a paradigm in which the flow of the program is determined by events such as user actions (mouse clicks, key presses), sensor outputs, or messages from other programs/threads. In the context of automation (like WhatsApp Business API, email, or SMS), events are typically incoming messages, calls, or scheduled tasks.
+
+High-level steps for solving such problems:
+1. **Event Listener/Handler**: Set up listeners (webhooks, polling, or API endpoints) to detect events (missed calls, incoming messages).
+2. **Data Logging**: Store event data (caller info, timestamps, message content) in a persistent database.
+3. **Automated Response**: Trigger automated actions (send reply, SMS, email) in response to events.
+4. **Scheduling**: Use a scheduler (like Celery, APScheduler, or cron) to handle delayed or recurring tasks (e.g., scheduled messages).
+5. **Web Dashboard**: Build a web interface (using Flask, Django, etc.) to display logs, provide real-time updates, and allow data export (CSV).
+6. **Concurrency**: Use threading or asynchronous programming to handle multiple events and scheduled tasks efficiently.
+
+This approach is modular and scalable, allowing you to add new event types, actions, and reporting features as needed. The key is to design robust event handlers and ensure reliable data storage and retrieval for logs and dashboards.
+
+## Problem to be solved:
+
+Please help me implement a Python program that uses a WhatsApp Business API to create a missed-call text-back solution that logs caller information, sends automated replies, stores call and message data with timestamps, supports message scheduling, and provides a web dashboard with real-time logs and CSV export functionality.
+
+## Planning:
+1. Set up a webhook endpoint to receive WhatsApp message events (using Flask).
+2. Parse incoming messages to detect missed-call requests (e.g., specific keywords or call events).
+3. Log caller information, message content, and timestamps in a database (e.g., SQLite or PostgreSQL).
+4. Send automated WhatsApp replies to missed-call messages using the WhatsApp Business API.
+5. Store outgoing message data and timestamps in the database.
+6. Implement message scheduling using a task scheduler (e.g., APScheduler or Celery) for delayed replies.
+7. Build a Flask web dashboard to display real-time logs of calls and messages.
+8. Add CSV export functionality for logs via the dashboard.
+9. Ensure concurrency/asynchronous handling for webhook events and scheduled tasks.
+10. Secure the webhook and dashboard endpoints (authentication, validation).
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+import os
+import csv
+import threading
+from datetime import datetime, timedelta
+
+from flask import Flask, request, jsonify, render_template_string, send_file, redirect, url_for, session
+from flask_sqlalchemy import SQLAlchemy
+from apscheduler.schedulers.background import BackgroundScheduler
+import requests
+
+# Configuration
+WHATSAPP_API_URL = "https://graph.facebook.com/v17.0/<PHONE_NUMBER_ID>/messages"
+WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN", "YOUR_WHATSAPP_TOKEN")
+SCHEDULER_INTERVAL = 1  # seconds
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///missedcall.db")
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "supersecret")
+db = SQLAlchemy(app)
+scheduler = BackgroundScheduler()
+scheduler.start()
+
+# Database Models
+class EventLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    event_type = db.Column(db.String(32))  # 'missed_call', 'incoming_message', 'outgoing_message', 'scheduled_message'
+    wa_id = db.Column(db.String(32))
+    name = db.Column(db.String(128))
+    message = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    scheduled_for = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(32), default='sent')  # 'sent', 'scheduled', 'failed'
+
+db.create_all()
+
+# HTML Template for Dashboard
+DASHBOARD_HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Missed Call Dashboard</title>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; }
+        th { background: #eee; }
+        .scheduled { background: #ffffcc; }
+        .missed_call { background: #ffe6e6; }
+        .outgoing_message { background: #e6ffe6; }
+    </style>
+</head>
+<body>
+    <h2>Missed Call & Message Logs</h2>
+    <form method="post" action="{{ url_for('schedule_message') }}">
+        <h3>Schedule Message</h3>
+        <label>WA ID:</label> <input name="wa_id" required>
+        <label>Message:</label> <input name="message" required>
+        <label>Send After (minutes):</label> <input name="delay" type="number" min="1" value="1" required>
+        <button type="submit">Schedule</button>
+    </form>
+    <br>
+    <a href="{{ url_for('export_csv') }}">Export CSV</a> | <a href="{{ url_for('logout') }}">Logout</a>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Type</th>
+            <th>WA ID</th>
+            <th>Name</th>
+            <th>Message</th>
+            <th>Timestamp</th>
+            <th>Scheduled For</th>
+            <th>Status</th>
+        </tr>
+        {% for log in logs %}
+        <tr class="{{ log.event_type }}">
+            <td>{{ log.id }}</td>
+            <td>{{ log.event_type }}</td>
+            <td>{{ log.wa_id }}</td>
+            <td>{{ log.name }}</td>
+            <td>{{ log.message }}</td>
+            <td>{{ log.timestamp }}</td>
+            <td>{{ log.scheduled_for or '' }}</td>
+            <td>{{ log.status }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
+"""
+
+# Authentication
+def check_auth():
+    return session.get('logged_in', False)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form.get('password') == ADMIN_PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('dashboard'))
+        else:
+            return "Invalid password", 403
+    return '''
+        <form method="post">
+            <input type="password" name="password" placeholder="Admin Password" required>
+            <button type="submit">Login</button>
+        </form>
+    '''
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# Webhook Endpoint
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.get_json()
+    # WhatsApp Business API webhook format
+    try:
+        for entry in data.get('entry', []):
+            for change in entry.get('changes', []):
+                value = change.get('value', {})
+                for msg in value.get('messages', []):
+                    wa_id = msg['from']
+                    name = msg.get('profile', {}).get('name', '')
+                    message = msg.get('text', {}).get('body', '')
+                    timestamp = datetime.utcfromtimestamp(int(msg.get('timestamp', datetime.utcnow().timestamp())))
+                    # Detect missed call event (e.g., keyword "missed call" or call event)
+                    if 'missed call' in message.lower() or msg.get('type') == 'call':
+                        log_event('missed_call', wa_id, name, message, timestamp)
+                        send_whatsapp_message(wa_id, "Thank you for your missed call. We'll get back to you soon.")
+                    else:
+                        log_event('incoming_message', wa_id, name, message, timestamp)
+        return jsonify({"status": "received"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+def log_event(event_type, wa_id, name, message, timestamp=None, scheduled_for=None, status='sent'):
+    log = EventLog(
+        event_type=event_type,
+        wa_id=wa_id,
+        name=name,
+        message=message,
+        timestamp=timestamp or datetime.utcnow(),
+        scheduled_for=scheduled_for,
+        status=status
+    )
+    db.session.add(log)
+    db.session.commit()
+    return log
+
+def send_whatsapp_message(wa_id, message):
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": wa_id,
+        "type": "text",
+        "text": {"body": message}
+    }
+    headers = {
+        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    try:
+        resp = requests.post(WHATSAPP_API_URL, json=payload, headers=headers, timeout=10)
+        status = 'sent' if resp.status_code == 200 else 'failed'
+    except Exception:
+        status = 'failed'
+    log_event('outgoing_message', wa_id, '', message, status=status)
+
+# Message Scheduling
+def schedule_message_job(log_id, wa_id, message):
+    send_whatsapp_message(wa_id, message)
+    log = EventLog.query.get(log_id)
+    if log:
+        log.status = 'sent'
+        db.session.commit()
+
+@app.route('/schedule_message', methods=['POST'])
+def schedule_message():
+    if not check_auth():
+        return redirect(url_for('login'))
+    wa_id = request.form['wa_id']
+    message = request.form['message']
+    delay = int(request.form['delay'])
+    scheduled_for = datetime.utcnow() + timedelta(minutes=delay)
+    log = log_event('scheduled_message', wa_id, '', message, scheduled_for=scheduled_for, status='scheduled')
+    scheduler.add_job(
+        schedule_message_job,
+        'date',
+        run_date=scheduled_for,
+        args=[log.id, wa_id, message],
+        id=f"msg_{log.id}"
+    )
+    return redirect(url_for('dashboard'))
+
+# Dashboard
+@app.route('/')
+def dashboard():
+    if not check_auth():
+        return redirect(url_for('login'))
+    logs = EventLog.query.order_by(EventLog.timestamp.desc()).limit(200).all()
+    return render_template_string(DASHBOARD_HTML, logs=logs)
+
+# CSV Export
+@app.route('/export_csv')
+def export_csv():
+    if not check_auth():
+        return redirect(url_for('login'))
+    logs = EventLog.query.order_by(EventLog.timestamp.desc()).all()
+    filename = "missedcall_logs.csv"
+    with open(filename, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(['ID', 'Type', 'WA ID', 'Name', 'Message', 'Timestamp', 'Scheduled For', 'Status'])
+        for log in logs:
+            writer.writerow([
+                log.id, log.event_type, log.wa_id, log.name, log.message,
+                log.timestamp, log.scheduled_for, log.status
+            ])
+    return send_file(filename, as_attachment=True)
+
+# Run Flask app
+if __name__ == '__main__':
+    app.run(debug=True, threaded=True, port=5000)
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 53.30 seconds
+Total Tokens: 9,608 (Input: 3,948, Output: 5,660)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 24.47      327          2,561        1         
+Planning_Generation_1     2.13       592          158          1         
+Planning_Verification_1   2.31       327          153          1         
+Planning_Generation_2     2.48       596          170          1         
+Planning_Verification_2   2.29       339          158          1         
+Planning_Generation_3     3.99       589          367          1         
+Planning_Verification_3   2.39       536          166          1         
+Final_Code_Generation     13.25      642          1,927        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:50:14.309530
+##########################
+

@@ -1,0 +1,58 @@
+sequenceDiagram
+    participant FE as Frontend (React)
+    participant API as Django REST API
+    participant DB as MySQL
+    participant AU as AuditLog
+    participant U as User
+    participant GL as GeneralLedger
+    participant INV as Invoices
+    participant PUR as Purchases
+    participant INVN as Inventory
+    participant REP as Reports
+
+    Note over FE,API: User logs in
+    FE->>API: POST /api/auth/login
+    API->>DB: Validate credentials
+    DB-->>API: User data
+    API->>AU: Log login event
+    API-->>FE: Auth token
+
+    Note over FE,API: User creates a journal entry
+    FE->>API: POST /api/general_ledger/journal_entries
+    API->>GL: Create JournalEntry, JournalEntryLine
+    GL->>DB: Insert journal entry, lines
+    DB-->>GL: Success
+    GL->>AU: Log create event
+    API-->>FE: Journal entry created
+
+    Note over FE,API: User creates an invoice
+    FE->>API: POST /api/invoices/
+    API->>INV: Create Invoice, InvoiceLine
+    INV->>DB: Insert invoice, lines
+    DB-->>INV: Success
+    INV->>AU: Log create event
+    API-->>FE: Invoice created
+
+    Note over FE,API: User creates a purchase order
+    FE->>API: POST /api/purchases/orders
+    API->>PUR: Create PurchaseOrder, PurchaseOrderLine
+    PUR->>DB: Insert purchase order, lines
+    DB-->>PUR: Success
+    PUR->>AU: Log create event
+    API-->>FE: Purchase order created
+
+    Note over FE,API: User adjusts inventory
+    FE->>API: POST /api/inventory/adjustments
+    API->>INVN: Create InventoryAdjustment
+    INVN->>DB: Insert adjustment
+    DB-->>INVN: Success
+    INVN->>AU: Log adjustment
+    API-->>FE: Adjustment created
+
+    Note over FE,API: User generates a financial report
+    FE->>API: GET /api/reports/balance_sheet?params
+    API->>REP: Generate report
+    REP->>DB: Query relevant data
+    DB-->>REP: Data
+    REP->>AU: Log report generation
+    API-->>FE: Report data

@@ -1,0 +1,1007 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:06:24.287287
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python program to design and develop data ingestion and transformation pipelines that clean raw customer data, load it into a data warehouse or lake, and create a semantic layer for AI-driven queries, ensuring efficient handling of schema changes and data quality checks.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+Design a Python program to automate the extraction, transformation, and loading (ETL) of sales transaction data from multiple CSV files into a PostgreSQL database, ensuring duplicate records are removed and missing values are handled appropriately.
+]]></description>
+<code><![CDATA[
+# Step 1: Import necessary libraries
+import pandas as pd
+import glob
+import psycopg2
+
+# Step 2: Read all CSV files from a directory
+csv_files = glob.glob('sales_data/*.csv')
+dataframes = [pd.read_csv(file) for file in csv_files]
+
+# Step 3: Concatenate all dataframes
+all_data = pd.concat(dataframes, ignore_index=True)
+
+# Step 4: Remove duplicate records
+all_data = all_data.drop_duplicates()
+
+# Step 5: Handle missing values (e.g., fill with default or drop)
+all_data = all_data.fillna({'customer_id': 'Unknown', 'amount': 0})
+
+# Step 6: Connect to PostgreSQL and load data
+conn = psycopg2.connect(
+    dbname="sales_db",
+    user="user",
+    password="password",
+    host="localhost"
+)
+cur = conn.cursor()
+
+# Step 7: Insert data into the database
+for _, row in all_data.iterrows():
+    cur.execute(
+        "INSERT INTO sales (customer_id, amount, date) VALUES (%s, %s, %s)",
+        (row['customer_id'], row['amount'], row['date'])
+    )
+conn.commit()
+cur.close()
+conn.close()
+]]></code>
+<planning><![CDATA[
+1. Gather all sales transaction CSV files from the specified directory.
+2. Read and combine all files into a single DataFrame.
+3. Remove duplicate records to ensure data integrity.
+4. Handle missing values by filling with defaults or dropping rows.
+5. Establish a connection to the PostgreSQL database.
+6. Insert cleaned data into the target table.
+7. Close the database connection.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Create a Python pipeline to ingest streaming IoT sensor data, validate the data for outliers and missing values, store the cleaned data in a time-series database, and generate daily summary reports.
+]]></description>
+<code><![CDATA[
+# Step 1: Simulate streaming data ingestion
+import random
+import time
+import pandas as pd
+
+def stream_sensor_data():
+    while True:
+        yield {
+            'sensor_id': random.randint(1, 10),
+            'timestamp': pd.Timestamp.now(),
+            'temperature': random.uniform(-10, 50)  # Simulate outliers
+        }
+        time.sleep(1)
+
+# Step 2: Validate data for outliers and missing values
+def validate_data(record):
+    if record['temperature'] < -5 or record['temperature'] > 40:
+        return None  # Outlier
+    if pd.isnull(record['temperature']):
+        return None  # Missing value
+    return record
+
+# Step 3: Store cleaned data in a time-series database (simulate with DataFrame)
+cleaned_data = []
+
+for record in stream_sensor_data():
+    valid_record = validate_data(record)
+    if valid_record:
+        cleaned_data.append(valid_record)
+    if len(cleaned_data) >= 100:  # For demo, stop after 100 records
+        break
+
+df = pd.DataFrame(cleaned_data)
+
+# Step 4: Generate daily summary report
+daily_summary = df.groupby(df['timestamp'].dt.date).agg({
+    'temperature': ['mean', 'min', 'max'],
+    'sensor_id': 'count'
+})
+print(daily_summary)
+]]></code>
+<planning><![CDATA[
+1. Simulate or connect to a streaming source of IoT sensor data.
+2. For each incoming record, validate for outliers and missing values.
+3. Store only valid records in a time-series database or DataFrame.
+4. Periodically aggregate and summarize the data by day.
+5. Output or store daily summary reports for further analysis.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Develop a Python program to ingest raw product catalog data from JSON files, normalize nested structures, perform data quality checks (e.g., unique product IDs, valid prices), and load the cleaned data into a NoSQL database such as MongoDB.
+]]></description>
+<code><![CDATA[
+# Step 1: Import libraries
+import json
+import glob
+import pandas as pd
+from pymongo import MongoClient
+
+# Step 2: Read all JSON files
+json_files = glob.glob('product_catalog/*.json')
+products = []
+for file in json_files:
+    with open(file, 'r') as f:
+        products.extend(json.load(f))
+
+# Step 3: Normalize nested structures
+df = pd.json_normalize(products)
+
+# Step 4: Data quality checks
+df = df.drop_duplicates(subset=['product_id'])
+df = df[df['price'].apply(lambda x: isinstance(x, (int, float)) and x > 0)]
+
+# Step 5: Load into MongoDB
+client = MongoClient('localhost', 27017)
+db = client['catalog_db']
+collection = db['products']
+
+records = df.to_dict(orient='records')
+collection.insert_many(records)
+]]></code>
+<planning><![CDATA[
+1. Read all raw product catalog JSON files from the directory.
+2. Normalize nested JSON structures into a flat DataFrame.
+3. Ensure product IDs are unique and prices are valid.
+4. Connect to MongoDB and insert the cleaned records.
+5. Verify successful ingestion and data integrity in the database.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem requires designing data ingestion and transformation pipelines that clean raw customer data, handle schema changes, perform data quality checks, and create a semantic layer for AI-driven queries. The main algorithms and techniques involved are:
+
+- ETL (Extract, Transform, Load) Pipelines
+- Data Cleaning and Validation
+- Schema Evolution Handling
+- Semantic Layer Construction
+
+Tutorial:
+
+1. **ETL Pipeline Design**:
+   - **Extract**: Gather raw data from various sources (files, databases, APIs).
+   - **Transform**: Clean and preprocess data (remove duplicates, handle missing values, normalize formats).
+   - **Load**: Insert cleaned data into a target system (data warehouse, data lake).
+
+2. **Data Cleaning and Validation**:
+   - Remove duplicates using unique keys.
+   - Handle missing values by imputation or removal.
+   - Validate data types and ranges (e.g., numeric fields, dates).
+   - Use libraries like pandas for efficient data manipulation.
+
+3. **Schema Evolution Handling**:
+   - Detect schema changes (new columns, removed columns, type changes).
+   - Use schema registry or versioning to track changes.
+   - Implement dynamic mapping or transformation logic to adapt to schema changes.
+
+4. **Semantic Layer Construction**:
+   - Build a logical abstraction over raw data (views, models, or APIs).
+   - Map business concepts to data fields for AI-driven queries.
+   - Use tools like dbt, Apache Superset, or custom Python classes to define semantic models.
+
+5. **Data Quality Checks**:
+   - Implement validation rules (e.g., unique constraints, referential integrity).
+   - Log and report data quality issues for monitoring.
+
+**High-Level Steps**:
+- Start by identifying all data sources and their formats.
+- Build modular ETL components for extraction, transformation, and loading.
+- Integrate data validation and cleaning at the transformation stage.
+- Design mechanisms to detect and handle schema changes gracefully.
+- Create a semantic layer that abstracts raw data for AI and analytics.
+- Continuously monitor and improve data quality.
+
+This approach ensures robust, scalable, and adaptable data pipelines suitable for modern data engineering and AI applications.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Design a Python program to automate the extraction, transformation, and loading (ETL) of sales transaction data from multiple CSV files into a PostgreSQL database, ensuring duplicate records are removed and missing values are handled appropriately.
+
+# Planning:
+
+1. Gather all sales transaction CSV files from the specified directory.
+2. Read and combine all files into a single DataFrame.
+3. Remove duplicate records to ensure data integrity.
+4. Handle missing values by filling with defaults or dropping rows.
+5. Establish a connection to the PostgreSQL database.
+6. Insert cleaned data into the target table.
+7. Close the database connection.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires designing data ingestion and transformation pipelines that clean raw customer data, handle schema changes, perform data quality checks, and create a semantic layer for AI-driven queries. The main algorithms and techniques involved are:
+
+- ETL (Extract, Transform, Load) Pipelines
+- Data Cleaning and Validation
+- Schema Evolution Handling
+- Semantic Layer Construction
+
+Tutorial:
+
+1. **ETL Pipeline Design**:
+   - **Extract**: Gather raw data from various sources (files, databases, APIs).
+   - **Transform**: Clean and preprocess data (remove duplicates, handle missing values, normalize formats).
+   - **Load**: Insert cleaned data into a target system (data warehouse, data lake).
+
+2. **Data Cleaning and Validation**:
+   - Remove duplicates using unique keys.
+   - Handle missing values by imputation or removal.
+   - Validate data types and ranges (e.g., numeric fields, dates).
+   - Use libraries like pandas for efficient data manipulation.
+
+3. **Schema Evolution Handling**:
+   - Detect schema changes (new columns, removed columns, type changes).
+   - Use schema registry or versioning to track changes.
+   - Implement dynamic mapping or transformation logic to adapt to schema changes.
+
+4. **Semantic Layer Construction**:
+   - Build a logical abstraction over raw data (views, models, or APIs).
+   - Map business concepts to data fields for AI-driven queries.
+   - Use tools like dbt, Apache Superset, or custom Python classes to define semantic models.
+
+5. **Data Quality Checks**:
+   - Implement validation rules (e.g., unique constraints, referential integrity).
+   - Log and report data quality issues for monitoring.
+
+**High-Level Steps**:
+- Start by identifying all data sources and their formats.
+- Build modular ETL components for extraction, transformation, and loading.
+- Integrate data validation and cleaning at the transformation stage.
+- Design mechanisms to detect and handle schema changes gracefully.
+- Create a semantic layer that abstracts raw data for AI and analytics.
+- Continuously monitor and improve data quality.
+
+This approach ensures robust, scalable, and adaptable data pipelines suitable for modern data engineering and AI applications.
+
+## Problem to be solved:
+
+Please help me implement a Python program to design and develop data ingestion and transformation pipelines that clean raw customer data, load it into a data warehouse or lake, and create a semantic layer for AI-driven queries, ensuring efficient handling of schema changes and data quality checks.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+1. Identify all raw customer data sources and their formats (CSV, JSON, database, etc.).
+2. Implement extraction modules to ingest data from each source.
+3. Detect and track schema versions for each data source.
+4. Read and combine data into a unified DataFrame, dynamically adapting to schema changes.
+5. Clean and validate data:
+   - Remove duplicates using unique customer identifiers.
+   - Handle missing values via imputation or row removal.
+   - Validate data types and value ranges.
+   - Log data quality issues.
+6. Transform data to standardized formats and business logic requirements.
+7. Load cleaned and transformed data into the target data warehouse or data lake.
+8. Build and maintain a semantic layer (views, models, or APIs) mapping business concepts to data fields.
+9. Implement automated data quality checks and monitoring.
+10. Schedule and orchestrate the pipeline for regular execution.
+11. Document schema mappings, transformation logic, and data quality rules.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to design and develop data ingestion and transformation pipelines that clean raw customer data, load it into a data warehouse or lake, and create a semantic layer for AI-driven queries, ensuring efficient handling of schema changes and data quality checks.
+
+# Planning:
+1. Identify all raw customer data sources and their formats (CSV, JSON, database, etc.).
+2. Implement extraction modules to ingest data from each source.
+3. Detect and track schema versions for each data source.
+4. Read and combine data into a unified DataFrame, dynamically adapting to schema changes.
+5. Clean and validate data:
+   - Remove duplicates using unique customer identifiers.
+   - Handle missing values via imputation or row removal.
+   - Validate data types and value ranges.
+   - Log data quality issues.
+6. Transform data to standardized formats and business logic requirements.
+7. Load cleaned and transformed data into the target data warehouse or data lake.
+8. Build and maintain a semantic layer (views, models, or APIs) mapping business concepts to data fields.
+9. Implement automated data quality checks and monitoring.
+10. Schedule and orchestrate the pipeline for regular execution.
+11. Document schema mappings, transformation logic, and data quality rules.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a real-world data engineering task involving data ingestion, transformation, schema management, data quality checks, and semantic layer creation. The provided plan is comprehensive and well-structured for solving such a data engineering challenge in Python3, covering all necessary steps from data extraction to pipeline orchestration and documentation. However, competitive programming problems usually have well-defined inputs, outputs, and constraints, and are solved with algorithms and data structures in a short time frame. This plan is more suitable for a production-grade data pipeline rather than a competitive programming scenario. Thus, while the plan is correct for the described data engineering problem, it does not align with the typical scope of competitive programming.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Create a Python pipeline to ingest streaming IoT sensor data, validate the data for outliers and missing values, store the cleaned data in a time-series database, and generate daily summary reports.
+
+# Planning:
+
+1. Simulate or connect to a streaming source of IoT sensor data.
+2. For each incoming record, validate for outliers and missing values.
+3. Store only valid records in a time-series database or DataFrame.
+4. Periodically aggregate and summarize the data by day.
+5. Output or store daily summary reports for further analysis.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires designing data ingestion and transformation pipelines that clean raw customer data, handle schema changes, perform data quality checks, and create a semantic layer for AI-driven queries. The main algorithms and techniques involved are:
+
+- ETL (Extract, Transform, Load) Pipelines
+- Data Cleaning and Validation
+- Schema Evolution Handling
+- Semantic Layer Construction
+
+Tutorial:
+
+1. **ETL Pipeline Design**:
+   - **Extract**: Gather raw data from various sources (files, databases, APIs).
+   - **Transform**: Clean and preprocess data (remove duplicates, handle missing values, normalize formats).
+   - **Load**: Insert cleaned data into a target system (data warehouse, data lake).
+
+2. **Data Cleaning and Validation**:
+   - Remove duplicates using unique keys.
+   - Handle missing values by imputation or removal.
+   - Validate data types and ranges (e.g., numeric fields, dates).
+   - Use libraries like pandas for efficient data manipulation.
+
+3. **Schema Evolution Handling**:
+   - Detect schema changes (new columns, removed columns, type changes).
+   - Use schema registry or versioning to track changes.
+   - Implement dynamic mapping or transformation logic to adapt to schema changes.
+
+4. **Semantic Layer Construction**:
+   - Build a logical abstraction over raw data (views, models, or APIs).
+   - Map business concepts to data fields for AI-driven queries.
+   - Use tools like dbt, Apache Superset, or custom Python classes to define semantic models.
+
+5. **Data Quality Checks**:
+   - Implement validation rules (e.g., unique constraints, referential integrity).
+   - Log and report data quality issues for monitoring.
+
+**High-Level Steps**:
+- Start by identifying all data sources and their formats.
+- Build modular ETL components for extraction, transformation, and loading.
+- Integrate data validation and cleaning at the transformation stage.
+- Design mechanisms to detect and handle schema changes gracefully.
+- Create a semantic layer that abstracts raw data for AI and analytics.
+- Continuously monitor and improve data quality.
+
+This approach ensures robust, scalable, and adaptable data pipelines suitable for modern data engineering and AI applications.
+
+## Problem to be solved:
+
+Please help me implement a Python program to design and develop data ingestion and transformation pipelines that clean raw customer data, load it into a data warehouse or lake, and create a semantic layer for AI-driven queries, ensuring efficient handling of schema changes and data quality checks.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Identify and connect to raw customer data sources (files, databases, APIs).
+2. Design an ETL pipeline:
+   - Extract: Read raw data from all sources.
+   - Transform: Clean data (remove duplicates, handle missing values, normalize formats).
+   - Validate: Apply data quality checks (type validation, range checks, uniqueness).
+   - Handle schema changes: Detect and adapt to new, removed, or changed columns.
+   - Load: Store cleaned data into a data warehouse or data lake.
+3. Implement schema evolution handling:
+   - Track schema versions.
+   - Dynamically map and transform data to match the latest schema.
+4. Build a semantic layer:
+   - Define logical models or views mapping business concepts to data fields.
+   - Expose semantic layer for AI-driven queries (APIs, SQL views, or Python classes).
+5. Monitor and log data quality issues for ongoing improvement.
+6. Test pipeline with sample and edge-case data to ensure robustness.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to design and develop data ingestion and transformation pipelines that clean raw customer data, load it into a data warehouse or lake, and create a semantic layer for AI-driven queries, ensuring efficient handling of schema changes and data quality checks.
+
+# Planning:
+**Planning:**
+
+1. Identify and connect to raw customer data sources (files, databases, APIs).
+2. Design an ETL pipeline:
+   - Extract: Read raw data from all sources.
+   - Transform: Clean data (remove duplicates, handle missing values, normalize formats).
+   - Validate: Apply data quality checks (type validation, range checks, uniqueness).
+   - Handle schema changes: Detect and adapt to new, removed, or changed columns.
+   - Load: Store cleaned data into a data warehouse or data lake.
+3. Implement schema evolution handling:
+   - Track schema versions.
+   - Dynamically map and transform data to match the latest schema.
+4. Build a semantic layer:
+   - Define logical models or views mapping business concepts to data fields.
+   - Expose semantic layer for AI-driven queries (APIs, SQL views, or Python classes).
+5. Monitor and log data quality issues for ongoing improvement.
+6. Test pipeline with sample and edge-case data to ensure robustness.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a real-world data engineering task involving the design and implementation of ETL pipelines, schema evolution, data quality checks, and semantic layers for AI queries. The provided plan is comprehensive and covers all major aspects required to solve the problem, including data extraction, transformation, validation, schema handling, loading, semantic modeling, monitoring, and testing. However, implementing this plan in a competitive programming context (which usually expects a single function or algorithm with input/output constraints) is not feasible. The plan is suitable for a practical software engineering project, not for a competitive programming solution.\n', 'confidence': 90}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Develop a Python program to ingest raw product catalog data from JSON files, normalize nested structures, perform data quality checks (e.g., unique product IDs, valid prices), and load the cleaned data into a NoSQL database such as MongoDB.
+
+# Planning:
+
+1. Read all raw product catalog JSON files from the directory.
+2. Normalize nested JSON structures into a flat DataFrame.
+3. Ensure product IDs are unique and prices are valid.
+4. Connect to MongoDB and insert the cleaned records.
+5. Verify successful ingestion and data integrity in the database.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires designing data ingestion and transformation pipelines that clean raw customer data, handle schema changes, perform data quality checks, and create a semantic layer for AI-driven queries. The main algorithms and techniques involved are:
+
+- ETL (Extract, Transform, Load) Pipelines
+- Data Cleaning and Validation
+- Schema Evolution Handling
+- Semantic Layer Construction
+
+Tutorial:
+
+1. **ETL Pipeline Design**:
+   - **Extract**: Gather raw data from various sources (files, databases, APIs).
+   - **Transform**: Clean and preprocess data (remove duplicates, handle missing values, normalize formats).
+   - **Load**: Insert cleaned data into a target system (data warehouse, data lake).
+
+2. **Data Cleaning and Validation**:
+   - Remove duplicates using unique keys.
+   - Handle missing values by imputation or removal.
+   - Validate data types and ranges (e.g., numeric fields, dates).
+   - Use libraries like pandas for efficient data manipulation.
+
+3. **Schema Evolution Handling**:
+   - Detect schema changes (new columns, removed columns, type changes).
+   - Use schema registry or versioning to track changes.
+   - Implement dynamic mapping or transformation logic to adapt to schema changes.
+
+4. **Semantic Layer Construction**:
+   - Build a logical abstraction over raw data (views, models, or APIs).
+   - Map business concepts to data fields for AI-driven queries.
+   - Use tools like dbt, Apache Superset, or custom Python classes to define semantic models.
+
+5. **Data Quality Checks**:
+   - Implement validation rules (e.g., unique constraints, referential integrity).
+   - Log and report data quality issues for monitoring.
+
+**High-Level Steps**:
+- Start by identifying all data sources and their formats.
+- Build modular ETL components for extraction, transformation, and loading.
+- Integrate data validation and cleaning at the transformation stage.
+- Design mechanisms to detect and handle schema changes gracefully.
+- Create a semantic layer that abstracts raw data for AI and analytics.
+- Continuously monitor and improve data quality.
+
+This approach ensures robust, scalable, and adaptable data pipelines suitable for modern data engineering and AI applications.
+
+## Problem to be solved:
+
+Please help me implement a Python program to design and develop data ingestion and transformation pipelines that clean raw customer data, load it into a data warehouse or lake, and create a semantic layer for AI-driven queries, ensuring efficient handling of schema changes and data quality checks.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Identify and list all raw customer data sources and formats (e.g., CSV, JSON, database, API).
+2. Design modular ETL pipeline components for extraction, transformation, and loading.
+3. Implement extraction logic to read data from all sources.
+4. Normalize and clean data: handle missing values, remove duplicates, standardize formats.
+5. Integrate data quality checks: validate unique customer IDs, correct data types, and value ranges.
+6. Detect and handle schema changes dynamically (e.g., new/removed columns, type changes).
+7. Load cleaned and validated data into the target data warehouse or lake.
+8. Build a semantic layer: define logical models or views mapping business concepts to data fields.
+9. Expose semantic layer for AI-driven queries via APIs or query interfaces.
+10. Monitor data quality and pipeline performance; log and report issues for continuous improvement.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to design and develop data ingestion and transformation pipelines that clean raw customer data, load it into a data warehouse or lake, and create a semantic layer for AI-driven queries, ensuring efficient handling of schema changes and data quality checks.
+
+# Planning:
+**Planning:**
+
+1. Identify and list all raw customer data sources and formats (e.g., CSV, JSON, database, API).
+2. Design modular ETL pipeline components for extraction, transformation, and loading.
+3. Implement extraction logic to read data from all sources.
+4. Normalize and clean data: handle missing values, remove duplicates, standardize formats.
+5. Integrate data quality checks: validate unique customer IDs, correct data types, and value ranges.
+6. Detect and handle schema changes dynamically (e.g., new/removed columns, type changes).
+7. Load cleaned and validated data into the target data warehouse or lake.
+8. Build a semantic layer: define logical models or views mapping business concepts to data fields.
+9. Expose semantic layer for AI-driven queries via APIs or query interfaces.
+10. Monitor data quality and pipeline performance; log and report issues for continuous improvement.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a real-world data engineering task involving the design and implementation of ETL pipelines, data quality checks, schema evolution handling, and semantic layer creation. The provided plan is comprehensive and covers all necessary steps to solve the described data engineering problem in Python3. However, in the context of competitive programming, problems are usually algorithmic, have well-defined inputs/outputs, and are expected to be solved within a short time frame with a single program. This problem is too broad and open-ended for a competitive programming setting, but the plan is correct for the described real-world task.\n', 'confidence': 90}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires designing data ingestion and transformation pipelines that clean raw customer data, handle schema changes, perform data quality checks, and create a semantic layer for AI-driven queries. The main algorithms and techniques involved are:
+
+- ETL (Extract, Transform, Load) Pipelines
+- Data Cleaning and Validation
+- Schema Evolution Handling
+- Semantic Layer Construction
+
+Tutorial:
+
+1. **ETL Pipeline Design**:
+   - **Extract**: Gather raw data from various sources (files, databases, APIs).
+   - **Transform**: Clean and preprocess data (remove duplicates, handle missing values, normalize formats).
+   - **Load**: Insert cleaned data into a target system (data warehouse, data lake).
+
+2. **Data Cleaning and Validation**:
+   - Remove duplicates using unique keys.
+   - Handle missing values by imputation or removal.
+   - Validate data types and ranges (e.g., numeric fields, dates).
+   - Use libraries like pandas for efficient data manipulation.
+
+3. **Schema Evolution Handling**:
+   - Detect schema changes (new columns, removed columns, type changes).
+   - Use schema registry or versioning to track changes.
+   - Implement dynamic mapping or transformation logic to adapt to schema changes.
+
+4. **Semantic Layer Construction**:
+   - Build a logical abstraction over raw data (views, models, or APIs).
+   - Map business concepts to data fields for AI-driven queries.
+   - Use tools like dbt, Apache Superset, or custom Python classes to define semantic models.
+
+5. **Data Quality Checks**:
+   - Implement validation rules (e.g., unique constraints, referential integrity).
+   - Log and report data quality issues for monitoring.
+
+**High-Level Steps**:
+- Start by identifying all data sources and their formats.
+- Build modular ETL components for extraction, transformation, and loading.
+- Integrate data validation and cleaning at the transformation stage.
+- Design mechanisms to detect and handle schema changes gracefully.
+- Create a semantic layer that abstracts raw data for AI and analytics.
+- Continuously monitor and improve data quality.
+
+This approach ensures robust, scalable, and adaptable data pipelines suitable for modern data engineering and AI applications.
+
+## Problem to be solved:
+
+Please help me implement a Python program to design and develop data ingestion and transformation pipelines that clean raw customer data, load it into a data warehouse or lake, and create a semantic layer for AI-driven queries, ensuring efficient handling of schema changes and data quality checks.
+
+## Planning:
+1. Identify all raw customer data sources and their formats (CSV, JSON, database, etc.).
+2. Implement extraction modules to ingest data from each source.
+3. Detect and track schema versions for each data source.
+4. Read and combine data into a unified DataFrame, dynamically adapting to schema changes.
+5. Clean and validate data:
+   - Remove duplicates using unique customer identifiers.
+   - Handle missing values via imputation or row removal.
+   - Validate data types and value ranges.
+   - Log data quality issues.
+6. Transform data to standardized formats and business logic requirements.
+7. Load cleaned and transformed data into the target data warehouse or data lake.
+8. Build and maintain a semantic layer (views, models, or APIs) mapping business concepts to data fields.
+9. Implement automated data quality checks and monitoring.
+10. Schedule and orchestrate the pipeline for regular execution.
+11. Document schema mappings, transformation logic, and data quality rules.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+import os
+import json
+import pandas as pd
+import numpy as np
+from typing import List, Dict, Any, Optional
+import logging
+import datetime
+
+# Setup logging
+logging.basicConfig(
+    filename='data_pipeline.log',
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s:%(message)s'
+)
+
+# --- CONFIGURATION ---
+
+DATA_SOURCES = [
+    {'type': 'csv', 'path': 'data/customers_1.csv'},
+    {'type': 'json', 'path': 'data/customers_2.json'},
+    # Add more sources as needed
+]
+
+SCHEMA_REGISTRY_PATH = 'schema_registry.json'
+DATA_WAREHOUSE_PATH = 'data_warehouse/customers.parquet'
+SEMANTIC_LAYER_PATH = 'semantic_layer.json'
+UNIQUE_ID = 'customer_id'
+
+# --- SCHEMA REGISTRY ---
+
+def load_schema_registry() -> Dict[str, Any]:
+    if os.path.exists(SCHEMA_REGISTRY_PATH):
+        with open(SCHEMA_REGISTRY_PATH, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_schema_registry(registry: Dict[str, Any]):
+    with open(SCHEMA_REGISTRY_PATH, 'w') as f:
+        json.dump(registry, f, indent=2)
+
+def detect_schema(df: pd.DataFrame) -> Dict[str, str]:
+    return {col: str(df[col].dtype) for col in df.columns}
+
+def update_schema_registry(source: str, schema: Dict[str, str], registry: Dict[str, Any]):
+    prev_schema = registry.get(source)
+    if prev_schema != schema:
+        logging.info(f"Schema change detected for {source}: {prev_schema} -> {schema}")
+        registry[source] = schema
+
+# --- EXTRACTION MODULES ---
+
+def extract_csv(path: str) -> pd.DataFrame:
+    try:
+        df = pd.read_csv(path)
+        logging.info(f"Extracted CSV: {path}, shape={df.shape}")
+        return df
+    except Exception as e:
+        logging.error(f"Failed to extract CSV {path}: {e}")
+        return pd.DataFrame()
+
+def extract_json(path: str) -> pd.DataFrame:
+    try:
+        df = pd.read_json(path, lines=True)
+        logging.info(f"Extracted JSON: {path}, shape={df.shape}")
+        return df
+    except Exception as e:
+        logging.error(f"Failed to extract JSON {path}: {e}")
+        return pd.DataFrame()
+
+def extract_data_sources(sources: List[Dict[str, Any]]) -> List[pd.DataFrame]:
+    dfs = []
+    for src in sources:
+        if src['type'] == 'csv':
+            df = extract_csv(src['path'])
+        elif src['type'] == 'json':
+            df = extract_json(src['path'])
+        else:
+            logging.warning(f"Unknown data source type: {src['type']}")
+            df = pd.DataFrame()
+        dfs.append(df)
+    return dfs
+
+# --- SCHEMA EVOLUTION HANDLING ---
+
+def unify_schemas(dfs: List[pd.DataFrame]) -> pd.DataFrame:
+    # Find all columns
+    all_columns = set()
+    for df in dfs:
+        all_columns.update(df.columns)
+    all_columns = list(all_columns)
+    # Reindex all DataFrames to have the same columns
+    dfs_aligned = [df.reindex(columns=all_columns) for df in dfs]
+    # Concatenate
+    unified_df = pd.concat(dfs_aligned, ignore_index=True)
+    return unified_df
+
+# --- DATA CLEANING AND VALIDATION ---
+
+def clean_and_validate(df: pd.DataFrame, unique_id: str) -> pd.DataFrame:
+    # Remove duplicates
+    before = df.shape[0]
+    df = df.drop_duplicates(subset=[unique_id])
+    after = df.shape[0]
+    logging.info(f"Removed duplicates: {before - after}")
+
+    # Handle missing values
+    missing_report = df.isnull().sum().to_dict()
+    logging.info(f"Missing values before cleaning: {missing_report}")
+
+    # Impute or remove missing values
+    for col in df.columns:
+        if df[col].dtype == 'float64' or df[col].dtype == 'int64':
+            df[col] = df[col].fillna(df[col].mean())
+        elif df[col].dtype == 'object':
+            df[col] = df[col].fillna('Unknown')
+        else:
+            df[col] = df[col].fillna(df[col].mode()[0] if not df[col].mode().empty else 'Unknown')
+
+    # Validate data types and ranges
+    # Example: Age should be between 0 and 120
+    if 'age' in df.columns:
+        invalid_ages = df[(df['age'] < 0) | (df['age'] > 120)]
+        if not invalid_ages.empty:
+            logging.warning(f"Invalid ages found: {invalid_ages.shape[0]}")
+            df.loc[(df['age'] < 0) | (df['age'] > 120), 'age'] = np.nan
+            df['age'] = df['age'].fillna(df['age'].mean())
+
+    # Example: Email format validation
+    if 'email' in df.columns:
+        invalid_emails = df[~df['email'].str.contains('@', na=False)]
+        if not invalid_emails.empty:
+            logging.warning(f"Invalid emails found: {invalid_emails.shape[0]}")
+            df.loc[~df['email'].str.contains('@', na=False), 'email'] = 'Unknown'
+
+    # Log missing after cleaning
+    missing_report_after = df.isnull().sum().to_dict()
+    logging.info(f"Missing values after cleaning: {missing_report_after}")
+
+    return df
+
+# --- TRANSFORMATION ---
+
+def transform_data(df: pd.DataFrame) -> pd.DataFrame:
+    # Standardize column names
+    df.columns = [col.lower().strip().replace(' ', '_') for col in df.columns]
+
+    # Example: Normalize phone numbers
+    if 'phone' in df.columns:
+        df['phone'] = df['phone'].astype(str).str.replace(r'\D', '', regex=True)
+
+    # Example: Convert registration_date to datetime
+    if 'registration_date' in df.columns:
+        df['registration_date'] = pd.to_datetime(df['registration_date'], errors='coerce')
+
+    # Add derived columns
+    if 'registration_date' in df.columns:
+        df['customer_year'] = df['registration_date'].dt.year
+
+    return df
+
+# --- LOADING ---
+
+def load_to_warehouse(df: pd.DataFrame, path: str):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    df.to_parquet(path, index=False)
+    logging.info(f"Loaded data to warehouse: {path}, shape={df.shape}")
+
+# --- SEMANTIC LAYER ---
+
+class SemanticLayer:
+    """
+    Maps business concepts to data fields.
+    """
+    def __init__(self, df: pd.DataFrame):
+        self.df = df
+        self.mapping = {
+            'customer_id': 'customer_id',
+            'name': 'name',
+            'email': 'email',
+            'age': 'age',
+            'phone': 'phone',
+            'registration_date': 'registration_date',
+            'customer_year': 'customer_year'
+        }
+
+    def get_field(self, concept: str) -> Optional[str]:
+        return self.mapping.get(concept)
+
+    def query(self, filters: Dict[str, Any]) -> pd.DataFrame:
+        query_df = self.df.copy()
+        for concept, value in filters.items():
+            field = self.get_field(concept)
+            if field and field in query_df.columns:
+                query_df = query_df[query_df[field] == value]
+        return query_df
+
+    def save(self, path: str):
+        with open(path, 'w') as f:
+            json.dump(self.mapping, f, indent=2)
+        logging.info(f"Semantic layer mapping saved: {path}")
+
+# --- DATA QUALITY CHECKS ---
+
+def data_quality_checks(df: pd.DataFrame, unique_id: str) -> Dict[str, Any]:
+    checks = {}
+    checks['duplicate_count'] = df.duplicated(subset=[unique_id]).sum()
+    checks['missing_values'] = df.isnull().sum().to_dict()
+    checks['total_rows'] = df.shape[0]
+    # Example: Check for valid email
+    if 'email' in df.columns:
+        checks['invalid_emails'] = (~df['email'].str.contains('@', na=False)).sum()
+    logging.info(f"Data quality checks: {checks}")
+    return checks
+
+# --- PIPELINE ORCHESTRATION ---
+
+def run_pipeline():
+    # 1. Load schema registry
+    schema_registry = load_schema_registry()
+
+    # 2. Extract data
+    dfs = extract_data_sources(DATA_SOURCES)
+
+    # 3. Detect and track schema versions
+    for i, src in enumerate(DATA_SOURCES):
+        schema = detect_schema(dfs[i])
+        update_schema_registry(src['path'], schema, schema_registry)
+    save_schema_registry(schema_registry)
+
+    # 4. Unify schemas
+    unified_df = unify_schemas(dfs)
+
+    # 5. Clean and validate
+    cleaned_df = clean_and_validate(unified_df, UNIQUE_ID)
+
+    # 6. Transform
+    transformed_df = transform_data(cleaned_df)
+
+    # 7. Data quality checks
+    dq_report = data_quality_checks(transformed_df, UNIQUE_ID)
+    with open('data_quality_report.json', 'w') as f:
+        json.dump(dq_report, f, indent=2)
+
+    # 8. Load to warehouse
+    load_to_warehouse(transformed_df, DATA_WAREHOUSE_PATH)
+
+    # 9. Build semantic layer
+    semantic_layer = SemanticLayer(transformed_df)
+    semantic_layer.save(SEMANTIC_LAYER_PATH)
+
+    # 10. Example AI-driven query
+    # e.g., Get all customers registered in 2023
+    result = semantic_layer.query({'customer_year': 2023})
+    result.to_csv('ai_query_result.csv', index=False)
+    logging.info(f"AI-driven query result saved: ai_query_result.csv")
+
+if __name__ == '__main__':
+    run_pipeline()
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 40.89 seconds
+Total Tokens: 8,991 (Input: 4,189, Output: 4,802)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 11.90      322          1,591        1         
+Planning_Generation_1     2.86       685          194          1         
+Planning_Verification_1   2.21       358          169          1         
+Planning_Generation_2     2.61       673          203          1         
+Planning_Verification_2   2.71       367          150          1         
+Planning_Generation_3     2.32       674          183          1         
+Planning_Verification_3   2.88       347          151          1         
+Final_Code_Generation     13.42      763          2,161        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:07:05.482711
+##########################
+

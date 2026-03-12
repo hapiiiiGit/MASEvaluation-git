@@ -1,0 +1,69 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import os
+
+class WooCommerceScraper:
+    def __init__(self, base_url):
+        self.base_url = base_url
+        self.products = []
+
+    def fetch_page(self, url):
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.text
+        else:
+            print(f"Failed to fetch page: {url}")
+            return None
+
+    def parse_product(self, product):
+        name = product.find('h2', class_='woocommerce-loop-product__title').text.strip()
+        price = product.find('span', class_='price').text.strip()
+        description = product.find('div', class_='woocommerce-product-details__short-description').text.strip()
+        images = [img['src'] for img in product.find_all('img')]
+        categories = [cat.text.strip() for cat in product.find_all('a', class_='woocommerce-product-category')]
+        
+        return {
+            'Name': name,
+            'Price': price,
+            'Description': description,
+            'Images': ', '.join(images),
+            'Categories': ', '.join(categories)
+        }
+
+    def scrape(self):
+        page_number = 1
+        while True:
+            url = f"{self.base_url}/page/{page_number}/"
+            html_content = self.fetch_page(url)
+            if not html_content:
+                break
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            product_elements = soup.find_all('li', class_='product')
+
+            if not product_elements:
+                break
+
+            for product in product_elements:
+                product_data = self.parse_product(product)
+                self.products.append(product_data)
+
+            page_number += 1
+
+    def export_to_csv(self, filename='products.csv'):
+        df = pd.DataFrame(self.products)
+        df.to_csv(filename, index=False)
+        print(f"Data exported to {filename}")
+
+    def export_to_excel(self, filename='products.xlsx'):
+        df = pd.DataFrame(self.products)
+        df.to_excel(filename, index=False)
+        print(f"Data exported to {filename}")
+
+if __name__ == "__main__":
+    base_url = 'https://example.com/shop'  # Replace with the target WooCommerce shop URL
+    scraper = WooCommerceScraper(base_url)
+    scraper.scrape()
+    scraper.export_to_csv()
+    scraper.export_to_excel()

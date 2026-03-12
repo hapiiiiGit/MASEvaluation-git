@@ -1,0 +1,43 @@
+sequenceDiagram
+    participant U as User
+    participant PC as PortalController
+    participant CC as CustomerConsent
+    participant AC as AdminConsentController
+    participant CA as ConsentAudit
+    participant DB as Database
+
+    U->>PC: Access portal (show_portal)
+    PC->>DB: Fetch user profile
+    PC->>CC: get_consent_status(user_id)
+    CC-->>PC: Return consent status
+    PC-->>U: Display dashboard/profile with consent info
+
+    U->>PC: Submit registration with T&C checkbox
+    PC->>CC: submit_consent(user_id, consent_given, terms_version, jurisdiction)
+    CC->>DB: Store consent record
+    CC->>CA: Log audit entry (action="consent_given")
+    CA->>DB: Store audit log
+    CC-->>PC: Confirmation
+    PC-->>U: Show success message
+
+    participant Admin as Admin
+    Admin->>AC: list_consents()
+    AC->>DB: Query all consent records
+    DB-->>AC: Return consent list
+    AC-->>Admin: Display consent management panel
+
+    Admin->>AC: view_consent(consent_id)
+    AC->>CC: Fetch consent record
+    CC-->>AC: Return consent details
+    AC->>CA: get_audit_trail(consent_id)
+    CA->>DB: Query audit logs
+    DB-->>CA: Return audit trail
+    CA-->>AC: Return audit trail
+    AC-->>Admin: Display consent + audit info
+
+    Admin->>AC: update_consent(consent_id, consent_given)
+    AC->>CC: Update consent record
+    CC->>DB: Update consent
+    CC->>CA: Log audit entry (action="consent_updated")
+    CA->>DB: Store audit log
+    AC-->>Admin: Confirmation

@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant Main
+    participant Config
+    participant Camera as CameraHandler
+    participant Detector as YOLOv8Detector
+    participant Tracker as DeepSORTTracker/ByteTrackTracker
+    participant Metadata as MetadataOutput
+
+    Main->>Config: load(path)
+    Main->>Camera: __init__(source)
+    Main->>Detector: __init__(model_path, use_tensorrt)
+    Main->>Tracker: __init__(config)
+    Main->>Camera: start()
+    loop for each frame
+        Main->>Camera: read_frame()
+        Camera-->>Main: frame
+        Main->>Detector: detect(frame)
+        Detector-->>Main: detections
+        Main->>Tracker: update(detections, frame)
+        Tracker-->>Main: tracks
+        Main->>Metadata: format(tracks)
+        Metadata-->>Main: metadata_dict
+        Main->>Metadata: send(metadata_dict)
+    end
+    Main->>Camera: stop()

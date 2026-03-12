@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant M as main.py
+    participant C as Config
+    participant DM as DeviceManager
+    participant SM as SessionManager
+    participant TR as TestRunner
+    participant MON as Monitor
+    participant LOG as Logger
+    M->>C: load(path)
+    M->>DM: discover_devices()
+    DM-->>M: get_available_devices()
+    M->>SM: start_session(device) (for each device)
+    SM-->>M: AppiumSession
+    M->>TR: run_tests(sessions, test_scripts)
+    TR->>AppiumSession: run_test(test_script)
+    AppiumSession-->>TR: TestResult
+    TR-->>M: dict[session_id, TestResult]
+    M->>MON: collect_metrics()
+    MON->>M: report_status()
+    SM->>LOG: log_error(error) (on failure)
+    SM->>SM: handle_failure(session_id, error)
+    SM->>SM: restart_session(session_id) (if needed)
+    M->>SM: stop_session(session_id) (on completion)

@@ -1,0 +1,69 @@
+classDiagram
+    class BotConfig {
+        +api_key: str
+        +api_secret: str
+        +strategy_params: dict
+        +risk_params: dict
+        +assets: list[str]
+        +notification_settings: dict
+        +load(path: str) -> BotConfig
+        +save(path: str)
+    }
+    class Exchange {
+        +connect(api_key: str, api_secret: str)
+        +get_balance() -> dict
+        +fetch_ticker(symbol: str) -> dict
+        +place_order(symbol: str, side: str, qty: float, price: float, type: str) -> dict
+        +cancel_order(order_id: str)
+        +get_positions() -> list
+    }
+    class TrendStrategy {
+        +__init__(params: dict)
+        +generate_signal(data: pd.DataFrame) -> str
+        +update_params(params: dict)
+    }
+    class RiskManager {
+        +__init__(params: dict)
+        +check_risk(position: dict, signal: str) -> bool
+        +apply_stop_loss(position: dict) -> bool
+        +apply_take_profit(position: dict) -> bool
+    }
+    class DataFeed {
+        +subscribe(symbols: list[str])
+        +get_latest(symbol: str) -> pd.DataFrame
+        +on_update(callback)
+    }
+    class Monitor {
+        +log_trade(trade: dict)
+        +alert(event: str)
+        +get_status() -> dict
+    }
+    class Notifier {
+        +send_email(msg: str)
+        +send_sms(msg: str)
+        +send_push(msg: str)
+    }
+    class Backtester {
+        +run(strategy: TrendStrategy, data: pd.DataFrame, risk: RiskManager) -> dict
+        +report() -> dict
+    }
+    class API {
+        +get_config() -> dict
+        +set_config(config: dict)
+        +get_status() -> dict
+        +get_logs() -> list
+    }
+    BotConfig <.. Exchange
+    BotConfig <.. TrendStrategy
+    BotConfig <.. RiskManager
+    BotConfig <.. Notifier
+    Exchange <.. DataFeed
+    TrendStrategy <.. DataFeed
+    RiskManager <.. Exchange
+    Monitor <.. Exchange
+    Monitor <.. TrendStrategy
+    Monitor <.. RiskManager
+    Backtester <.. TrendStrategy
+    Backtester <.. RiskManager
+    API <.. BotConfig
+    API <.. Monitor

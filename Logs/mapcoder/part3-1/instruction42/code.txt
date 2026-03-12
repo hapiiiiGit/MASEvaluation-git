@@ -1,0 +1,105 @@
+from docx import Document
+from fpdf import FPDF
+
+class Resume:
+    def __init__(self, name, contact_info, skills, work_experience, education):
+        self.name = name
+        self.contact_info = contact_info
+        self.skills = skills
+        self.work_experience = work_experience
+        self.education = education
+
+    def generate_word_resume(self, filename):
+        doc = Document()
+        doc.add_heading(self.name, level=1)
+        doc.add_paragraph(self.contact_info)
+
+        doc.add_heading('Summary', level=2)
+        doc.add_paragraph("Network/RF Engineer with expertise in Python automation and a proven track record of optimizing network performance.")
+
+        doc.add_heading('Skills', level=2)
+        doc.add_paragraph(', '.join(self.skills))
+
+        doc.add_heading('Work Experience', level=2)
+        for job in self.work_experience:
+            doc.add_heading(job['title'], level=3)
+            doc.add_paragraph(f"{job['company']} | {job['dates']}")
+            for achievement in job['achievements']:
+                doc.add_paragraph(f"• {achievement}")
+
+        doc.add_heading('Education', level=2)
+        for edu in self.education:
+            doc.add_paragraph(f"{edu['degree']} in {edu['field']} from {edu['institution']} ({edu['dates']})")
+
+        doc.save(filename)
+
+    def generate_pdf_resume(self, filename):
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+
+        pdf.cell(200, 10, self.name, ln=True, align='C')
+        pdf.cell(200, 10, self.contact_info, ln=True, align='C')
+
+        pdf.cell(200, 10, 'Summary', ln=True)
+        pdf.multi_cell(0, 10, "Network/RF Engineer with expertise in Python automation and a proven track record of optimizing network performance.")
+
+        pdf.cell(200, 10, 'Skills', ln=True)
+        pdf.multi_cell(0, 10, ', '.join(self.skills))
+
+        pdf.cell(200, 10, 'Work Experience', ln=True)
+        for job in self.work_experience:
+            pdf.cell(0, 10, job['title'], ln=True)
+            pdf.cell(0, 10, f"{job['company']} | {job['dates']}", ln=True)
+            for achievement in job['achievements']:
+                pdf.cell(0, 10, f"• {achievement}", ln=True)
+
+        pdf.cell(200, 10, 'Education', ln=True)
+        for edu in self.education:
+            pdf.cell(0, 10, f"{edu['degree']} in {edu['field']} from {edu['institution']} ({edu['dates']})", ln=True)
+
+        pdf.output(filename)
+
+    def generate_linkedin_summary(self):
+        summary = f"Experienced Network/RF Engineer skilled in {', '.join(self.skills)}. Proven ability to automate processes using Python and enhance network performance through innovative solutions."
+        return summary
+
+# Example usage
+if __name__ == "__main__":
+    name = "John Doe"
+    contact_info = "john.doe@example.com | (123) 456-7890"
+    skills = ["Python", "RF Engineering", "Network Optimization", "Automation"]
+    work_experience = [
+        {
+            "title": "Network Engineer",
+            "company": "Tech Solutions Inc.",
+            "dates": "Jan 2020 - Present",
+            "achievements": [
+                "Automated network monitoring processes using Python.",
+                "Reduced downtime by 30% through proactive network management."
+            ]
+        },
+        {
+            "title": "RF Engineer",
+            "company": "Wireless Corp.",
+            "dates": "Jun 2018 - Dec 2019",
+            "achievements": [
+                "Designed RF systems for improved signal quality.",
+                "Collaborated with cross-functional teams to enhance product performance."
+            ]
+        }
+    ]
+    education = [
+        {
+            "degree": "Bachelor of Science",
+            "field": "Electrical Engineering",
+            "institution": "University of Technology",
+            "dates": "2014 - 2018"
+        }
+    ]
+
+    resume = Resume(name, contact_info, skills, work_experience, education)
+    resume.generate_word_resume("resume.docx")
+    resume.generate_pdf_resume("resume.pdf")
+    linkedin_summary = resume.generate_linkedin_summary()
+    print(linkedin_summary)

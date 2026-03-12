@@ -1,0 +1,69 @@
+import csv
+import logging
+import os
+from google.ads.google_ads.client import GoogleAdsClient
+from google.ads.google_ads.errors import GoogleAdsException
+from google.oauth2 import service_account
+
+# Set up logging
+logging.basicConfig(filename='conversion_upload.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def read_csv(file_path):
+    conversions = []
+    try:
+        with open(file_path, mode='r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                conversions.append(row)
+    except Exception as e:
+        logging.error(f"Error reading CSV file: {e}")
+    return conversions
+
+def authenticate(api_credentials_path):
+    try:
+        credentials = service_account.Credentials.from_service_account_file(api_credentials_path)
+        client = GoogleAdsClient(credentials=credentials)
+        return client
+    except Exception as e:
+        logging.error(f"Error during authentication: {e}")
+        return None
+
+def upload_conversions(client, conversions, customer_id):
+    conversion_upload_service = client.get_conversion_upload_service()
+    operations = []
+    
+    for conversion in conversions:
+        operation = client.get_conversion_upload_service().upload_conversion
+        try:
+            if 'gclid' in conversion:
+                operation.gclid = conversion['gclid']
+            elif 'gbraid' in conversion:
+                operation.gbraid = conversion['gbraid']
+            elif 'wbraid' in conversion:
+                operation.wbraid = conversion['wbraid']
+            operation.conversion_action = conversion['conversion_action']
+            operation.conversion_value = float(conversion['conversion_value'])
+            operation.conversion_date = conversion['conversion_date']
+            operations.append(operation)
+        except Exception as e:
+            logging.error(f"Error creating conversion operation: {e}")
+
+    try:
+        response = conversion_upload_service.upload_conversions(customer_id=customer_id, operations=operations)
+        logging.info(f"Uploaded {len(response.results)} conversions successfully.")
+    except GoogleAdsException as e:
+        logging.error(f"Google Ads API error: {e}")
+
+def main():
+    api_credentials_path = 'path/to/your/service_account.json'
+    csv_file_path = 'path/to/your/conversions.csv'
+    customer_id = 'INSERT_CUSTOMER_ID_HERE'
+
+    conversions = read_csv(csv_file_path)
+    client = authenticate(api_credentials_path)
+
+    if client and conversions:
+        upload_conversions(client, conversions, customer_id)
+
+if __name__ == "__main__":
+    main()

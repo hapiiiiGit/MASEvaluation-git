@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programming Assignment System</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script src="src/App.jsx" type="text/babel"></script>
+</body>
+</html>
+
+import React, { useState } from 'react';
+import LanguageSelector from './components/LanguageSelector';
+import CodeEditor from './components/CodeEditor';
+import OutputDisplay from './components/OutputDisplay';
+import LanguageHandler from './utils/LanguageHandler';
+
+const App = () => {
+    const [language, setLanguage] = useState('Python');
+    const [code, setCode] = useState('');
+    const [output, setOutput] = useState('');
+
+    const handleLanguageChange = (selectedLanguage) => {
+        setLanguage(selectedLanguage);
+    };
+
+    const handleCodeChange = (newCode) => {
+        setCode(newCode);
+    };
+
+    const executeCode = async () => {
+        const languageHandler = new LanguageHandler();
+        const result = await languageHandler.execute_code(language, code);
+        setOutput(result);
+    };
+
+    return (
+        <div>
+            <h1>Programming Assignment System</h1>
+            <LanguageSelector onLanguageChange={handleLanguageChange} />
+            <CodeEditor code={code} onCodeChange={handleCodeChange} />
+            <button onClick={executeCode}>Run Code</button>
+            <OutputDisplay output={output} />
+        </div>
+    );
+};
+
+export default App;
+
+// src/utils/PythonModule.js
+
+class PythonModule {
+    async run(code) {
+        // Load Pyodide
+        if (!window.pyodide) {
+            await this.loadPyodide();
+        }
+
+        try {
+            // Execute the Python code
+            const result = await window.pyodide.runPythonAsync(code);
+            return result;
+        } catch (error) {
+            return `Error: ${error.message}`;
+        }
+    }
+
+    async loadPyodide() {
+        // Load the Pyodide environment
+        window.pyodide = await loadPyodide();
+    }
+}
+
+export default PythonModule;
+
+// src/utils/LanguageHandler.js
+
+import PythonModule from './PythonModule';
+import JavaScriptModule from './JavaScriptModule';
+import JavaModule from './JavaModule';
+
+class LanguageHandler {
+    async execute_code(language, code) {
+        let result;
+        switch (language) {
+            case 'Python':
+                const pythonModule = new PythonModule();
+                result = await pythonModule.run(code);
+                break;
+            case 'JavaScript':
+                const jsModule = new JavaScriptModule();
+                result = await jsModule.run(code);
+                break;
+            case 'Java':
+                const javaModule = new JavaModule();
+                result = await javaModule.run(code);
+                break;
+            default:
+                throw new Error('Unsupported language');
+        }
+        return result;
+    }
+}
+
+export default LanguageHandler;
+
+import React from 'react';
+
+const CodeEditor = ({ code, onCodeChange }) => {
+    const handleChange = (event) => {
+        onCodeChange(event.target.value);
+    };
+
+    return (
+        <div>
+            <label htmlFor="code-editor">Code Editor:</label>
+            <textarea
+                id="code-editor"
+                value={code}
+                onChange={handleChange}
+                rows="10"
+                cols="50"
+                placeholder="Write your code here..."
+            />
+        </div>
+    );
+};
+
+export default CodeEditor;
+
+import React from 'react';
+
+const OutputDisplay = ({ output }) => {
+    return (
+        <div>
+            <h2>Output:</h2>
+            <pre>{output}</pre>
+        </div>
+    );
+};
+
+export default OutputDisplay;
+
+import React from 'react';
+
+const LanguageSelector = ({ onLanguageChange }) => {
+    const languages = ['Python', 'JavaScript', 'Java'];
+
+    const handleChange = (event) => {
+        onLanguageChange(event.target.value);
+    };
+
+    return (
+        <div>
+            <label htmlFor="language-select">Select Language:</label>
+            <select id="language-select" onChange={handleChange}>
+                {languages.map((language) => (
+                    <option key={language} value={language}>
+                        {language}
+                    </option>
+                ))}
+            </select>
+        </div>
+    );
+};
+
+export default LanguageSelector;

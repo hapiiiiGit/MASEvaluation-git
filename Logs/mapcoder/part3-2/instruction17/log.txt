@@ -1,0 +1,1244 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 14:45:26.679906
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python program utilizing TensorFlow or PyTorch to create an AI surveillance solution that processes live or recorded RTSP video feeds for behavior analysis, identifies anomalies like loitering or erratic movement, and sends alerts via a web dashboard, email, or push notifications, along with delivering necessary model files, a deployment-ready inference engine in Docker, and a report on performance metrics.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+Problem 1: Real-time Face Mask Detection in Public Spaces
+
+Develop a Python application that uses a webcam or RTSP video feed to detect whether people are wearing face masks in real-time. The system should highlight faces with and without masks, count the number of violations, and log the results for further analysis.
+]]></description>
+<code><![CDATA[
+# Step 1: Import necessary libraries
+import cv2
+import numpy as np
+from tensorflow.keras.models import load_model
+
+# Step 2: Load pre-trained face detector and mask classifier
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+mask_model = load_model('mask_detector_model.h5')
+
+# Step 3: Start video capture
+cap = cv2.VideoCapture(0)  # or use RTSP stream
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+    for (x, y, w, h) in faces:
+        face_img = frame[y:y+h, x:x+w]
+        face_img = cv2.resize(face_img, (128, 128))
+        face_img = np.expand_dims(face_img, axis=0) / 255.0
+        mask_prob = mask_model.predict(face_img)[0][0]
+        label = "Mask" if mask_prob > 0.5 else "No Mask"
+        color = (0, 255, 0) if label == "Mask" else (0, 0, 255)
+        cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
+        cv2.putText(frame, label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+    cv2.imshow('Mask Detection', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+cap.release()
+cv2.destroyAllWindows()
+]]></code>
+<planning><![CDATA[
+1. Collect and prepare a dataset of faces with and without masks.
+2. Train a CNN-based classifier to distinguish between masked and unmasked faces.
+3. Use a face detection algorithm (e.g., Haar cascades or DNN-based).
+4. Integrate the face detector and mask classifier in a real-time video processing loop.
+5. Annotate the video stream with detection results and log violations.
+6. Optionally, deploy the solution using Docker for portability.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Problem 2: Vehicle Counting and Classification at Traffic Intersections
+
+Create a Python program that processes live traffic camera feeds to detect, count, and classify vehicles (cars, trucks, bikes, buses) passing through an intersection. The system should generate hourly reports and visualize traffic flow statistics.
+]]></description>
+<code><![CDATA[
+# Step 1: Import libraries
+import cv2
+import numpy as np
+from ultralytics import YOLO
+
+# Step 2: Load YOLOv8 pre-trained model
+model = YOLO('yolov8n.pt')
+
+# Step 3: Start video capture
+cap = cv2.VideoCapture('traffic_video.mp4')
+
+vehicle_counts = {'car': 0, 'truck': 0, 'bus': 0, 'motorcycle': 0}
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    results = model(frame)
+    for result in results:
+        for box in result.boxes:
+            cls = model.names[int(box.cls)]
+            if cls in vehicle_counts:
+                vehicle_counts[cls] += 1
+            x1, y1, x2, y2 = map(int, box.xyxy)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+            cv2.putText(frame, cls, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+    cv2.imshow('Vehicle Detection', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+cap.release()
+cv2.destroyAllWindows()
+print(vehicle_counts)
+]]></code>
+<planning><![CDATA[
+1. Select and prepare a pre-trained object detection model (e.g., YOLOv8).
+2. Integrate the model with a video processing pipeline.
+3. For each frame, detect objects and filter for vehicle classes.
+4. Count and classify vehicles as they pass through a defined region of interest.
+5. Store and visualize statistics (e.g., using matplotlib or a web dashboard).
+6. Schedule periodic reporting and optionally deploy using Docker.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Problem 3: Intrusion Detection in Restricted Areas Using Motion Detection
+
+Design a Python application that monitors a restricted area using a static camera feed. The system should detect unauthorized entry based on motion detection, record the event, and send an alert (email or SMS) with a snapshot of the intrusion.
+]]></description>
+<code><![CDATA[
+# Step 1: Import libraries
+import cv2
+import smtplib
+from email.message import EmailMessage
+
+# Step 2: Initialize video capture and background subtractor
+cap = cv2.VideoCapture('restricted_area.mp4')
+fgbg = cv2.createBackgroundSubtractorMOG2()
+
+def send_alert(image_path):
+    msg = EmailMessage()
+    msg['Subject'] = 'Intrusion Detected!'
+    msg['From'] = 'your_email@example.com'
+    msg['To'] = 'security@example.com'
+    with open(image_path, 'rb') as f:
+        img_data = f.read()
+    msg.add_attachment(img_data, maintype='image', subtype='jpeg', filename='intrusion.jpg')
+    with smtplib.SMTP('smtp.example.com', 587) as server:
+        server.starttls()
+        server.login('your_email@example.com', 'password')
+        server.send_message(msg)
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    fgmask = fgbg.apply(frame)
+    thresh = cv2.threshold(fgmask, 200, 255, cv2.THRESH_BINARY)[1]
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for cnt in contours:
+        if cv2.contourArea(cnt) > 5000:
+            x, y, w, h = cv2.boundingRect(cnt)
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 0, 255), 2)
+            cv2.imwrite('intrusion.jpg', frame)
+            send_alert('intrusion.jpg')
+    cv2.imshow('Intrusion Detection', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+cap.release()
+cv2.destroyAllWindows()
+]]></code>
+<planning><![CDATA[
+1. Set up a static camera and capture video feed.
+2. Use background subtraction to detect motion in the scene.
+3. Filter out small or irrelevant movements using contour area thresholds.
+4. When significant motion is detected, save a snapshot and trigger an alert.
+5. Integrate with email or SMS APIs for real-time notifications.
+6. Optionally, log events and deploy the solution in a Docker container.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem requires a combination of algorithms and techniques, primarily:
+
+1. Deep Learning (CNNs, RNNs, or Transformers) for behavior analysis and anomaly detection.
+2. Object Detection and Tracking (e.g., YOLO, SSD, DeepSORT) for identifying and following people in video feeds.
+3. Time Series Analysis or Sequence Modeling (e.g., LSTM, GRU) for analyzing movement patterns over time to detect anomalies like loitering or erratic movement.
+
+Tutorial:
+
+High-Level Tutorial for Video-based Behavior Analysis and Anomaly Detection
+
+1. **Data Collection and Preprocessing**
+   - Gather annotated video datasets with normal and anomalous behaviors.
+   - Preprocess video frames (resize, normalize, augment).
+   - Extract features using pre-trained CNNs or directly use raw frames.
+
+2. **Object Detection and Tracking**
+   - Use object detection models (YOLO, SSD, Faster R-CNN) to detect people in each frame.
+   - Apply tracking algorithms (e.g., DeepSORT, SORT) to assign consistent IDs to detected individuals across frames.
+
+3. **Behavior Analysis and Anomaly Detection**
+   - For each tracked individual, extract movement trajectories (sequences of positions over time).
+   - Use sequence models (LSTM, GRU, or Transformer-based models) to analyze these trajectories.
+   - Train the model to classify normal vs. anomalous behavior, or use unsupervised methods (e.g., autoencoders) to detect deviations from normal patterns.
+
+4. **Alerting and Dashboard Integration**
+   - When an anomaly is detected, trigger alert mechanisms (web dashboard, email, push notifications).
+   - Store event logs and snapshots for review.
+
+5. **Deployment**
+   - Package the inference pipeline (detection, tracking, anomaly detection) into a Docker container.
+   - Expose REST APIs or web interfaces for integration with other systems.
+
+6. **Performance Evaluation**
+   - Measure metrics such as accuracy, precision, recall, F1-score, and inference speed (FPS).
+   - Optimize the model and pipeline for real-time performance.
+
+This approach combines deep learning for perception, sequence modeling for behavior analysis, and system integration for alerting and deployment. The key is to modularize each step and ensure efficient data flow between detection, tracking, and anomaly analysis components.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Problem 1: Real-time Face Mask Detection in Public Spaces
+
+Develop a Python application that uses a webcam or RTSP video feed to detect whether people are wearing face masks in real-time. The system should highlight faces with and without masks, count the number of violations, and log the results for further analysis.
+
+# Planning:
+
+1. Collect and prepare a dataset of faces with and without masks.
+2. Train a CNN-based classifier to distinguish between masked and unmasked faces.
+3. Use a face detection algorithm (e.g., Haar cascades or DNN-based).
+4. Integrate the face detector and mask classifier in a real-time video processing loop.
+5. Annotate the video stream with detection results and log violations.
+6. Optionally, deploy the solution using Docker for portability.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of algorithms and techniques, primarily:
+
+1. Deep Learning (CNNs, RNNs, or Transformers) for behavior analysis and anomaly detection.
+2. Object Detection and Tracking (e.g., YOLO, SSD, DeepSORT) for identifying and following people in video feeds.
+3. Time Series Analysis or Sequence Modeling (e.g., LSTM, GRU) for analyzing movement patterns over time to detect anomalies like loitering or erratic movement.
+
+Tutorial:
+
+High-Level Tutorial for Video-based Behavior Analysis and Anomaly Detection
+
+1. **Data Collection and Preprocessing**
+   - Gather annotated video datasets with normal and anomalous behaviors.
+   - Preprocess video frames (resize, normalize, augment).
+   - Extract features using pre-trained CNNs or directly use raw frames.
+
+2. **Object Detection and Tracking**
+   - Use object detection models (YOLO, SSD, Faster R-CNN) to detect people in each frame.
+   - Apply tracking algorithms (e.g., DeepSORT, SORT) to assign consistent IDs to detected individuals across frames.
+
+3. **Behavior Analysis and Anomaly Detection**
+   - For each tracked individual, extract movement trajectories (sequences of positions over time).
+   - Use sequence models (LSTM, GRU, or Transformer-based models) to analyze these trajectories.
+   - Train the model to classify normal vs. anomalous behavior, or use unsupervised methods (e.g., autoencoders) to detect deviations from normal patterns.
+
+4. **Alerting and Dashboard Integration**
+   - When an anomaly is detected, trigger alert mechanisms (web dashboard, email, push notifications).
+   - Store event logs and snapshots for review.
+
+5. **Deployment**
+   - Package the inference pipeline (detection, tracking, anomaly detection) into a Docker container.
+   - Expose REST APIs or web interfaces for integration with other systems.
+
+6. **Performance Evaluation**
+   - Measure metrics such as accuracy, precision, recall, F1-score, and inference speed (FPS).
+   - Optimize the model and pipeline for real-time performance.
+
+This approach combines deep learning for perception, sequence modeling for behavior analysis, and system integration for alerting and deployment. The key is to modularize each step and ensure efficient data flow between detection, tracking, and anomaly analysis components.
+
+## Problem to be solved:
+
+Please help me implement a Python program utilizing TensorFlow or PyTorch to create an AI surveillance solution that processes live or recorded RTSP video feeds for behavior analysis, identifies anomalies like loitering or erratic movement, and sends alerts via a web dashboard, email, or push notifications, along with delivering necessary model files, a deployment-ready inference engine in Docker, and a report on performance metrics.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. **Data Collection and Preparation**
+   - Gather annotated video datasets with normal and anomalous behaviors.
+   - Preprocess frames (resize, normalize, augment).
+   - Split data into training, validation, and test sets.
+
+2. **Object Detection and Tracking**
+   - Select and configure a pre-trained object detection model (YOLOv5, SSD, Faster R-CNN).
+   - Integrate a tracking algorithm (DeepSORT or SORT) to maintain unique IDs for individuals across frames.
+
+3. **Trajectory Extraction**
+   - For each tracked individual, record position coordinates over time to form movement trajectories.
+
+4. **Behavior Analysis and Anomaly Detection**
+   - Design and train a sequence model (LSTM, GRU, Transformer) to classify normal vs. anomalous trajectories.
+   - Optionally, use unsupervised methods (autoencoders, clustering) for anomaly detection.
+
+5. **Real-time Inference Pipeline**
+   - Build a Python application to process RTSP/live video feeds.
+   - Run detection, tracking, and anomaly analysis in real-time.
+   - Annotate video frames with detection and anomaly results.
+
+6. **Alerting System Integration**
+   - Implement alert mechanisms (web dashboard, email, push notifications) for detected anomalies.
+   - Store event logs and snapshots for review.
+
+7. **Model Packaging and Deployment**
+   - Save trained model files (TensorFlow SavedModel or PyTorch .pt).
+   - Containerize the inference engine using Docker.
+   - Expose REST APIs or web interfaces for integration.
+
+8. **Performance Evaluation and Reporting**
+   - Measure accuracy, precision, recall, F1-score, and inference speed (FPS).
+   - Document results and provide a comprehensive report.
+
+9. **Testing**
+   - Validate the system on sample RTSP feeds and recorded videos.
+   - Ensure alerting and logging mechanisms function as expected.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program utilizing TensorFlow or PyTorch to create an AI surveillance solution that processes live or recorded RTSP video feeds for behavior analysis, identifies anomalies like loitering or erratic movement, and sends alerts via a web dashboard, email, or push notifications, along with delivering necessary model files, a deployment-ready inference engine in Docker, and a report on performance metrics.
+
+# Planning:
+**Planning:**
+
+1. **Data Collection and Preparation**
+   - Gather annotated video datasets with normal and anomalous behaviors.
+   - Preprocess frames (resize, normalize, augment).
+   - Split data into training, validation, and test sets.
+
+2. **Object Detection and Tracking**
+   - Select and configure a pre-trained object detection model (YOLOv5, SSD, Faster R-CNN).
+   - Integrate a tracking algorithm (DeepSORT or SORT) to maintain unique IDs for individuals across frames.
+
+3. **Trajectory Extraction**
+   - For each tracked individual, record position coordinates over time to form movement trajectories.
+
+4. **Behavior Analysis and Anomaly Detection**
+   - Design and train a sequence model (LSTM, GRU, Transformer) to classify normal vs. anomalous trajectories.
+   - Optionally, use unsupervised methods (autoencoders, clustering) for anomaly detection.
+
+5. **Real-time Inference Pipeline**
+   - Build a Python application to process RTSP/live video feeds.
+   - Run detection, tracking, and anomaly analysis in real-time.
+   - Annotate video frames with detection and anomaly results.
+
+6. **Alerting System Integration**
+   - Implement alert mechanisms (web dashboard, email, push notifications) for detected anomalies.
+   - Store event logs and snapshots for review.
+
+7. **Model Packaging and Deployment**
+   - Save trained model files (TensorFlow SavedModel or PyTorch .pt).
+   - Containerize the inference engine using Docker.
+   - Expose REST APIs or web interfaces for integration.
+
+8. **Performance Evaluation and Reporting**
+   - Measure accuracy, precision, recall, F1-score, and inference speed (FPS).
+   - Document results and provide a comprehensive report.
+
+9. **Testing**
+   - Validate the system on sample RTSP feeds and recorded videos.
+   - Ensure alerting and logging mechanisms function as expected.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a large-scale AI system engineering task involving deep learning, real-time video processing, anomaly detection, alerting, deployment, and reporting. The provided plan is comprehensive and covers all necessary steps to build such a system using Python3 and frameworks like TensorFlow or PyTorch. It addresses data preparation, model selection, real-time inference, alerting, deployment (Docker), and performance evaluation, which are all required for the solution. However, this plan is not suitable for a competitive programming context, as competitive programming problems are usually algorithmic, have strict time/memory limits, and expect a single-file code submission, not a full-stack AI solution. For the described AI surveillance system, the plan is correct and feasible, but it is not applicable to competitive programming as traditionally defined.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Problem 2: Vehicle Counting and Classification at Traffic Intersections
+
+Create a Python program that processes live traffic camera feeds to detect, count, and classify vehicles (cars, trucks, bikes, buses) passing through an intersection. The system should generate hourly reports and visualize traffic flow statistics.
+
+# Planning:
+
+1. Select and prepare a pre-trained object detection model (e.g., YOLOv8).
+2. Integrate the model with a video processing pipeline.
+3. For each frame, detect objects and filter for vehicle classes.
+4. Count and classify vehicles as they pass through a defined region of interest.
+5. Store and visualize statistics (e.g., using matplotlib or a web dashboard).
+6. Schedule periodic reporting and optionally deploy using Docker.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of algorithms and techniques, primarily:
+
+1. Deep Learning (CNNs, RNNs, or Transformers) for behavior analysis and anomaly detection.
+2. Object Detection and Tracking (e.g., YOLO, SSD, DeepSORT) for identifying and following people in video feeds.
+3. Time Series Analysis or Sequence Modeling (e.g., LSTM, GRU) for analyzing movement patterns over time to detect anomalies like loitering or erratic movement.
+
+Tutorial:
+
+High-Level Tutorial for Video-based Behavior Analysis and Anomaly Detection
+
+1. **Data Collection and Preprocessing**
+   - Gather annotated video datasets with normal and anomalous behaviors.
+   - Preprocess video frames (resize, normalize, augment).
+   - Extract features using pre-trained CNNs or directly use raw frames.
+
+2. **Object Detection and Tracking**
+   - Use object detection models (YOLO, SSD, Faster R-CNN) to detect people in each frame.
+   - Apply tracking algorithms (e.g., DeepSORT, SORT) to assign consistent IDs to detected individuals across frames.
+
+3. **Behavior Analysis and Anomaly Detection**
+   - For each tracked individual, extract movement trajectories (sequences of positions over time).
+   - Use sequence models (LSTM, GRU, or Transformer-based models) to analyze these trajectories.
+   - Train the model to classify normal vs. anomalous behavior, or use unsupervised methods (e.g., autoencoders) to detect deviations from normal patterns.
+
+4. **Alerting and Dashboard Integration**
+   - When an anomaly is detected, trigger alert mechanisms (web dashboard, email, push notifications).
+   - Store event logs and snapshots for review.
+
+5. **Deployment**
+   - Package the inference pipeline (detection, tracking, anomaly detection) into a Docker container.
+   - Expose REST APIs or web interfaces for integration with other systems.
+
+6. **Performance Evaluation**
+   - Measure metrics such as accuracy, precision, recall, F1-score, and inference speed (FPS).
+   - Optimize the model and pipeline for real-time performance.
+
+This approach combines deep learning for perception, sequence modeling for behavior analysis, and system integration for alerting and deployment. The key is to modularize each step and ensure efficient data flow between detection, tracking, and anomaly analysis components.
+
+## Problem to be solved:
+
+Please help me implement a Python program utilizing TensorFlow or PyTorch to create an AI surveillance solution that processes live or recorded RTSP video feeds for behavior analysis, identifies anomalies like loitering or erratic movement, and sends alerts via a web dashboard, email, or push notifications, along with delivering necessary model files, a deployment-ready inference engine in Docker, and a report on performance metrics.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. **Data Preparation**
+   - Collect or access annotated surveillance video datasets with normal and anomalous behaviors.
+   - Preprocess video frames (resize, normalize, augment).
+   - Split data into training, validation, and test sets.
+
+2. **Object Detection and Tracking**
+   - Select and prepare a pre-trained object detection model (e.g., YOLOv8, Faster R-CNN) using PyTorch or TensorFlow.
+   - Integrate the model to detect people in each frame of the RTSP video feed.
+   - Apply a tracking algorithm (e.g., DeepSORT) to assign unique IDs to detected individuals across frames.
+
+3. **Trajectory Extraction**
+   - For each tracked individual, record movement trajectories (sequences of positions over time).
+   - Store trajectory data for further analysis.
+
+4. **Behavior Analysis and Anomaly Detection**
+   - Design and train a sequence model (e.g., LSTM, GRU, Transformer) to classify normal vs. anomalous movement patterns.
+   - Alternatively, use unsupervised methods (e.g., autoencoders) to detect deviations from normal behavior.
+   - Integrate the trained model into the inference pipeline.
+
+5. **Alerting System**
+   - Implement alert mechanisms (web dashboard, email, push notifications) to notify when anomalies are detected.
+   - Store event logs and snapshots for review.
+
+6. **Deployment**
+   - Package the inference pipeline (detection, tracking, anomaly detection, alerting) into a Docker container.
+   - Expose REST APIs or web interfaces for integration and monitoring.
+
+7. **Performance Evaluation**
+   - Measure and report metrics: accuracy, precision, recall, F1-score, inference speed (FPS).
+   - Optimize model and pipeline for real-time performance.
+
+8. **Documentation and Delivery**
+   - Provide necessary model files and code.
+   - Deliver Docker deployment scripts and instructions.
+   - Generate a report summarizing performance metrics and system capabilities.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program utilizing TensorFlow or PyTorch to create an AI surveillance solution that processes live or recorded RTSP video feeds for behavior analysis, identifies anomalies like loitering or erratic movement, and sends alerts via a web dashboard, email, or push notifications, along with delivering necessary model files, a deployment-ready inference engine in Docker, and a report on performance metrics.
+
+# Planning:
+**Planning:**
+
+1. **Data Preparation**
+   - Collect or access annotated surveillance video datasets with normal and anomalous behaviors.
+   - Preprocess video frames (resize, normalize, augment).
+   - Split data into training, validation, and test sets.
+
+2. **Object Detection and Tracking**
+   - Select and prepare a pre-trained object detection model (e.g., YOLOv8, Faster R-CNN) using PyTorch or TensorFlow.
+   - Integrate the model to detect people in each frame of the RTSP video feed.
+   - Apply a tracking algorithm (e.g., DeepSORT) to assign unique IDs to detected individuals across frames.
+
+3. **Trajectory Extraction**
+   - For each tracked individual, record movement trajectories (sequences of positions over time).
+   - Store trajectory data for further analysis.
+
+4. **Behavior Analysis and Anomaly Detection**
+   - Design and train a sequence model (e.g., LSTM, GRU, Transformer) to classify normal vs. anomalous movement patterns.
+   - Alternatively, use unsupervised methods (e.g., autoencoders) to detect deviations from normal behavior.
+   - Integrate the trained model into the inference pipeline.
+
+5. **Alerting System**
+   - Implement alert mechanisms (web dashboard, email, push notifications) to notify when anomalies are detected.
+   - Store event logs and snapshots for review.
+
+6. **Deployment**
+   - Package the inference pipeline (detection, tracking, anomaly detection, alerting) into a Docker container.
+   - Expose REST APIs or web interfaces for integration and monitoring.
+
+7. **Performance Evaluation**
+   - Measure and report metrics: accuracy, precision, recall, F1-score, inference speed (FPS).
+   - Optimize model and pipeline for real-time performance.
+
+8. **Documentation and Delivery**
+   - Provide necessary model files and code.
+   - Deliver Docker deployment scripts and instructions.
+   - Generate a report summarizing performance metrics and system capabilities.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a complex AI system engineering task involving deep learning, computer vision, real-time video processing, anomaly detection, alerting mechanisms, Docker deployment, and reporting. The provided plan is comprehensive and covers all necessary steps to build such a solution using TensorFlow or PyTorch, including data preparation, model selection, tracking, anomaly detection, alerting, deployment, and evaluation. However, this plan is not suitable for a competitive programming context, which usually involves algorithmic challenges solvable within a short time frame and with code that runs in a restricted environment (e.g., online judges). The plan is correct for the described AI surveillance system but not for a competitive programming problem.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Problem 3: Intrusion Detection in Restricted Areas Using Motion Detection
+
+Design a Python application that monitors a restricted area using a static camera feed. The system should detect unauthorized entry based on motion detection, record the event, and send an alert (email or SMS) with a snapshot of the intrusion.
+
+# Planning:
+
+1. Set up a static camera and capture video feed.
+2. Use background subtraction to detect motion in the scene.
+3. Filter out small or irrelevant movements using contour area thresholds.
+4. When significant motion is detected, save a snapshot and trigger an alert.
+5. Integrate with email or SMS APIs for real-time notifications.
+6. Optionally, log events and deploy the solution in a Docker container.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of algorithms and techniques, primarily:
+
+1. Deep Learning (CNNs, RNNs, or Transformers) for behavior analysis and anomaly detection.
+2. Object Detection and Tracking (e.g., YOLO, SSD, DeepSORT) for identifying and following people in video feeds.
+3. Time Series Analysis or Sequence Modeling (e.g., LSTM, GRU) for analyzing movement patterns over time to detect anomalies like loitering or erratic movement.
+
+Tutorial:
+
+High-Level Tutorial for Video-based Behavior Analysis and Anomaly Detection
+
+1. **Data Collection and Preprocessing**
+   - Gather annotated video datasets with normal and anomalous behaviors.
+   - Preprocess video frames (resize, normalize, augment).
+   - Extract features using pre-trained CNNs or directly use raw frames.
+
+2. **Object Detection and Tracking**
+   - Use object detection models (YOLO, SSD, Faster R-CNN) to detect people in each frame.
+   - Apply tracking algorithms (e.g., DeepSORT, SORT) to assign consistent IDs to detected individuals across frames.
+
+3. **Behavior Analysis and Anomaly Detection**
+   - For each tracked individual, extract movement trajectories (sequences of positions over time).
+   - Use sequence models (LSTM, GRU, or Transformer-based models) to analyze these trajectories.
+   - Train the model to classify normal vs. anomalous behavior, or use unsupervised methods (e.g., autoencoders) to detect deviations from normal patterns.
+
+4. **Alerting and Dashboard Integration**
+   - When an anomaly is detected, trigger alert mechanisms (web dashboard, email, push notifications).
+   - Store event logs and snapshots for review.
+
+5. **Deployment**
+   - Package the inference pipeline (detection, tracking, anomaly detection) into a Docker container.
+   - Expose REST APIs or web interfaces for integration with other systems.
+
+6. **Performance Evaluation**
+   - Measure metrics such as accuracy, precision, recall, F1-score, and inference speed (FPS).
+   - Optimize the model and pipeline for real-time performance.
+
+This approach combines deep learning for perception, sequence modeling for behavior analysis, and system integration for alerting and deployment. The key is to modularize each step and ensure efficient data flow between detection, tracking, and anomaly analysis components.
+
+## Problem to be solved:
+
+Please help me implement a Python program utilizing TensorFlow or PyTorch to create an AI surveillance solution that processes live or recorded RTSP video feeds for behavior analysis, identifies anomalies like loitering or erratic movement, and sends alerts via a web dashboard, email, or push notifications, along with delivering necessary model files, a deployment-ready inference engine in Docker, and a report on performance metrics.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning to Solve the Problem:**
+
+1. **Data Preparation**
+   - Collect or access RTSP video feeds (live or recorded).
+   - Annotate or label normal and anomalous behaviors for training.
+   - Preprocess frames (resize, normalize, augment).
+
+2. **Object Detection and Tracking**
+   - Integrate a pre-trained object detection model (YOLOv5, Faster R-CNN) using PyTorch or TensorFlow.
+   - Apply tracking algorithm (DeepSORT or SORT) to maintain identity across frames.
+
+3. **Trajectory Extraction**
+   - For each tracked individual, record position coordinates over time.
+   - Store movement trajectories for behavior analysis.
+
+4. **Behavior Analysis and Anomaly Detection**
+   - Design and train a sequence model (LSTM, GRU, Transformer) to classify normal vs. anomalous movement patterns.
+   - Optionally, use unsupervised anomaly detection (autoencoder, clustering).
+
+5. **Inference Pipeline**
+   - Build a real-time inference engine to process RTSP feeds:
+     - Detect and track individuals.
+     - Extract and analyze trajectories.
+     - Identify anomalies (loitering, erratic movement).
+
+6. **Alerting System**
+   - Integrate web dashboard (Flask/Django/FastAPI) for real-time alerts and visualization.
+   - Set up email and push notification APIs (SMTP, Twilio, Firebase).
+   - Save snapshots and event logs for each detected anomaly.
+
+7. **Model and Engine Packaging**
+   - Export trained model files (.pt, .h5, .onnx).
+   - Containerize the inference engine and dashboard using Docker.
+   - Provide configuration for RTSP sources and alert endpoints.
+
+8. **Performance Evaluation**
+   - Measure accuracy, precision, recall, F1-score, and inference speed (FPS).
+   - Generate a report summarizing metrics and system performance.
+
+9. **Documentation and Delivery**
+   - Prepare user guide for deployment and usage.
+   - Deliver model files, Docker image, source code, and performance report.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program utilizing TensorFlow or PyTorch to create an AI surveillance solution that processes live or recorded RTSP video feeds for behavior analysis, identifies anomalies like loitering or erratic movement, and sends alerts via a web dashboard, email, or push notifications, along with delivering necessary model files, a deployment-ready inference engine in Docker, and a report on performance metrics.
+
+# Planning:
+**Planning to Solve the Problem:**
+
+1. **Data Preparation**
+   - Collect or access RTSP video feeds (live or recorded).
+   - Annotate or label normal and anomalous behaviors for training.
+   - Preprocess frames (resize, normalize, augment).
+
+2. **Object Detection and Tracking**
+   - Integrate a pre-trained object detection model (YOLOv5, Faster R-CNN) using PyTorch or TensorFlow.
+   - Apply tracking algorithm (DeepSORT or SORT) to maintain identity across frames.
+
+3. **Trajectory Extraction**
+   - For each tracked individual, record position coordinates over time.
+   - Store movement trajectories for behavior analysis.
+
+4. **Behavior Analysis and Anomaly Detection**
+   - Design and train a sequence model (LSTM, GRU, Transformer) to classify normal vs. anomalous movement patterns.
+   - Optionally, use unsupervised anomaly detection (autoencoder, clustering).
+
+5. **Inference Pipeline**
+   - Build a real-time inference engine to process RTSP feeds:
+     - Detect and track individuals.
+     - Extract and analyze trajectories.
+     - Identify anomalies (loitering, erratic movement).
+
+6. **Alerting System**
+   - Integrate web dashboard (Flask/Django/FastAPI) for real-time alerts and visualization.
+   - Set up email and push notification APIs (SMTP, Twilio, Firebase).
+   - Save snapshots and event logs for each detected anomaly.
+
+7. **Model and Engine Packaging**
+   - Export trained model files (.pt, .h5, .onnx).
+   - Containerize the inference engine and dashboard using Docker.
+   - Provide configuration for RTSP sources and alert endpoints.
+
+8. **Performance Evaluation**
+   - Measure accuracy, precision, recall, F1-score, and inference speed (FPS).
+   - Generate a report summarizing metrics and system performance.
+
+9. **Documentation and Delivery**
+   - Prepare user guide for deployment and usage.
+   - Deliver model files, Docker image, source code, and performance report.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a large-scale AI system engineering task involving deep learning, video processing, anomaly detection, alerting, and deployment. The provided plan is comprehensive and covers all necessary steps for building such an AI surveillance solution using TensorFlow or PyTorch, including data preparation, model training, inference, alerting, packaging, and reporting. However, this plan is not suitable for a competitive programming context, which usually expects a single, self-contained algorithmic solution with input/output via standard streams, not a full-stack AI system with deployment and dashboard requirements. Thus, while the plan is correct for the described engineering task, it is not applicable or solvable as a competitive programming problem.\n', 'confidence': 95}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of algorithms and techniques, primarily:
+
+1. Deep Learning (CNNs, RNNs, or Transformers) for behavior analysis and anomaly detection.
+2. Object Detection and Tracking (e.g., YOLO, SSD, DeepSORT) for identifying and following people in video feeds.
+3. Time Series Analysis or Sequence Modeling (e.g., LSTM, GRU) for analyzing movement patterns over time to detect anomalies like loitering or erratic movement.
+
+Tutorial:
+
+High-Level Tutorial for Video-based Behavior Analysis and Anomaly Detection
+
+1. **Data Collection and Preprocessing**
+   - Gather annotated video datasets with normal and anomalous behaviors.
+   - Preprocess video frames (resize, normalize, augment).
+   - Extract features using pre-trained CNNs or directly use raw frames.
+
+2. **Object Detection and Tracking**
+   - Use object detection models (YOLO, SSD, Faster R-CNN) to detect people in each frame.
+   - Apply tracking algorithms (e.g., DeepSORT, SORT) to assign consistent IDs to detected individuals across frames.
+
+3. **Behavior Analysis and Anomaly Detection**
+   - For each tracked individual, extract movement trajectories (sequences of positions over time).
+   - Use sequence models (LSTM, GRU, or Transformer-based models) to analyze these trajectories.
+   - Train the model to classify normal vs. anomalous behavior, or use unsupervised methods (e.g., autoencoders) to detect deviations from normal patterns.
+
+4. **Alerting and Dashboard Integration**
+   - When an anomaly is detected, trigger alert mechanisms (web dashboard, email, push notifications).
+   - Store event logs and snapshots for review.
+
+5. **Deployment**
+   - Package the inference pipeline (detection, tracking, anomaly detection) into a Docker container.
+   - Expose REST APIs or web interfaces for integration with other systems.
+
+6. **Performance Evaluation**
+   - Measure metrics such as accuracy, precision, recall, F1-score, and inference speed (FPS).
+   - Optimize the model and pipeline for real-time performance.
+
+This approach combines deep learning for perception, sequence modeling for behavior analysis, and system integration for alerting and deployment. The key is to modularize each step and ensure efficient data flow between detection, tracking, and anomaly analysis components.
+
+## Problem to be solved:
+
+Please help me implement a Python program utilizing TensorFlow or PyTorch to create an AI surveillance solution that processes live or recorded RTSP video feeds for behavior analysis, identifies anomalies like loitering or erratic movement, and sends alerts via a web dashboard, email, or push notifications, along with delivering necessary model files, a deployment-ready inference engine in Docker, and a report on performance metrics.
+
+## Planning:
+**Planning:**
+
+1. **Data Collection and Preparation**
+   - Gather annotated video datasets with normal and anomalous behaviors.
+   - Preprocess frames (resize, normalize, augment).
+   - Split data into training, validation, and test sets.
+
+2. **Object Detection and Tracking**
+   - Select and configure a pre-trained object detection model (YOLOv5, SSD, Faster R-CNN).
+   - Integrate a tracking algorithm (DeepSORT or SORT) to maintain unique IDs for individuals across frames.
+
+3. **Trajectory Extraction**
+   - For each tracked individual, record position coordinates over time to form movement trajectories.
+
+4. **Behavior Analysis and Anomaly Detection**
+   - Design and train a sequence model (LSTM, GRU, Transformer) to classify normal vs. anomalous trajectories.
+   - Optionally, use unsupervised methods (autoencoders, clustering) for anomaly detection.
+
+5. **Real-time Inference Pipeline**
+   - Build a Python application to process RTSP/live video feeds.
+   - Run detection, tracking, and anomaly analysis in real-time.
+   - Annotate video frames with detection and anomaly results.
+
+6. **Alerting System Integration**
+   - Implement alert mechanisms (web dashboard, email, push notifications) for detected anomalies.
+   - Store event logs and snapshots for review.
+
+7. **Model Packaging and Deployment**
+   - Save trained model files (TensorFlow SavedModel or PyTorch .pt).
+   - Containerize the inference engine using Docker.
+   - Expose REST APIs or web interfaces for integration.
+
+8. **Performance Evaluation and Reporting**
+   - Measure accuracy, precision, recall, F1-score, and inference speed (FPS).
+   - Document results and provide a comprehensive report.
+
+9. **Testing**
+   - Validate the system on sample RTSP feeds and recorded videos.
+   - Ensure alerting and logging mechanisms function as expected.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+import cv2
+import torch
+import numpy as np
+import time
+import threading
+import queue
+import smtplib
+from email.mime.text import MIMEText
+from flask import Flask, render_template, Response, jsonify
+from collections import deque
+from torch import nn
+import os
+
+# ------------------- CONFIGURATION -------------------
+RTSP_STREAM = os.environ.get("RTSP_STREAM", "rtsp://username:password@ip:port/stream")
+YOLOV5_WEIGHTS = "yolov5s.pt"  # Download from https://github.com/ultralytics/yolov5
+ANOMALY_MODEL_PATH = "anomaly_lstm.pt"
+ALERT_EMAIL = os.environ.get("ALERT_EMAIL", "your@email.com")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "yourpassword")
+SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
+ALERT_RECIPIENT = os.environ.get("ALERT_RECIPIENT", "recipient@email.com")
+SEQUENCE_LENGTH = 30  # Number of frames for trajectory
+LOITERING_THRESHOLD = 0.7  # Probability threshold for anomaly
+MAX_TRACK_LOST = 10  # Frames to keep lost tracks
+
+# ------------------- OBJECT DETECTION -------------------
+class Detector:
+    def __init__(self, weights=YOLOV5_WEIGHTS, device='cpu'):
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=weights)
+        self.model.conf = 0.4
+        self.device = device
+
+    def detect(self, frame):
+        results = self.model(frame)
+        det = results.xyxy[0].cpu().numpy()
+        people = []
+        for *xyxy, conf, cls in det:
+            if int(cls) == 0:  # person class
+                x1, y1, x2, y2 = map(int, xyxy)
+                people.append([x1, y1, x2, y2, conf])
+        return people
+
+# ------------------- SORT TRACKER -------------------
+# Minimal SORT implementation for tracking
+from filterpy.kalman import KalmanFilter
+
+class Track:
+    def __init__(self, bbox, track_id):
+        self.kf = KalmanFilter(dim_x=7, dim_z=4)
+        self.kf.F = np.array([[1,0,0,0,1,0,0],
+                              [0,1,0,0,0,1,0],
+                              [0,0,1,0,0,0,1],
+                              [0,0,0,1,0,0,0],
+                              [0,0,0,0,1,0,0],
+                              [0,0,0,0,0,1,0],
+                              [0,0,0,0,0,0,1]])
+        self.kf.H = np.array([[1,0,0,0,0,0,0],
+                              [0,1,0,0,0,0,0],
+                              [0,0,1,0,0,0,0],
+                              [0,0,0,1,0,0,0]])
+        self.kf.R[2:,2:] *= 10.
+        self.kf.P[4:,4:] *= 1000.
+        self.kf.P *= 10.
+        self.kf.Q[-1,-1] *= 0.01
+        self.kf.Q[4:,4:] *= 0.01
+        self.kf.x[:4] = self.convert_bbox_to_z(bbox)
+        self.time_since_update = 0
+        self.id = track_id
+        self.hits = 1
+        self.hit_streak = 1
+        self.age = 0
+        self.history = []
+
+    def update(self, bbox):
+        self.time_since_update = 0
+        self.hits += 1
+        self.hit_streak += 1
+        self.kf.update(self.convert_bbox_to_z(bbox))
+
+    def predict(self):
+        self.kf.predict()
+        self.age += 1
+        if self.time_since_update > 0:
+            self.hit_streak = 0
+        self.time_since_update += 1
+        self.history.append(self.convert_x_to_bbox(self.kf.x))
+        return self.history[-1]
+
+    @staticmethod
+    def convert_bbox_to_z(bbox):
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+        x = bbox[0] + w / 2.
+        y = bbox[1] + h / 2.
+        s = w * h
+        r = w / float(h)
+        return np.array([x, y, s, r]).reshape((4, 1))
+
+    @staticmethod
+    def convert_x_to_bbox(x, score=None):
+        w = np.sqrt(x[2] * x[3])
+        h = x[2] / x[3]
+        x1 = x[0] - w / 2.
+        y1 = x[1] - h / 2.
+        x2 = x[0] + w / 2.
+        y2 = x[1] + h / 2.
+        if score is None:
+            return np.array([x1, y1, x2, y2]).reshape((1, 4))
+        else:
+            return np.array([x1, y1, x2, y2, score]).reshape((1, 5))
+
+def iou(bb_test, bb_gt):
+    xx1 = np.maximum(bb_test[0], bb_gt[0])
+    yy1 = np.maximum(bb_test[1], bb_gt[1])
+    xx2 = np.minimum(bb_test[2], bb_gt[2])
+    yy2 = np.minimum(bb_test[3], bb_gt[3])
+    w = np.maximum(0., xx2 - xx1)
+    h = np.maximum(0., yy2 - yy1)
+    wh = w * h
+    o = wh / ((bb_test[2] - bb_test[0]) * (bb_test[3] - bb_test[1])
+              + (bb_gt[2] - bb_gt[0]) * (bb_gt[3] - bb_gt[1]) - wh)
+    return o
+
+class Sort:
+    def __init__(self, max_age=MAX_TRACK_LOST, min_hits=3, iou_threshold=0.3):
+        self.max_age = max_age
+        self.min_hits = min_hits
+        self.iou_threshold = iou_threshold
+        self.trackers = []
+        self.frame_count = 0
+        self.track_id = 0
+
+    def update(self, dets):
+        self.frame_count += 1
+        trks = np.zeros((len(self.trackers), 5))
+        to_del = []
+        ret = []
+        for t, trk in enumerate(self.trackers):
+            pos = trk.predict()[0]
+            trks[t][:4] = pos
+            trks[t][4] = 0
+            if np.any(np.isnan(pos)):
+                to_del.append(t)
+        trks = np.ma.compress_rows(np.ma.masked_invalid(trks))
+        for t in reversed(to_del):
+            self.trackers.pop(t)
+        matched, unmatched_dets, unmatched_trks = associate_detections_to_trackers(dets, trks, self.iou_threshold)
+        for t, trk in enumerate(self.trackers):
+            if t not in unmatched_trks:
+                d = matched[np.where(matched[:, 1] == t)[0], 0]
+                trk.update(dets[d[0]])
+        for i in unmatched_dets:
+            trk = Track(dets[i], self.track_id)
+            self.track_id += 1
+            self.trackers.append(trk)
+        i = len(self.trackers)
+        for trk in reversed(self.trackers):
+            d = trk.history[-1][0]
+            if (trk.time_since_update < 1) and (trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits):
+                ret.append(np.concatenate((d, [trk.id])).reshape(1, -1))
+            i -= 1
+            if trk.time_since_update > self.max_age:
+                self.trackers.pop(i)
+        if len(ret) > 0:
+            return np.concatenate(ret)
+        return np.empty((0, 5))
+
+def associate_detections_to_trackers(detections, trackers, iou_threshold=0.3):
+    if len(trackers) == 0:
+        return np.empty((0, 2), dtype=int), np.arange(len(detections)), np.empty((0), dtype=int)
+    iou_matrix = np.zeros((len(detections), len(trackers)), dtype=np.float32)
+    for d, det in enumerate(detections):
+        for t, trk in enumerate(trackers):
+            iou_matrix[d, t] = iou(det, trk)
+    matched_indices = linear_assignment(-iou_matrix)
+    unmatched_detections = []
+    for d, det in enumerate(detections):
+        if d not in matched_indices[:, 0]:
+            unmatched_detections.append(d)
+    unmatched_trackers = []
+    for t, trk in enumerate(trackers):
+        if t not in matched_indices[:, 1]:
+            unmatched_trackers.append(t)
+    matches = []
+    for m in matched_indices:
+        if iou_matrix[m[0], m[1]] < iou_threshold:
+            unmatched_detections.append(m[0])
+            unmatched_trackers.append(m[1])
+        else:
+            matches.append(m.reshape(1, 2))
+    if len(matches) == 0:
+        matches = np.empty((0, 2), dtype=int)
+    else:
+        matches = np.concatenate(matches, axis=0)
+    return matches, np.array(unmatched_detections), np.array(unmatched_trackers)
+
+def linear_assignment(cost_matrix):
+    from scipy.optimize import linear_sum_assignment
+    x, y = linear_sum_assignment(cost_matrix)
+    return np.array(list(zip(x, y)))
+
+# ------------------- ANOMALY DETECTION MODEL -------------------
+class AnomalyLSTM(nn.Module):
+    def __init__(self, input_dim=2, hidden_dim=32, num_layers=2):
+        super(AnomalyLSTM, self).__init__()
+        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_dim, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        out, _ = self.lstm(x)
+        out = out[:, -1, :]
+        out = self.fc(out)
+        out = self.sigmoid(out)
+        return out
+
+def load_anomaly_model(path=ANOMALY_MODEL_PATH, device='cpu'):
+    model = AnomalyLSTM()
+    model.load_state_dict(torch.load(path, map_location=device))
+    model.eval()
+    return model
+
+# ------------------- ALERTING -------------------
+def send_email_alert(track_id, snapshot_path):
+    msg = MIMEText(f"Anomaly detected for track ID {track_id}. See attached snapshot.")
+    msg['Subject'] = f"Surveillance Alert: Anomaly Detected (Track {track_id})"
+    msg['From'] = ALERT_EMAIL
+    msg['To'] = ALERT_RECIPIENT
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(ALERT_EMAIL, EMAIL_PASSWORD)
+            server.sendmail(ALERT_EMAIL, ALERT_RECIPIENT, msg.as_string())
+    except Exception as e:
+        print(f"Email alert failed: {e}")
+
+# ------------------- WEB DASHBOARD -------------------
+app = Flask(__name__)
+outputFrame = None
+lock = threading.Lock()
+event_log = deque(maxlen=100)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+def generate():
+    global outputFrame, lock
+    while True:
+        with lock:
+            if outputFrame is None:
+                continue
+            (flag, encodedImage) = cv2.imencode(".jpg", outputFrame)
+            if not flag:
+                continue
+        yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
+             bytearray(encodedImage) + b'\r\n')
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+@app.route('/events')
+def events():
+    return jsonify(list(event_log))
+
+# ------------------- INFERENCE ENGINE -------------------
+def inference_engine():
+    global outputFrame, lock, event_log
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    detector = Detector(device=device)
+    tracker = Sort()
+    anomaly_model = load_anomaly_model(device=device)
+    cap = cv2.VideoCapture(RTSP_STREAM)
+    track_trajectories = {}
+    track_last_frame = {}
+    frame_id = 0
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            time.sleep(1)
+            continue
+        orig = frame.copy()
+        people = detector.detect(frame)
+        dets = np.array([p[:4] for p in people])
+        tracks = tracker.update(dets)
+        for tr in tracks:
+            x1, y1, x2, y2, tid = tr
+            tid = int(tid)
+            cx = int((x1 + x2) / 2)
+            cy = int((y1 + y2) / 2)
+            if tid not in track_trajectories:
+                track_trajectories[tid] = deque(maxlen=SEQUENCE_LENGTH)
+            track_trajectories[tid].append([cx, cy])
+            track_last_frame[tid] = frame_id
+            color = (0, 255, 0)
+            anomaly_prob = 0
+            if len(track_trajectories[tid]) == SEQUENCE_LENGTH:
+                traj = np.array(track_trajectories[tid], dtype=np.float32)
+                traj = (traj - traj.mean(axis=0)) / (traj.std(axis=0) + 1e-6)
+                traj_tensor = torch.tensor(traj, dtype=torch.float32).unsqueeze(0).to(device)
+                with torch.no_grad():
+                    anomaly_prob = anomaly_model(traj_tensor).item()
+                if anomaly_prob > LOITERING_THRESHOLD:
+                    color = (0, 0, 255)
+                    event = {
+                        "track_id": tid,
+                        "frame_id": frame_id,
+                        "anomaly_prob": anomaly_prob,
+                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                    event_log.appendleft(event)
+                    snapshot_path = f"snapshots/track_{tid}_frame_{frame_id}.jpg"
+                    os.makedirs("snapshots", exist_ok=True)
+                    cv2.imwrite(snapshot_path, orig)
+                    threading.Thread(target=send_email_alert, args=(tid, snapshot_path)).start()
+            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
+            cv2.putText(frame, f"ID:{tid} Anom:{anomaly_prob:.2f}", (int(x1), int(y1)-10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+        # Clean up lost tracks
+        lost_ids = [tid for tid, last in track_last_frame.items() if frame_id - last > MAX_TRACK_LOST]
+        for tid in lost_ids:
+            track_trajectories.pop(tid, None)
+            track_last_frame.pop(tid, None)
+        with lock:
+            outputFrame = frame.copy()
+        frame_id += 1
+
+# ------------------- MAIN -------------------
+def main():
+    t = threading.Thread(target=inference_engine)
+    t.daemon = True
+    t.start()
+    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True, use_reloader=False)
+
+if __name__ == '__main__':
+    main()
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 91.96 seconds
+Total Tokens: 12,814 (Input: 5,449, Output: 7,365)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 20.09      349          2,075        1         
+Planning_Generation_1     4.70       779          385          1         
+Planning_Verification_1   2.88       576          192          1         
+Planning_Generation_2     3.41       770          401          1         
+Planning_Verification_2   2.37       592          170          1         
+Planning_Generation_3     20.27      766          414          1         
+Planning_Verification_3   2.91       605          170          1         
+Final_Code_Generation     35.32      1,012        3,558        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 14:46:58.688719
+##########################
+

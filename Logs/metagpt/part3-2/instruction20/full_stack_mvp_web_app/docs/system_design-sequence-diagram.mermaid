@@ -1,0 +1,35 @@
+sequenceDiagram
+    participant F as Frontend
+    participant AC as AuthController
+    participant DC as DashboardController
+    participant RC as ReportController
+    participant DB as DB
+    participant WS as WebSocket
+    F->>AC: register(data)
+    AC->>DB: insert('users', data)
+    DB-->>AC: success
+    AC-->>F: User object
+    F->>AC: login(credentials)
+    AC->>DB: query('users', credentials)
+    DB-->>AC: User object
+    AC->>JWT: encode(payload)
+    JWT-->>AC: token
+    AC-->>F: token
+    F->>DC: get_metrics(token)
+    DC->>JWT: decode(token)
+    JWT-->>DC: user_id
+    DC->>DB: query('metrics', user_id)
+    DB-->>DC: list[Metric]
+    DC-->>F: metrics
+    F->>WS: connect(user_id)
+    WS-->>F: realtime_updates
+    F->>RC: generate_report(params)
+    RC->>DB: query('metrics', params)
+    DB-->>RC: data
+    RC->>DB: insert('reports', data)
+    DB-->>RC: Report object
+    RC-->>F: Report object
+    F->>RC: export_report(report_id, format)
+    RC->>DB: query('reports', report_id)
+    DB-->>RC: Report object
+    RC-->>F: file (CSV/PDF)

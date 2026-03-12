@@ -1,0 +1,44 @@
+sequenceDiagram
+    %% Windows Standalone Tool
+    participant U as User
+    participant GUI as GUI
+    participant AP as AssetParser
+    participant EX as Exporter
+    participant BP as BatchProcessor
+    U->>GUI: Launch tool
+    GUI->>U: Show file browser
+    U->>GUI: Select NBA 2k26 asset(s)
+    GUI->>AP: parse(asset_path)
+    AP-->>GUI: PlayerModel
+    GUI->>GUI: preview_model(PlayerModel)
+    U->>GUI: Export selected
+    GUI->>EX: export_json(PlayerModel)
+    GUI->>EX: export_dds(textures)
+    EX-->>GUI: Export complete
+    GUI->>U: Show status
+    Note over GUI,BP: For batch mode, GUI delegates to BatchProcessor
+    GUI->>BP: process_all(asset_paths)
+    BP->>AP: parse(asset_path) (loop)
+    BP->>EX: export_json(PlayerModel) (loop)
+    BP->>EX: export_dds(textures) (loop)
+    BP-->>GUI: Batch export complete
+
+    %% Blender Add-on
+    participant BAU as Blender User
+    participant UIP as UIPanel
+    participant IM as ImportJSONDDS
+    participant EU as ExportJSONDDS
+    participant RU as RiggingUtils
+    participant TU as TextureUtils
+    BAU->>UIP: Import NBA2k26 JSON/DDS
+    UIP->>IM: import_model(json_path, dds_paths)
+    IM-->>UIP: PlayerModel
+    UIP->>RU: apply_rig(PlayerModel)
+    UIP->>TU: apply_textures(PlayerModel)
+    BAU->>UIP: Edit model in Blender
+    BAU->>UIP: Export NBA2k26 JSON/DDS
+    UIP->>EU: export_model(PlayerModel, json_path, dds_paths)
+    EU->>RU: extract_rig(obj)
+    EU->>TU: extract_textures(obj)
+    EU-->>UIP: Export complete
+    UIP->>BAU: Show validation dialog

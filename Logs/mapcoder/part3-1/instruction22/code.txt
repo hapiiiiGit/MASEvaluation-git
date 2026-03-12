@@ -1,0 +1,67 @@
+import cv2
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from tkinter import Tk, Button, Label, filedialog
+from PIL import Image, ImageTk
+
+class ObjectDetectionApp:
+    def __init__(self, master):
+        self.master = master
+        master.title("Object Detection Software")
+
+        self.label = Label(master, text="Select an image or start video stream")
+        self.label.pack()
+
+        self.load_image_button = Button(master, text="Load Image", command=self.load_image)
+        self.load_image_button.pack()
+
+        self.start_video_button = Button(master, text="Start Video Stream", command=self.start_video_stream)
+        self.start_video_button.pack()
+
+        self.model = self.load_model()
+
+    def load_model(self):
+        # Load the pre-trained model (replace 'model.h5' with your model path)
+        model = load_model('model.h5')
+        return model
+
+    def load_image(self):
+        file_path = filedialog.askopenfilename()
+        if file_path:
+            image = cv2.imread(file_path)
+            self.detect_objects(image)
+
+    def start_video_stream(self):
+        cap = cv2.VideoCapture(0)
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            self.detect_objects(frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        cap.release()
+        cv2.destroyAllWindows()
+
+    def detect_objects(self, image):
+        # Preprocess the image for the model
+        input_image = cv2.resize(image, (224, 224))  # Adjust size as per model input
+        input_image = np.expand_dims(input_image, axis=0) / 255.0
+
+        # Perform object detection
+        predictions = self.model.predict(input_image)
+        # Process predictions (this part depends on your model's output format)
+        # For example, draw bounding boxes on the image
+        for pred in predictions:
+            # Assuming pred contains bounding box coordinates and class label
+            x, y, w, h, label = pred
+            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.putText(image, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        cv2.imshow("Object Detection", image)
+
+if __name__ == "__main__":
+    root = Tk()
+    app = ObjectDetectionApp(root)
+    root.mainloop()

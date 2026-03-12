@@ -1,0 +1,67 @@
+--- 文件来源: video_verification_claims_web_app/docs/system_design.md ---
+## Implementation approach
+
+We will use FastAPI for the backend to handle API requests and manage user authentication via Google OAuth 2.0. React will be used for the frontend, providing a user-friendly interface for claims submission and management. Jitsi Meet will be integrated for video calls, and AWS S3 will be utilized for media storage.
+
+## File list
+
+- src/App.jsx
+- src/components/Login.jsx
+- src/components/ClaimsDashboard.jsx
+- src/components/VideoCall.jsx
+- src/components/ClaimForm.jsx
+- src/utils/api.js
+- src/styles/tailwind.css
+- public/index.html
+
+## Data structures and interfaces:
+
+classDiagram
+    class User {
+        +user_id: str
+        +email: str
+        +name: str
+        +login() -> bool
+    }
+    class Claim {
+        +claim_id: str
+        +user_id: str
+        +status: str
+        +submit() -> bool
+        +generate_report() -> PDF
+    }
+    class VideoCall {
+        +call_id: str
+        +start() -> bool
+        +end() -> bool
+    }
+    class Notification {
+        +send_email(user_id: str, message: str) -> bool
+    }
+
+User --> Claim : submits
+Claim --> VideoCall : initiates
+User --> Notification : receives
+
+## Program call flow:
+
+sequenceDiagram
+    participant U as User
+    participant A as Auth
+    participant C as ClaimsDashboard
+    participant V as VideoCall
+    participant N as Notification
+    U->>A: login()
+    A-->>U: success
+    U->>C: view_claims()
+    C-->>U: display_claims
+    U->>C: submit_claim()
+    C-->>U: claim_submitted
+    U->>V: start_video_call()
+    V-->>U: call_initiated
+    U->>N: receive_notification()
+    N-->>U: notification_sent
+
+## Anything UNCLEAR
+
+Clarification needed on the specific user data required for the claims process.

@@ -1,0 +1,1259 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 14:40:09.423302
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python program to set up a Django web application that includes project structure, data models, performant views/templates or DRF endpoints, security measures, authentication, automated tests, and a deployment guide for smooth production deployment.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+You are tasked with building a RESTful API for a library management system using Django REST Framework (DRF). The API should allow users to perform CRUD operations on books, authors, and borrowers, implement authentication, and provide endpoints for borrowing and returning books. The system should be secure, scalable, and include automated tests.
+]]></description>
+<code><![CDATA[
+# Step 1: Set up Django project and app
+# django-admin startproject library
+# cd library
+# python manage.py startapp api
+
+# Step 2: Define models in api/models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+class Author(models.Model):
+    name = models.CharField(max_length=100)
+
+class Book(models.Model):
+    title = models.CharField(max_length=200)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+    available = models.BooleanField(default=True)
+
+class Borrow(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    borrowed_at = models.DateTimeField(auto_now_add=True)
+    returned = models.BooleanField(default=False)
+
+# Step 3: Create serializers in api/serializers.py
+from rest_framework import serializers
+from .models import Author, Book, Borrow
+
+class AuthorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Author
+        fields = '__all__'
+
+class BookSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Book
+        fields = '__all__'
+
+class BorrowSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Borrow
+        fields = '__all__'
+
+# Step 4: Create views in api/views.py
+from rest_framework import viewsets, permissions
+from .models import Author, Book, Borrow
+from .serializers import AuthorSerializer, BookSerializer, BorrowSerializer
+
+class AuthorViewSet(viewsets.ModelViewSet):
+    queryset = Author.objects.all()
+    serializer_class = AuthorSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class BookViewSet(viewsets.ModelViewSet):
+    queryset = Book.objects.all()
+    serializer_class = BookSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class BorrowViewSet(viewsets.ModelViewSet):
+    queryset = Borrow.objects.all()
+    serializer_class = BorrowSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+# Step 5: Set up URLs in api/urls.py
+from rest_framework.routers import DefaultRouter
+from .views import AuthorViewSet, BookViewSet, BorrowViewSet
+
+router = DefaultRouter()
+router.register(r'authors', AuthorViewSet)
+router.register(r'books', BookViewSet)
+router.register(r'borrows', BorrowViewSet)
+
+urlpatterns = router.urls
+
+# Step 6: Add authentication (e.g., JWT) in settings.py and urls.py
+
+# Step 7: Write tests in api/tests.py
+
+# Step 8: Deployment (Docker, Gunicorn, Nginx, etc.)
+]]></code>
+<planning><![CDATA[
+1. Set up Django project and app.
+2. Define models for Author, Book, and Borrow.
+3. Create serializers for each model.
+4. Implement viewsets for CRUD operations.
+5. Set up URL routing using DRF routers.
+6. Add authentication and permissions.
+7. Write automated tests for endpoints.
+8. Prepare deployment using Docker, Gunicorn, and Nginx.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Develop a Django web application for a blogging platform. The application should support user registration and authentication, allow users to create, edit, and delete blog posts, comment on posts, and like posts. The platform should use Django templates for rendering, include CSRF protection, and have automated tests for core functionalities.
+]]></description>
+<code><![CDATA[
+# Step 1: Set up Django project and app
+# django-admin startproject blogsite
+# cd blogsite
+# python manage.py startapp blog
+
+# Step 2: Define models in blog/models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+class Post(models.Model):
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class Comment(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class Like(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='likes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+# Step 3: Create forms in blog/forms.py
+from django import forms
+from .models import Post, Comment
+
+class PostForm(forms.ModelForm):
+    class Meta:
+        model = Post
+        fields = ['title', 'content']
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['content']
+
+# Step 4: Implement views in blog/views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Post, Comment, Like
+from .forms import PostForm, CommentForm
+from django.contrib.auth.decorators import login_required
+
+def post_list(request):
+    posts = Post.objects.all().order_by('-created_at')
+    return render(request, 'blog/post_list.html', {'posts': posts})
+
+@login_required
+def post_create(request):
+    if request.method == 'POST':
+        form = PostForm(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = request.user
+            post.save()
+            return redirect('post_list')
+    else:
+        form = PostForm()
+    return render(request, 'blog/post_form.html', {'form': form})
+
+# ... (other views for edit, delete, comment, like)
+
+# Step 5: Set up templates with CSRF protection
+
+# Step 6: Write tests in blog/tests.py
+
+# Step 7: Deployment (collectstatic, Gunicorn, Nginx, etc.)
+]]></code>
+<planning><![CDATA[
+1. Set up Django project and app.
+2. Define models for Post, Comment, and Like.
+3. Create forms for post and comment creation.
+4. Implement views for listing, creating, editing, and deleting posts, as well as commenting and liking.
+5. Set up templates with CSRF protection.
+6. Write automated tests for core functionalities.
+7. Prepare deployment for production.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Create a Django-based e-commerce platform that supports product listings, shopping cart functionality, order processing, user authentication, and payment integration (e.g., Stripe). The application should use Django templates, ensure security best practices, and include automated tests for checkout and payment flows.
+]]></description>
+<code><![CDATA[
+# Step 1: Set up Django project and app
+# django-admin startproject shop
+# cd shop
+# python manage.py startapp store
+
+# Step 2: Define models in store/models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+class Product(models.Model):
+    name = models.CharField(max_length=100)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField()
+
+class Order(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    paid = models.BooleanField(default=False)
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+# Step 3: Create forms for cart and checkout
+
+# Step 4: Implement views for product listing, cart, checkout, and payment
+# (e.g., using Stripe API for payment processing)
+
+# Step 5: Set up templates with CSRF protection
+
+# Step 6: Write tests for checkout and payment flows
+
+# Step 7: Deployment (collectstatic, Gunicorn, Nginx, HTTPS, etc.)
+]]></code>
+<planning><![CDATA[
+1. Set up Django project and app.
+2. Define models for Product, Order, and OrderItem.
+3. Create forms for cart management and checkout.
+4. Implement views for product listing, cart, checkout, and payment integration.
+5. Set up templates with CSRF protection.
+6. Write automated tests for checkout and payment flows.
+7. Prepare deployment for production with HTTPS.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem is a full-stack web application development task using Django, involving project structuring, data modeling, performant views or DRF endpoints, security, authentication, testing, and deployment. The main "algorithm" here is not a classic computational algorithm, but rather a systematic software engineering process, often called the "Django Web Application Development Workflow".
+
+Tutorial: Django Web Application Development Workflow
+
+1. **Project Setup and Structure**: 
+   - Use `django-admin startproject` and `python manage.py startapp` to create a modular project.
+   - Organize code into apps, templates, static files, and configuration files.
+
+2. **Data Modeling**:
+   - Define models in `models.py` using Django ORM.
+   - Use migrations to create/update database schema.
+
+3. **Views and Endpoints**:
+   - For server-rendered apps, use class-based or function-based views and Django templates.
+   - For APIs, use Django REST Framework (DRF) to create serializers and viewsets for performant endpoints.
+
+4. **Security Measures**:
+   - Use Django’s built-in protections: CSRF, XSS, SQL injection prevention.
+   - Set secure settings: `DEBUG=False`, strong `SECRET_KEY`, allowed hosts, HTTPS, etc.
+
+5. **Authentication and Authorization**:
+   - Use Django’s authentication system or DRF’s token/JWT authentication.
+   - Implement permissions and user roles as needed.
+
+6. **Automated Testing**:
+   - Write unit and integration tests using Django’s `TestCase` or DRF’s APIClient.
+   - Test models, views, endpoints, and forms.
+
+7. **Deployment**:
+   - Use WSGI servers (Gunicorn, uWSGI), reverse proxies (Nginx), and static/media file handling.
+   - Set up environment variables, database, and security settings for production.
+   - Use Docker for containerization if needed.
+
+This workflow is iterative: develop features, test, secure, and deploy. Each step leverages Django’s built-in tools and best practices for robust, maintainable, and secure web applications.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+You are tasked with building a RESTful API for a library management system using Django REST Framework (DRF). The API should allow users to perform CRUD operations on books, authors, and borrowers, implement authentication, and provide endpoints for borrowing and returning books. The system should be secure, scalable, and include automated tests.
+
+# Planning:
+
+1. Set up Django project and app.
+2. Define models for Author, Book, and Borrow.
+3. Create serializers for each model.
+4. Implement viewsets for CRUD operations.
+5. Set up URL routing using DRF routers.
+6. Add authentication and permissions.
+7. Write automated tests for endpoints.
+8. Prepare deployment using Docker, Gunicorn, and Nginx.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is a full-stack web application development task using Django, involving project structuring, data modeling, performant views or DRF endpoints, security, authentication, testing, and deployment. The main "algorithm" here is not a classic computational algorithm, but rather a systematic software engineering process, often called the "Django Web Application Development Workflow".
+
+Tutorial: Django Web Application Development Workflow
+
+1. **Project Setup and Structure**: 
+   - Use `django-admin startproject` and `python manage.py startapp` to create a modular project.
+   - Organize code into apps, templates, static files, and configuration files.
+
+2. **Data Modeling**:
+   - Define models in `models.py` using Django ORM.
+   - Use migrations to create/update database schema.
+
+3. **Views and Endpoints**:
+   - For server-rendered apps, use class-based or function-based views and Django templates.
+   - For APIs, use Django REST Framework (DRF) to create serializers and viewsets for performant endpoints.
+
+4. **Security Measures**:
+   - Use Django’s built-in protections: CSRF, XSS, SQL injection prevention.
+   - Set secure settings: `DEBUG=False`, strong `SECRET_KEY`, allowed hosts, HTTPS, etc.
+
+5. **Authentication and Authorization**:
+   - Use Django’s authentication system or DRF’s token/JWT authentication.
+   - Implement permissions and user roles as needed.
+
+6. **Automated Testing**:
+   - Write unit and integration tests using Django’s `TestCase` or DRF’s APIClient.
+   - Test models, views, endpoints, and forms.
+
+7. **Deployment**:
+   - Use WSGI servers (Gunicorn, uWSGI), reverse proxies (Nginx), and static/media file handling.
+   - Set up environment variables, database, and security settings for production.
+   - Use Docker for containerization if needed.
+
+This workflow is iterative: develop features, test, secure, and deploy. Each step leverages Django’s built-in tools and best practices for robust, maintainable, and secure web applications.
+
+## Problem to be solved:
+
+Please help me implement a Python program to set up a Django web application that includes project structure, data models, performant views/templates or DRF endpoints, security measures, authentication, automated tests, and a deployment guide for smooth production deployment.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+1. Initialize Django project and create a new app for the library system.
+2. Configure project settings: database, installed apps, static/media files, security settings.
+3. Define models for Author, Book, and Borrower in `models.py`.
+4. Create and apply migrations for the models.
+5. Implement DRF serializers for Author, Book, and Borrower.
+6. Create DRF viewsets for CRUD operations on each model.
+7. Implement custom endpoints for borrowing and returning books.
+8. Set up URL routing using DRF routers and include custom endpoints.
+9. Add authentication using DRF’s token or JWT authentication.
+10. Set permissions for endpoints (e.g., only authenticated users can borrow/return).
+11. Implement security best practices in settings (DEBUG, SECRET_KEY, ALLOWED_HOSTS, HTTPS, etc.).
+12. Write automated tests for models, serializers, and API endpoints.
+13. Create Dockerfile and docker-compose for containerization.
+14. Configure Gunicorn as WSGI server and Nginx as reverse proxy.
+15. Prepare deployment guide: environment variables, static/media file handling, database setup, and server configuration.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to set up a Django web application that includes project structure, data models, performant views/templates or DRF endpoints, security measures, authentication, automated tests, and a deployment guide for smooth production deployment.
+
+# Planning:
+1. Initialize Django project and create a new app for the library system.
+2. Configure project settings: database, installed apps, static/media files, security settings.
+3. Define models for Author, Book, and Borrower in `models.py`.
+4. Create and apply migrations for the models.
+5. Implement DRF serializers for Author, Book, and Borrower.
+6. Create DRF viewsets for CRUD operations on each model.
+7. Implement custom endpoints for borrowing and returning books.
+8. Set up URL routing using DRF routers and include custom endpoints.
+9. Add authentication using DRF’s token or JWT authentication.
+10. Set permissions for endpoints (e.g., only authenticated users can borrow/return).
+11. Implement security best practices in settings (DEBUG, SECRET_KEY, ALLOWED_HOSTS, HTTPS, etc.).
+12. Write automated tests for models, serializers, and API endpoints.
+13. Create Dockerfile and docker-compose for containerization.
+14. Configure Gunicorn as WSGI server and Nginx as reverse proxy.
+15. Prepare deployment guide: environment variables, static/media file handling, database setup, and server configuration.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a full-stack web development task involving Django and Django REST Framework (DRF). The provided plan is comprehensive and covers all necessary steps to set up a Django web application, including project initialization, model definition, API endpoints, authentication, security, testing, containerization, and deployment. Each step logically follows the requirements for building a robust, production-ready Django application. Therefore, the plan is correct and sufficient to solve the stated problem.\n', 'confidence': 100}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Develop a Django web application for a blogging platform. The application should support user registration and authentication, allow users to create, edit, and delete blog posts, comment on posts, and like posts. The platform should use Django templates for rendering, include CSRF protection, and have automated tests for core functionalities.
+
+# Planning:
+
+1. Set up Django project and app.
+2. Define models for Post, Comment, and Like.
+3. Create forms for post and comment creation.
+4. Implement views for listing, creating, editing, and deleting posts, as well as commenting and liking.
+5. Set up templates with CSRF protection.
+6. Write automated tests for core functionalities.
+7. Prepare deployment for production.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is a full-stack web application development task using Django, involving project structuring, data modeling, performant views or DRF endpoints, security, authentication, testing, and deployment. The main "algorithm" here is not a classic computational algorithm, but rather a systematic software engineering process, often called the "Django Web Application Development Workflow".
+
+Tutorial: Django Web Application Development Workflow
+
+1. **Project Setup and Structure**: 
+   - Use `django-admin startproject` and `python manage.py startapp` to create a modular project.
+   - Organize code into apps, templates, static files, and configuration files.
+
+2. **Data Modeling**:
+   - Define models in `models.py` using Django ORM.
+   - Use migrations to create/update database schema.
+
+3. **Views and Endpoints**:
+   - For server-rendered apps, use class-based or function-based views and Django templates.
+   - For APIs, use Django REST Framework (DRF) to create serializers and viewsets for performant endpoints.
+
+4. **Security Measures**:
+   - Use Django’s built-in protections: CSRF, XSS, SQL injection prevention.
+   - Set secure settings: `DEBUG=False`, strong `SECRET_KEY`, allowed hosts, HTTPS, etc.
+
+5. **Authentication and Authorization**:
+   - Use Django’s authentication system or DRF’s token/JWT authentication.
+   - Implement permissions and user roles as needed.
+
+6. **Automated Testing**:
+   - Write unit and integration tests using Django’s `TestCase` or DRF’s APIClient.
+   - Test models, views, endpoints, and forms.
+
+7. **Deployment**:
+   - Use WSGI servers (Gunicorn, uWSGI), reverse proxies (Nginx), and static/media file handling.
+   - Set up environment variables, database, and security settings for production.
+   - Use Docker for containerization if needed.
+
+This workflow is iterative: develop features, test, secure, and deploy. Each step leverages Django’s built-in tools and best practices for robust, maintainable, and secure web applications.
+
+## Problem to be solved:
+
+Please help me implement a Python program to set up a Django web application that includes project structure, data models, performant views/templates or DRF endpoints, security measures, authentication, automated tests, and a deployment guide for smooth production deployment.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+1. Initialize Django project and app.
+2. Configure project settings (database, static/media files, security).
+3. Define models: User (use Django’s), Post, Comment, Like.
+4. Create and apply migrations.
+5. Implement forms for registration, login, post creation/editing, comment.
+6. Set up authentication: registration, login, logout views.
+7. Develop views for:
+   - Post list/detail
+   - Post create/edit/delete (with permissions)
+   - Comment create/delete
+   - Like/unlike post
+8. Create templates for all views, include CSRF protection.
+9. Add URL patterns for all views.
+10. Implement security best practices (CSRF, XSS, SQL injection prevention, secure settings).
+11. Write automated tests for models, views, forms, authentication, permissions.
+12. Prepare deployment:
+    - Collect static files
+    - Configure production settings (DEBUG, SECRET_KEY, ALLOWED_HOSTS)
+    - Set up WSGI server (Gunicorn/uWSGI)
+    - Configure reverse proxy (Nginx)
+    - Set up database and environment variables
+    - Document deployment steps.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to set up a Django web application that includes project structure, data models, performant views/templates or DRF endpoints, security measures, authentication, automated tests, and a deployment guide for smooth production deployment.
+
+# Planning:
+1. Initialize Django project and app.
+2. Configure project settings (database, static/media files, security).
+3. Define models: User (use Django’s), Post, Comment, Like.
+4. Create and apply migrations.
+5. Implement forms for registration, login, post creation/editing, comment.
+6. Set up authentication: registration, login, logout views.
+7. Develop views for:
+   - Post list/detail
+   - Post create/edit/delete (with permissions)
+   - Comment create/delete
+   - Like/unlike post
+8. Create templates for all views, include CSRF protection.
+9. Add URL patterns for all views.
+10. Implement security best practices (CSRF, XSS, SQL injection prevention, secure settings).
+11. Write automated tests for models, views, forms, authentication, permissions.
+12. Prepare deployment:
+    - Collect static files
+    - Configure production settings (DEBUG, SECRET_KEY, ALLOWED_HOSTS)
+    - Set up WSGI server (Gunicorn/uWSGI)
+    - Configure reverse proxy (Nginx)
+    - Set up database and environment variables
+    - Document deployment steps.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a comprehensive software engineering task that involves setting up a full Django web application with models, views, authentication, security, testing, and deployment. The provided plan is detailed and covers all necessary steps to build, secure, test, and deploy a Django application as described in the problem statement. Each step logically follows the standard Django development workflow and addresses all requirements, including security and deployment. Therefore, the plan is correct and sufficient to solve the problem as stated.\n', 'confidence': 100}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Create a Django-based e-commerce platform that supports product listings, shopping cart functionality, order processing, user authentication, and payment integration (e.g., Stripe). The application should use Django templates, ensure security best practices, and include automated tests for checkout and payment flows.
+
+# Planning:
+
+1. Set up Django project and app.
+2. Define models for Product, Order, and OrderItem.
+3. Create forms for cart management and checkout.
+4. Implement views for product listing, cart, checkout, and payment integration.
+5. Set up templates with CSRF protection.
+6. Write automated tests for checkout and payment flows.
+7. Prepare deployment for production with HTTPS.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem is a full-stack web application development task using Django, involving project structuring, data modeling, performant views or DRF endpoints, security, authentication, testing, and deployment. The main "algorithm" here is not a classic computational algorithm, but rather a systematic software engineering process, often called the "Django Web Application Development Workflow".
+
+Tutorial: Django Web Application Development Workflow
+
+1. **Project Setup and Structure**: 
+   - Use `django-admin startproject` and `python manage.py startapp` to create a modular project.
+   - Organize code into apps, templates, static files, and configuration files.
+
+2. **Data Modeling**:
+   - Define models in `models.py` using Django ORM.
+   - Use migrations to create/update database schema.
+
+3. **Views and Endpoints**:
+   - For server-rendered apps, use class-based or function-based views and Django templates.
+   - For APIs, use Django REST Framework (DRF) to create serializers and viewsets for performant endpoints.
+
+4. **Security Measures**:
+   - Use Django’s built-in protections: CSRF, XSS, SQL injection prevention.
+   - Set secure settings: `DEBUG=False`, strong `SECRET_KEY`, allowed hosts, HTTPS, etc.
+
+5. **Authentication and Authorization**:
+   - Use Django’s authentication system or DRF’s token/JWT authentication.
+   - Implement permissions and user roles as needed.
+
+6. **Automated Testing**:
+   - Write unit and integration tests using Django’s `TestCase` or DRF’s APIClient.
+   - Test models, views, endpoints, and forms.
+
+7. **Deployment**:
+   - Use WSGI servers (Gunicorn, uWSGI), reverse proxies (Nginx), and static/media file handling.
+   - Set up environment variables, database, and security settings for production.
+   - Use Docker for containerization if needed.
+
+This workflow is iterative: develop features, test, secure, and deploy. Each step leverages Django’s built-in tools and best practices for robust, maintainable, and secure web applications.
+
+## Problem to be solved:
+
+Please help me implement a Python program to set up a Django web application that includes project structure, data models, performant views/templates or DRF endpoints, security measures, authentication, automated tests, and a deployment guide for smooth production deployment.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. **Project Initialization**
+   - Create Django project and core app.
+   - Set up virtual environment and requirements.txt.
+
+2. **Project Structure**
+   - Organize apps: products, cart, orders, users.
+   - Set up templates, static, and media directories.
+
+3. **Data Modeling**
+   - Define models: Product, Order, OrderItem, Cart, User (extend if needed).
+   - Create and apply migrations.
+
+4. **Authentication**
+   - Use Django’s built-in authentication.
+   - Implement registration, login, logout, and user profile views.
+
+5. **Views and Templates**
+   - Product listing/detail views and templates.
+   - Cart add/remove/update views and templates.
+   - Checkout and order summary views and templates.
+
+6. **Payment Integration**
+   - Integrate Stripe (or similar) for payment processing.
+   - Securely handle payment callbacks and order confirmation.
+
+7. **Security Measures**
+   - Enable CSRF protection in forms and templates.
+   - Set secure settings: DEBUG=False, SECRET_KEY, ALLOWED_HOSTS, HTTPS.
+   - Validate user input and sanitize data.
+
+8. **Automated Testing**
+   - Write unit tests for models, views, and forms.
+   - Write integration tests for checkout and payment flows.
+
+9. **Admin and Management**
+   - Register models in Django admin.
+   - Create superuser and test admin functionality.
+
+10. **Deployment Preparation**
+    - Configure static/media file serving.
+    - Set up WSGI server (Gunicorn/uWSGI) and reverse proxy (Nginx).
+    - Use environment variables for sensitive settings.
+    - Prepare deployment scripts and documentation.
+
+11. **Documentation**
+    - Write README with setup, usage, and deployment instructions.
+    - Document API endpoints and key workflows.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to set up a Django web application that includes project structure, data models, performant views/templates or DRF endpoints, security measures, authentication, automated tests, and a deployment guide for smooth production deployment.
+
+# Planning:
+**Planning:**
+
+1. **Project Initialization**
+   - Create Django project and core app.
+   - Set up virtual environment and requirements.txt.
+
+2. **Project Structure**
+   - Organize apps: products, cart, orders, users.
+   - Set up templates, static, and media directories.
+
+3. **Data Modeling**
+   - Define models: Product, Order, OrderItem, Cart, User (extend if needed).
+   - Create and apply migrations.
+
+4. **Authentication**
+   - Use Django’s built-in authentication.
+   - Implement registration, login, logout, and user profile views.
+
+5. **Views and Templates**
+   - Product listing/detail views and templates.
+   - Cart add/remove/update views and templates.
+   - Checkout and order summary views and templates.
+
+6. **Payment Integration**
+   - Integrate Stripe (or similar) for payment processing.
+   - Securely handle payment callbacks and order confirmation.
+
+7. **Security Measures**
+   - Enable CSRF protection in forms and templates.
+   - Set secure settings: DEBUG=False, SECRET_KEY, ALLOWED_HOSTS, HTTPS.
+   - Validate user input and sanitize data.
+
+8. **Automated Testing**
+   - Write unit tests for models, views, and forms.
+   - Write integration tests for checkout and payment flows.
+
+9. **Admin and Management**
+   - Register models in Django admin.
+   - Create superuser and test admin functionality.
+
+10. **Deployment Preparation**
+    - Configure static/media file serving.
+    - Set up WSGI server (Gunicorn/uWSGI) and reverse proxy (Nginx).
+    - Use environment variables for sensitive settings.
+    - Prepare deployment scripts and documentation.
+
+11. **Documentation**
+    - Write README with setup, usage, and deployment instructions.
+    - Document API endpoints and key workflows.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': 'The given problem is not a typical competitive programming problem; instead, it is a comprehensive software engineering task that involves setting up a full Django web application with multiple components such as project structure, data models, authentication, views, security, testing, and deployment. The provided plan is detailed and covers all necessary aspects to build and deploy a Django web application as described in the problem statement. Each step logically follows the requirements, ensuring that the application will be robust, secure, and production-ready. Therefore, the plan is correct and sufficient to solve the problem as stated.', 'confidence': 100}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem is a full-stack web application development task using Django, involving project structuring, data modeling, performant views or DRF endpoints, security, authentication, testing, and deployment. The main "algorithm" here is not a classic computational algorithm, but rather a systematic software engineering process, often called the "Django Web Application Development Workflow".
+
+Tutorial: Django Web Application Development Workflow
+
+1. **Project Setup and Structure**: 
+   - Use `django-admin startproject` and `python manage.py startapp` to create a modular project.
+   - Organize code into apps, templates, static files, and configuration files.
+
+2. **Data Modeling**:
+   - Define models in `models.py` using Django ORM.
+   - Use migrations to create/update database schema.
+
+3. **Views and Endpoints**:
+   - For server-rendered apps, use class-based or function-based views and Django templates.
+   - For APIs, use Django REST Framework (DRF) to create serializers and viewsets for performant endpoints.
+
+4. **Security Measures**:
+   - Use Django’s built-in protections: CSRF, XSS, SQL injection prevention.
+   - Set secure settings: `DEBUG=False`, strong `SECRET_KEY`, allowed hosts, HTTPS, etc.
+
+5. **Authentication and Authorization**:
+   - Use Django’s authentication system or DRF’s token/JWT authentication.
+   - Implement permissions and user roles as needed.
+
+6. **Automated Testing**:
+   - Write unit and integration tests using Django’s `TestCase` or DRF’s APIClient.
+   - Test models, views, endpoints, and forms.
+
+7. **Deployment**:
+   - Use WSGI servers (Gunicorn, uWSGI), reverse proxies (Nginx), and static/media file handling.
+   - Set up environment variables, database, and security settings for production.
+   - Use Docker for containerization if needed.
+
+This workflow is iterative: develop features, test, secure, and deploy. Each step leverages Django’s built-in tools and best practices for robust, maintainable, and secure web applications.
+
+## Problem to be solved:
+
+Please help me implement a Python program to set up a Django web application that includes project structure, data models, performant views/templates or DRF endpoints, security measures, authentication, automated tests, and a deployment guide for smooth production deployment.
+
+## Planning:
+1. Initialize Django project and create a new app for the library system.
+2. Configure project settings: database, installed apps, static/media files, security settings.
+3. Define models for Author, Book, and Borrower in `models.py`.
+4. Create and apply migrations for the models.
+5. Implement DRF serializers for Author, Book, and Borrower.
+6. Create DRF viewsets for CRUD operations on each model.
+7. Implement custom endpoints for borrowing and returning books.
+8. Set up URL routing using DRF routers and include custom endpoints.
+9. Add authentication using DRF’s token or JWT authentication.
+10. Set permissions for endpoints (e.g., only authenticated users can borrow/return).
+11. Implement security best practices in settings (DEBUG, SECRET_KEY, ALLOWED_HOSTS, HTTPS, etc.).
+12. Write automated tests for models, serializers, and API endpoints.
+13. Create Dockerfile and docker-compose for containerization.
+14. Configure Gunicorn as WSGI server and Nginx as reverse proxy.
+15. Prepare deployment guide: environment variables, static/media file handling, database setup, and server configuration.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+# Directory structure:
+# library_project/
+# ├── library_app/
+# │   ├── __init__.py
+# │   ├── admin.py
+# │   ├── apps.py
+# │   ├── migrations/
+# │   ├── models.py
+# │   ├── serializers.py
+# │   ├── tests.py
+# │   ├── urls.py
+# │   └── views.py
+# ├── library_project/
+# │   ├── __init__.py
+# │   ├── asgi.py
+# │   ├── settings.py
+# │   ├── urls.py
+# │   └── wsgi.py
+# ├── manage.py
+# ├── Dockerfile
+# ├── docker-compose.yml
+# └── requirements.txt
+
+# --- library_project/settings.py (relevant parts) ---
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'unsafe-secret-key')
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost').split(',')
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'library_app',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'library_project.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'library_project.wsgi.application'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_DB', 'library_db'),
+        'USER': os.environ.get('POSTGRES_USER', 'library_user'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'password'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'db'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+    }
+}
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+# --- library_app/models.py ---
+from django.db import models
+from django.contrib.auth.models import User
+
+class Author(models.Model):
+    name = models.CharField(max_length=100)
+    bio = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+class Book(models.Model):
+    title = models.CharField(max_length=200)
+    author = models.ForeignKey(Author, related_name='books', on_delete=models.CASCADE)
+    isbn = models.CharField(max_length=13, unique=True)
+    available = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.title
+
+class Borrower(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    borrowed_books = models.ManyToManyField(Book, blank=True, related_name='borrowers')
+
+    def __str__(self):
+        return self.user.username
+
+# --- library_app/serializers.py ---
+from rest_framework import serializers
+from .models import Author, Book, Borrower
+from django.contrib.auth.models import User
+
+class AuthorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Author
+        fields = ['id', 'name', 'bio']
+
+class BookSerializer(serializers.ModelSerializer):
+    author = AuthorSerializer(read_only=True)
+    author_id = serializers.PrimaryKeyRelatedField(
+        queryset=Author.objects.all(), source='author', write_only=True
+    )
+
+    class Meta:
+        model = Book
+        fields = ['id', 'title', 'author', 'author_id', 'isbn', 'available']
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email']
+
+class BorrowerSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='user', write_only=True
+    )
+    borrowed_books = BookSerializer(many=True, read_only=True)
+    borrowed_books_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Book.objects.all(), many=True, source='borrowed_books', write_only=True, required=False
+    )
+
+    class Meta:
+        model = Borrower
+        fields = ['id', 'user', 'user_id', 'borrowed_books', 'borrowed_books_ids']
+
+# --- library_app/views.py ---
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .models import Author, Book, Borrower
+from .serializers import AuthorSerializer, BookSerializer, BorrowerSerializer
+from django.contrib.auth.models import User
+
+class AuthorViewSet(viewsets.ModelViewSet):
+    queryset = Author.objects.all()
+    serializer_class = AuthorSerializer
+
+class BookViewSet(viewsets.ModelViewSet):
+    queryset = Book.objects.all()
+    serializer_class = BookSerializer
+
+class BorrowerViewSet(viewsets.ModelViewSet):
+    queryset = Borrower.objects.all()
+    serializer_class = BorrowerSerializer
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def borrow(self, request, pk=None):
+        borrower = self.get_object()
+        book_id = request.data.get('book_id')
+        try:
+            book = Book.objects.get(pk=book_id)
+        except Book.DoesNotExist:
+            return Response({'error': 'Book not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if not book.available:
+            return Response({'error': 'Book not available.'}, status=status.HTTP_400_BAD_REQUEST)
+        borrower.borrowed_books.add(book)
+        book.available = False
+        book.save()
+        return Response({'status': 'book borrowed'})
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def return_book(self, request, pk=None):
+        borrower = self.get_object()
+        book_id = request.data.get('book_id')
+        try:
+            book = Book.objects.get(pk=book_id)
+        except Book.DoesNotExist:
+            return Response({'error': 'Book not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if book not in borrower.borrowed_books.all():
+            return Response({'error': 'Book not borrowed by this user.'}, status=status.HTTP_400_BAD_REQUEST)
+        borrower.borrowed_books.remove(book)
+        book.available = True
+        book.save()
+        return Response({'status': 'book returned'})
+
+# --- library_app/urls.py ---
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import AuthorViewSet, BookViewSet, BorrowerViewSet
+
+router = DefaultRouter()
+router.register(r'authors', AuthorViewSet)
+router.register(r'books', BookViewSet)
+router.register(r'borrowers', BorrowerViewSet)
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+
+# --- library_project/urls.py ---
+from django.contrib import admin
+from django.urls import path, include
+from rest_framework.authtoken.views import obtain_auth_token
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/', include('library_app.urls')),
+    path('api-token-auth/', obtain_auth_token),
+]
+
+# --- library_app/admin.py ---
+from django.contrib import admin
+from .models import Author, Book, Borrower
+
+admin.site.register(Author)
+admin.site.register(Book)
+admin.site.register(Borrower)
+
+# --- library_app/tests.py ---
+from django.test import TestCase
+from django.contrib.auth.models import User
+from rest_framework.test import APIClient
+from .models import Author, Book, Borrower
+
+class LibraryAPITestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.author = Author.objects.create(name='Author1')
+        self.book = Book.objects.create(title='Book1', author=self.author, isbn='1234567890123')
+        self.borrower = Borrower.objects.create(user=self.user)
+        self.client = APIClient()
+        self.client.login(username='testuser', password='testpass')
+        from rest_framework.authtoken.models import Token
+        token, _ = Token.objects.get_or_create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+
+    def test_borrow_book(self):
+        response = self.client.post(f'/api/borrowers/{self.borrower.id}/borrow/', {'book_id': self.book.id})
+        self.assertEqual(response.status_code, 200)
+        self.book.refresh_from_db()
+        self.assertFalse(self.book.available)
+
+    def test_return_book(self):
+        self.borrower.borrowed_books.add(self.book)
+        self.book.available = False
+        self.book.save()
+        response = self.client.post(f'/api/borrowers/{self.borrower.id}/return_book/', {'book_id': self.book.id})
+        self.assertEqual(response.status_code, 200)
+        self.book.refresh_from_db()
+        self.assertTrue(self.book.available)
+
+# --- requirements.txt ---
+Django>=4.2
+djangorestframework
+djangorestframework-simplejwt
+psycopg2-binary
+gunicorn
+
+# --- Dockerfile ---
+FROM python:3.10-slim
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+WORKDIR /code
+
+COPY requirements.txt /code/
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+COPY . /code/
+
+CMD ["gunicorn", "library_project.wsgi:application", "--bind", "0.0.0.0:8000"]
+
+# --- docker-compose.yml ---
+version: '3.9'
+
+services:
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: library_db
+      POSTGRES_USER: library_user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  web:
+    build: .
+    command: gunicorn library_project.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+
+# --- .env (example, not code, but for deployment) ---
+# DJANGO_SECRET_KEY=your-production-secret-key
+# DJANGO_DEBUG=False
+# DJANGO_ALLOWED_HOSTS=yourdomain.com,localhost
+# POSTGRES_DB=library_db
+# POSTGRES_USER=library_user
+# POSTGRES_PASSWORD=yourpassword
+# POSTGRES_HOST=db
+# POSTGRES_PORT=5432
+
+# --- Deployment Guide (README.md excerpt) ---
+"""
+1. Build and run with Docker Compose:
+   docker-compose up --build
+
+2. Run migrations and create superuser:
+   docker-compose exec web python manage.py migrate
+   docker-compose exec web python manage.py createsuperuser
+
+3. Collect static files:
+   docker-compose exec web python manage.py collectstatic --noinput
+
+4. Access API at http://localhost:8000/api/
+   Obtain token at http://localhost:8000/api-token-auth/
+
+5. For production, set DJANGO_DEBUG=False, configure DJANGO_ALLOWED_HOSTS, and use HTTPS with Nginx.
+"""
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 51.94 seconds
+Total Tokens: 10,713 (Input: 4,493, Output: 6,220)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 14.91      317          2,239        1         
+Planning_Generation_1     3.48       694          235          1         
+Planning_Verification_1   2.01       394          123          1         
+Planning_Generation_2     3.11       691          236          1         
+Planning_Verification_2   2.07       395          128          1         
+Planning_Generation_3     4.05       682          371          1         
+Planning_Verification_3   2.07       530          132          1         
+Final_Code_Generation     20.23      790          2,756        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 14:41:01.418043
+##########################
+

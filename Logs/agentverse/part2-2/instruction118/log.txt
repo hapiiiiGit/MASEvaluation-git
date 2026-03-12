@@ -1,0 +1,980 @@
+2025-09-07 12:26:57,249 WARNING  No vLLM server running at the specified URL.
+2025-09-07 12:26:57,273 WARNING  BMTools is not installed, tools in the simulation environment cannot be used. To install BMTools, please follow the instruction in the README.md file. If you aren't running a *simulation* case with tool, you can ignore this warning.
+2025-09-07 12:26:58,598 INFO  Loop Round 0
+2025-09-07 12:27:00,426 INFO Role Assignment:
+a mathematician specialized in analytic geometry and conic sections
+a software engineer experienced in algorithm implementation and mathematical programming 
+2025-09-07 12:27:08,361 INFO Initial Plan:
+Write a function to find the directrix of a parabola.
+
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    float or tuple: The equation of the directrix line.
+                    If the parabola opens vertically, returns y = c.
+                    If the parabola opens horizontally, returns x = c.
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Determine the orientation of the parabola
+    if h == f_x:
+        # Parabola opens vertically
+        # Directrix is horizontal line y = k - p, where p = distance from vertex to focus
+        p = abs(f_y - k)
+        directrix = k - p
+        return f"y = {directrix}"
+    elif k == f_y:
+        # Parabola opens horizontally
+        # Directrix is vertical line x = h - p, where p = distance from vertex to focus
+        p = abs(f_x - h)
+        directrix = h - p
+        return f"x = {directrix}"
+    else:
+        # General case: parabola not aligned with axes
+        # Directrix is the line perpendicular to the axis of symmetry passing through point symmetric to focus about vertex
+        # Axis of symmetry vector
+        axis_vec = (f_x - h, f_y - k)
+        # Midpoint between vertex and focus
+        mid_x = (h + f_x) / 2
+        mid_y = (k + f_y) / 2
+        # Slope of axis of symmetry
+        if axis_vec[0] == 0:
+            # Vertical axis of symmetry
+            return f"y = {mid_y}"
+        elif axis_vec[1] == 0:
+            # Horizontal axis of symmetry
+            return f"x = {mid_x}"
+        else:
+            slope = axis_vec[1] / axis_vec[0]
+            # Slope of directrix is negative reciprocal
+            directrix_slope = -1 / slope
+            # Equation of directrix line passing through midpoint (mid_x, mid_y)
+            # y - mid_y = directrix_slope * (x - mid_x)
+            return f"y = {directrix_slope}*(x - {mid_x}) + {mid_y}"
+ 
+2025-09-07 12:27:20,418 INFO Reviews:
+[a software engineer experienced in algorithm implementation and mathematical programming]: ```python
+# Given code and completion:
+"""
+def find_directrix(vertex, focus):
+    \"""
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    float or tuple: The equation of the directrix line.
+                    If the parabola opens vertically, returns y = c.
+                    If the parabola opens horizontally, returns x = c.
+    \"""
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Determine the orientation of the parabola
+    if h == f_x:
+        # Parabola opens vertically
+        # Directrix is horizontal line y = k - p, where p = distance from vertex to focus
+        p = abs(f_y - k)
+        directrix = k - p
+        return f"y = {directrix}"
+    elif k == f_y:
+        # Parabola opens horizontally
+        # Directrix is vertical line x = h - p, where p = distance from vertex to focus
+        p = abs(f_x - h)
+        directrix = h - p
+        return f"x = {directrix}"
+    else:
+        # General case: parabola not aligned with axes
+        # Directrix is the line perpendicular to the axis of symmetry passing through point symmetric to focus about vertex
+        # Axis of symmetry vector
+        axis_vec = (f_x - h, f_y - k)
+        # Midpoint between vertex and focus
+        mid_x = (h + f_x) / 2
+        mid_y = (k + f_y) / 2
+        # Slope of axis of symmetry
+        if axis_vec[0] == 0:
+            # Vertical axis of symmetry
+            return f"y = {mid_y}"
+        elif axis_vec[1] == 0:
+            # Horizontal axis of symmetry
+            return f"x = {mid_x}"
+        else:
+            slope = axis_vec[1] / axis_vec[0]
+            # Slope of directrix is negative reciprocal
+            directrix_slope = -1 / slope
+            # Equation of directrix line passing through midpoint (mid_x, mid_y)
+            # y - mid_y = directrix_slope * (x - mid_x)
+            return f"y = {directrix_slope}*(x - {mid_x}) + {mid_y}"
+"""
+
+# Critique:
+# 1. The directrix is always a line perpendicular to the axis of symmetry and located the same distance from the vertex as the focus but on the opposite side.
+# 2. The code correctly handles vertical and horizontal parabolas.
+# 3. The "general case" is not generally applicable because a parabola is defined by a focus and directrix, and the axis of symmetry is the line through the vertex and focus.
+# 4. The midpoint between vertex and focus is not the directrix location; the directrix is located at the same distance p from the vertex but opposite the focus.
+# 5. The directrix line passes through a point that is the reflection of the focus about the vertex.
+# 6. The code should compute the directrix point as (2*vertex - focus) and then find the line perpendicular to the axis of symmetry passing through that point.
+# 7. The code returns a string equation, which is acceptable, but the logic for the general case needs correction.
+
+# Corrected code with comments:
+
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus
+    dx = f_x - h
+    dy = f_y - k
+
+    # Distance from vertex to focus
+    p = (dx**2 + dy**2)**0.5
+
+    # Directrix point is symmetric to focus about vertex
+    d_x = h - dx
+    d_y = k - dy
+
+    # Handle vertical parabola (axis of symmetry vertical)
+    if dx == 0:
+        # Directrix is horizontal line y = d_y
+        return f"y = {d_y}"
+
+    # Handle horizontal parabola (axis of symmetry horizontal)
+    if dy == 0:
+        # Directrix is vertical line x = d_x
+        return f"x = {d_x}"
+
+ 
+2025-09-07 12:27:26,376 INFO Updated Plan:
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus
+    dx = f_x - h
+    dy = f_y - k
+
+    # Directrix point is symmetric to focus about vertex
+    d_x = h - dx
+    d_y = k - dy
+
+    # Handle vertical parabola (axis of symmetry vertical)
+    if dx == 0:
+        # Directrix is horizontal line y = d_y
+        return f"y = {d_y}"
+
+    # Handle horizontal parabola (axis of symmetry horizontal)
+    if dy == 0:
+        # Directrix is vertical line x = d_x
+        return f"x = {d_x}"
+
+    # For general case, axis of symmetry slope
+    axis_slope = dy / dx
+
+    # Directrix slope is negative reciprocal of axis slope
+    directrix_slope = -1 / axis_slope
+
+    # Equation of directrix line passing through (d_x, d_y):
+    # y - d_y = directrix_slope * (x - d_x)
+    # => y = directrix_slope * (x - d_x) + d_y
+    return f"y = {directrix_slope}*(x - {d_x}) + {d_y}"
+ 
+2025-09-07 12:27:32,456 INFO Reviews:
+[a software engineer experienced in algorithm implementation and mathematical programming]:  
+2025-09-07 12:27:32,456 INFO Consensus Reached!. 
+2025-09-07 12:27:32,456 INFO Decision Plan:
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus
+    dx = f_x - h
+    dy = f_y - k
+
+    # Directrix point is symmetric to focus about vertex
+    d_x = h - dx
+    d_y = k - dy
+
+    # Handle vertical parabola (axis of symmetry vertical)
+    if dx == 0:
+        # Directrix is horizontal line y = d_y
+        return f"y = {d_y}"
+
+    # Handle horizontal parabola (axis of symmetry horizontal)
+    if dy == 0:
+        # Directrix is vertical line x = d_x
+        return f"x = {d_x}"
+
+    # For general case, axis of symmetry slope
+    axis_slope = dy / dx
+
+    # Directrix slope is negative reciprocal of axis slope
+    directrix_slope = -1 / axis_slope
+
+    # Equation of directrix line passing through (d_x, d_y):
+    # y - d_y = directrix_slope * (x - d_x)
+    # => y = directrix_slope * (x - d_x) + d_y
+    return f"y = {directrix_slope}*(x - {d_x}) + {d_y}"
+ 
+2025-09-07 12:27:32,456 INFO Execution Result: 
+2025-09-07 12:27:32,457 INFO  
+2025-09-07 12:27:39,997 INFO Evaluation result:
+Score: False
+Advice: The provided solution attempts to find the directrix of a parabola given its vertex and focus, but it contains a fundamental conceptual error. The directrix of a parabola is a line equidistant from the vertex as the focus but on the opposite side along the axis of symmetry. The code correctly calculates the symmetric point of the focus about the vertex, but it incorrectly assumes this point lies on the directrix line itself. In reality, the directrix is a line perpendicular to the axis of symmetry, not just a single point.
+To correct this, you should:
+1. Identify the axis of symmetry direction vector from the vertex to the focus.
+2. The directrix is a line perpendicular to this axis and passes through the point symmetric to the focus about the vertex.
+3. Express the directrix line equation accordingly:
+   - If the axis is vertical (dx=0), the directrix is horizontal: y = constant.
+   - If the axis is horizontal (dy=0), the directrix is vertical: x = constant.
+   - Otherwise, find the slope of the axis, then the negative reciprocal slope for the directrix, and use the symmetric point to write the line equation.
+The current code only returns a line passing through the symmetric point but does not correctly handle the perpendicularity or the line equation format in the general case.
+For the next round, recruiting a mathematician specialized in analytic geometry and conic sections would be beneficial to ensure the geometric concepts are correctly applied. Additionally, a software engineer experienced in mathematical programming can help implement these concepts accurately in code. 
+2025-09-07 12:27:39,998 INFO Bad score! Reject! 
+2025-09-07 12:27:39,999 INFO  Loop Round 1
+2025-09-07 12:27:41,675 INFO Role Assignment:
+a mathematician specialized in analytic geometry and conic sections
+a software engineer experienced in mathematical programming and algorithm implementation 
+2025-09-07 12:27:48,184 INFO Initial Plan:
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus (axis of symmetry direction)
+    dx = f_x - h
+    dy = f_y - k
+
+    # Point symmetric to focus about vertex (lies on directrix)
+    d_x = h - dx
+    d_y = k - dy
+
+    # Handle vertical axis of symmetry (dx == 0)
+    if dx == 0:
+        # Directrix is horizontal line y = d_y
+        return f"y = {d_y}"
+
+    # Handle horizontal axis of symmetry (dy == 0)
+    if dy == 0:
+        # Directrix is vertical line x = d_x
+        return f"x = {d_x}"
+
+    # For general case:
+    # Slope of axis of symmetry
+    axis_slope = dy / dx
+
+    # Slope of directrix is negative reciprocal
+    directrix_slope = -1 / axis_slope
+
+    # Equation of directrix line passing through (d_x, d_y):
+    # y - d_y = directrix_slope * (x - d_x)
+    # => y = directrix_slope * (x - d_x) + d_y
+    return f"y = {directrix_slope}*(x - {d_x}) + {d_y}"
+ 
+2025-09-07 12:27:57,115 INFO Reviews:
+[a software engineer experienced in mathematical programming and algorithm implementation]: ```python
+# Given code and completion:
+"""
+def find_directrix(vertex, focus):
+    \"""
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    \"""
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus (axis of symmetry direction)
+    dx = f_x - h
+    dy = f_y - k
+
+    # Point symmetric to focus about vertex (lies on directrix)
+    d_x = h - dx
+    d_y = k - dy
+
+    # Handle vertical axis of symmetry (dx == 0)
+    if dx == 0:
+        # Directrix is horizontal line y = d_y
+        return f"y = {d_y}"
+
+    # Handle horizontal axis of symmetry (dy == 0)
+    if dy == 0:
+        # Directrix is vertical line x = d_x
+        return f"x = {d_x}"
+
+    # For general case:
+    # Slope of axis of symmetry
+    axis_slope = dy / dx
+
+    # Slope of directrix is negative reciprocal
+    directrix_slope = -1 / axis_slope
+
+    # Equation of directrix line passing through (d_x, d_y):
+    # y - d_y = directrix_slope * (x - d_x)
+    # => y = directrix_slope * (x - d_x) + d_y
+    return f"y = {directrix_slope}*(x - {d_x}) + {d_y}"
+"""
+
+# Critique:
+# The approach is mostly correct in concept: the directrix is a line perpendicular to the axis of symmetry,
+# passing through the point symmetric to the focus about the vertex.
+# However, the output format for the general case is a string with an expression "y = m*(x - x0) + y0",
+# which is not a simplified linear equation y = m*x + b.
+# It would be better to simplify the equation to y = m*x + b form for clarity.
+# Also, the function returns a string, which is fine, but it could be more useful to return coefficients or a function.
+# For now, we keep the string output but simplify the expression.
+
+# Corrected code with explanation:
+
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    dx = f_x - h
+    dy = f_y - k
+
+    # Point symmetric to focus about vertex (lies on directrix)
+    d_x = h - dx
+    d_y = k - dy
+
+    # Vertical axis of symmetry (dx == 0)
+    if dx == 0:
+        # Directrix is horizontal line y = d_y
+        return f"y = {d_y}"
+
+    # Horizontal axis of symmetry (dy == 0)
+    if dy == 0:
+        # Directrix is vertical line x = d_x
+        return f"x = {d_x}"
+
+    # General case:
+    axis_slope = dy / dx
+    directrix_slope = -1 / axis_slope
+
+    # Simplify y = m*(x - x0) + y0 to y = m*x + b
+    b = d_y - directrix_slope * d_x
+
+    # Format slope and intercept to reasonable decimal places
+    m_str = f"{directrix_slope:.6g}"
+    b_str = f"{b:.6g}"
+
+    return f"y = {m_str}*x + {b_str}"
+``` 
+2025-09-07 12:28:04,298 INFO Updated Plan:
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus (axis of symmetry direction)
+    dx = f_x - h
+    dy = f_y - k
+
+    # Point symmetric to focus about vertex (lies on directrix)
+    d_x = h - dx
+    d_y = k - dy
+
+    # Handle vertical axis of symmetry (dx == 0)
+    if dx == 0:
+        # Directrix is horizontal line y = d_y
+        return f"y = {d_y}"
+
+    # Handle horizontal axis of symmetry (dy == 0)
+    if dy == 0:
+        # Directrix is vertical line x = d_x
+        return f"x = {d_x}"
+
+    # For general case:
+    # Slope of axis of symmetry
+    axis_slope = dy / dx
+
+    # Slope of directrix is negative reciprocal
+    directrix_slope = -1 / axis_slope
+
+    # Equation of directrix line passing through (d_x, d_y):
+    # y - d_y = directrix_slope * (x - d_x)
+    # Simplify to y = m*x + b form:
+    b = d_y - directrix_slope * d_x
+
+    # Format slope and intercept to reasonable decimal places
+    m_str = f"{directrix_slope:.6g}"
+    b_str = f"{b:.6g}"
+
+    return f"y = {m_str}*x + {b_str}"
+ 
+2025-09-07 12:28:12,579 INFO Reviews:
+[a software engineer experienced in mathematical programming and algorithm implementation]:  
+2025-09-07 12:28:12,579 INFO Consensus Reached!. 
+2025-09-07 12:28:12,579 INFO Decision Plan:
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus (axis of symmetry direction)
+    dx = f_x - h
+    dy = f_y - k
+
+    # Point symmetric to focus about vertex (lies on directrix)
+    d_x = h - dx
+    d_y = k - dy
+
+    # Handle vertical axis of symmetry (dx == 0)
+    if dx == 0:
+        # Directrix is horizontal line y = d_y
+        return f"y = {d_y}"
+
+    # Handle horizontal axis of symmetry (dy == 0)
+    if dy == 0:
+        # Directrix is vertical line x = d_x
+        return f"x = {d_x}"
+
+    # For general case:
+    # Slope of axis of symmetry
+    axis_slope = dy / dx
+
+    # Slope of directrix is negative reciprocal
+    directrix_slope = -1 / axis_slope
+
+    # Equation of directrix line passing through (d_x, d_y):
+    # y - d_y = directrix_slope * (x - d_x)
+    # Simplify to y = m*x + b form:
+    b = d_y - directrix_slope * d_x
+
+    # Format slope and intercept to reasonable decimal places
+    m_str = f"{directrix_slope:.6g}"
+    b_str = f"{b:.6g}"
+
+    return f"y = {m_str}*x + {b_str}"
+ 
+2025-09-07 12:28:12,579 INFO Execution Result: 
+2025-09-07 12:28:12,579 INFO  
+2025-09-07 12:28:17,320 INFO Evaluation result:
+Score: False
+Advice: The approach to find the directrix by reflecting the focus across the vertex is conceptually correct, but the implementation has a critical flaw: it assumes the axis of symmetry passes through the vertex and focus in a straight line, which is true, but the directrix is a line perpendicular to this axis and equidistant from the vertex on the opposite side of the focus. The code correctly computes the symmetric point (d_x, d_y) but then incorrectly assumes the directrix is a horizontal or vertical line if dx or dy is zero, which is not always the case. Also, the code does not handle floating-point precision issues or the possibility of the parabola being rotated (i.e., not aligned with axes). 
+To correct this, you should:
+- Confirm the axis of symmetry vector from vertex to focus.
+- Compute the directrix line as the line perpendicular to the axis of symmetry passing through the point symmetric to the focus about the vertex.
+- Express the directrix line in a standard form (like y = mx + b or x = c) depending on the orientation.
+- Handle edge cases where the axis of symmetry is vertical or horizontal carefully.
+- Consider using vector algebra to define the directrix line properly.
+For the next round, recruiting a mathematician specialized in analytic geometry and conic sections would be helpful to ensure the geometric reasoning is sound, and a software engineer experienced in mathematical programming to help implement the solution correctly and robustly. 
+2025-09-07 12:28:17,320 INFO Bad score! Reject! 
+2025-09-07 12:28:17,321 INFO  Loop Round 2
+2025-09-07 12:28:19,263 INFO Role Assignment:
+a mathematician specialized in analytic geometry and conic sections
+a software engineer experienced in mathematical programming and numerical methods 
+2025-09-07 12:28:25,854 INFO Initial Plan:
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus (axis of symmetry direction)
+    dx = f_x - h
+    dy = f_y - k
+
+    # Point symmetric to focus about vertex (lies on directrix)
+    d_x = h - dx
+    d_y = k - dy
+
+    # Handle vertical axis of symmetry (dx == 0)
+    if dx == 0:
+        # Directrix is horizontal line y = d_y
+        return f"y = {d_y}"
+
+    # Handle horizontal axis of symmetry (dy == 0)
+    if dy == 0:
+        # Directrix is vertical line x = d_x
+        return f"x = {d_x}"
+
+    # For general case:
+    # Slope of axis of symmetry
+    axis_slope = dy / dx
+
+    # Slope of directrix is negative reciprocal
+    directrix_slope = -1 / axis_slope
+
+    # Equation of directrix line passing through (d_x, d_y):
+    # y - d_y = directrix_slope * (x - d_x)
+    # Simplify to y = m*x + b form:
+    b = d_y - directrix_slope * d_x
+
+    # Format slope and intercept to reasonable decimal places
+    m_str = f"{directrix_slope:.6g}"
+    b_str = f"{b:.6g}"
+
+    return f"y = {m_str}*x + {b_str}"
+ 
+2025-09-07 12:28:33,238 INFO Reviews:
+[a software engineer experienced in mathematical programming and numerical methods]:  
+2025-09-07 12:28:33,238 INFO Consensus Reached!. 
+2025-09-07 12:28:33,238 INFO Decision Plan:
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus (axis of symmetry direction)
+    dx = f_x - h
+    dy = f_y - k
+
+    # Point symmetric to focus about vertex (lies on directrix)
+    d_x = h - dx
+    d_y = k - dy
+
+    # Handle vertical axis of symmetry (dx == 0)
+    if dx == 0:
+        # Directrix is horizontal line y = d_y
+        return f"y = {d_y}"
+
+    # Handle horizontal axis of symmetry (dy == 0)
+    if dy == 0:
+        # Directrix is vertical line x = d_x
+        return f"x = {d_x}"
+
+    # For general case:
+    # Slope of axis of symmetry
+    axis_slope = dy / dx
+
+    # Slope of directrix is negative reciprocal
+    directrix_slope = -1 / axis_slope
+
+    # Equation of directrix line passing through (d_x, d_y):
+    # y - d_y = directrix_slope * (x - d_x)
+    # Simplify to y = m*x + b form:
+    b = d_y - directrix_slope * d_x
+
+    # Format slope and intercept to reasonable decimal places
+    m_str = f"{directrix_slope:.6g}"
+    b_str = f"{b:.6g}"
+
+    return f"y = {m_str}*x + {b_str}"
+ 
+2025-09-07 12:28:33,239 INFO Execution Result: 
+2025-09-07 12:28:33,239 INFO  
+2025-09-07 12:28:40,640 INFO Evaluation result:
+Score: False
+Advice: The provided solution attempts to find the directrix of a parabola given its vertex and focus by reflecting the focus about the vertex and then determining the line perpendicular to the axis of symmetry passing through that reflected point. However, the approach has a conceptual error in handling the general case.
+Key points to consider:
+1. The directrix is a line perpendicular to the axis of symmetry of the parabola and equidistant from the vertex as the focus, but on the opposite side.
+2. The vector from the vertex to the focus defines the axis of symmetry direction.
+3. The directrix is located at the same distance from the vertex as the focus but in the opposite direction along the axis of symmetry.
+4. The code correctly computes the reflected point (d_x, d_y) as the point symmetric to the focus about the vertex, which lies on the directrix.
+5. For vertical or horizontal axes of symmetry, the directrix is a horizontal or vertical line, respectively, and the code handles these cases correctly.
+6. The problem arises in the general case: the directrix is perpendicular to the axis of symmetry, so its slope should be the negative reciprocal of the axis slope, which the code correctly computes.
+7. However, the directrix must pass through the reflected point (d_x, d_y), which the code uses to compute the intercept b.
+8. The main issue is that the axis of symmetry slope is computed as dy/dx, but if dx is zero, the code handles it separately. For other cases, the code computes the directrix slope as -1/axis_slope, which is correct.
+9. The problem is that the directrix line is not necessarily in y = mx + b form if the axis of symmetry is vertical or near vertical; the code handles vertical axis separately, but for near-vertical slopes, floating-point precision might cause issues.
+10. Additionally, the code returns the directrix as a string equation, but it might be more robust to return a function or coefficients of the line for further processing.
+To correct the solution:
+- Verify the axis of symmetry direction vector and ensure the reflected point is correctly computed.
+- Confirm that the directrix line is perpendicular to the axis of symmetry and passes through the reflected point.
+- Handle vertical and horizontal axis of symmetry cases explicitly.
+- For the general case, compute the slope of the directrix as the negative reciprocal of the axis slope and compute the intercept accordingly.
+- Consider returning the directrix in a more general form (e.g., Ax + By + C = 0) to avoid issues with vertical lines.
+For the next round, recruiting a mathematician specialized in analytic geometry and conic sections would be beneficial to ensure the geometric correctness of the approach. Additionally, a software engineer experienced in mathematical programming can help implement the solution robustly and handle edge cases. 
+2025-09-07 12:28:40,640 INFO Bad score! Reject! 
+2025-09-07 12:28:40,642 INFO  Loop Round 3
+2025-09-07 12:28:42,535 INFO Role Assignment:
+a mathematician specialized in analytic geometry and conic sections
+a software engineer experienced in mathematical programming and numerical methods 
+2025-09-07 12:28:50,682 INFO Initial Plan:
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus (axis of symmetry direction)
+    dx = f_x - h
+    dy = f_y - k
+
+    # Distance from vertex to focus
+    dist = (dx**2 + dy**2)**0.5
+    if dist == 0:
+        raise ValueError("Focus and vertex cannot be the same point.")
+
+    # Unit vector along axis of symmetry (from vertex to focus)
+    ux = dx / dist
+    uy = dy / dist
+
+    # Point on directrix: symmetric to focus about vertex
+    d_x = h - dx
+    d_y = k - dy
+
+    # The directrix is perpendicular to axis of symmetry and passes through (d_x, d_y)
+    # The axis direction vector is (ux, uy)
+    # The directrix normal vector is (ux, uy)
+    # Equation of directrix line: ux*(x - d_x) + uy*(y - d_y) = 0
+    # Rearranged: ux*x + uy*y = ux*d_x + uy*d_y
+
+    A = ux
+    B = uy
+    C = ux * d_x + uy * d_y
+
+    # Handle vertical line (B == 0)
+    if abs(B) < 1e-14:
+        # Line is vertical: x = C / A
+        x_val = C / A
+        return f"x = {x_val:.6g}"
+
+    # Otherwise, solve for y:
+    # y = (C - A*x) / B
+    m = -A / B
+    b = C / B
+
+    return f"y = {m:.6g}*x + {b:.6g}"
+ 
+2025-09-07 12:28:59,836 INFO Reviews:
+[a software engineer experienced in mathematical programming and numerical methods]:  
+2025-09-07 12:28:59,836 INFO Consensus Reached!. 
+2025-09-07 12:28:59,836 INFO Decision Plan:
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus (axis of symmetry direction)
+    dx = f_x - h
+    dy = f_y - k
+
+    # Distance from vertex to focus
+    dist = (dx**2 + dy**2)**0.5
+    if dist == 0:
+        raise ValueError("Focus and vertex cannot be the same point.")
+
+    # Unit vector along axis of symmetry (from vertex to focus)
+    ux = dx / dist
+    uy = dy / dist
+
+    # Point on directrix: symmetric to focus about vertex
+    d_x = h - dx
+    d_y = k - dy
+
+    # The directrix is perpendicular to axis of symmetry and passes through (d_x, d_y)
+    # The axis direction vector is (ux, uy)
+    # The directrix normal vector is (ux, uy)
+    # Equation of directrix line: ux*(x - d_x) + uy*(y - d_y) = 0
+    # Rearranged: ux*x + uy*y = ux*d_x + uy*d_y
+
+    A = ux
+    B = uy
+    C = ux * d_x + uy * d_y
+
+    # Handle vertical line (B == 0)
+    if abs(B) < 1e-14:
+        # Line is vertical: x = C / A
+        x_val = C / A
+        return f"x = {x_val:.6g}"
+
+    # Otherwise, solve for y:
+    # y = (C - A*x) / B
+    m = -A / B
+    b = C / B
+
+    return f"y = {m:.6g}*x + {b:.6g}"
+ 
+2025-09-07 12:28:59,836 INFO Execution Result: 
+2025-09-07 12:28:59,836 INFO  
+2025-09-07 12:29:05,551 INFO Evaluation result:
+Score: False
+Advice: The approach to find the directrix of a parabola using the vertex and focus is generally on the right track, but there is a conceptual error in the calculation of the directrix position. The directrix is a line perpendicular to the axis of symmetry of the parabola and is located the same distance from the vertex as the focus but on the opposite side. In your code, you correctly compute the vector from the vertex to the focus and the unit vector along the axis of symmetry. However, when you calculate the point on the directrix, you subtract the vector from the vertex to the focus (d_x = h - dx, d_y = k - dy), which is correct. The problem arises in the way you form the directrix line equation. The directrix line should be perpendicular to the axis of symmetry, so its normal vector is along the axis of symmetry (which you correctly identified as (ux, uy)). The equation you derived, ux*x + uy*y = ux*d_x + uy*d_y, is correct for the directrix line. However, the handling of vertical and horizontal lines is not robust enough. Specifically, the condition for vertical lines (B == 0) is based on uy, but due to floating-point precision, the check should be more careful. Also, when B is near zero, the directrix is vertical, so the equation should be x = constant, which you handled. For the general case, you return y = m*x + b, which is fine. To improve correctness, you should also consider the case when the parabola is vertical or horizontal explicitly, as the directrix will be a horizontal or vertical line respectively, and the formula simplifies. Additionally, it would be helpful to add comments or assertions to clarify the geometric reasoning. For the next round, recruiting a mathematician specialized in analytic geometry and conic sections would be beneficial to ensure the geometric correctness and clarity of the solution. Also, a software engineer experienced in mathematical programming could help refine the numerical stability and code robustness. 
+2025-09-07 12:29:05,551 INFO Bad score! Reject! 
+2025-09-07 12:29:05,552 INFO  Loop Round 4
+2025-09-07 12:29:07,317 INFO Role Assignment:
+a mathematician specialized in analytic geometry and conic sections
+a software engineer experienced in mathematical programming and numerical stability 
+2025-09-07 12:29:13,229 INFO Initial Plan:
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus (axis of symmetry direction)
+    dx = f_x - h
+    dy = f_y - k
+
+    # Distance from vertex to focus
+    dist = (dx**2 + dy**2)**0.5
+    if dist == 0:
+        raise ValueError("Focus and vertex cannot be the same point.")
+
+    # Unit vector along axis of symmetry (from vertex to focus)
+    ux = dx / dist
+    uy = dy / dist
+
+    # Point on directrix: symmetric to focus about vertex
+    d_x = h - dx
+    d_y = k - dy
+
+    # The directrix is perpendicular to axis of symmetry and passes through (d_x, d_y)
+    # The axis direction vector is (ux, uy)
+    # The directrix normal vector is (ux, uy)
+    # Equation of directrix line: ux*(x - d_x) + uy*(y - d_y) = 0
+    # Rearranged: ux*x + uy*y = ux*d_x + uy*d_y
+
+    A = ux
+    B = uy
+    C = ux * d_x + uy * d_y
+
+    # Handle vertical line (B close to 0)
+    if abs(B) < 1e-14:
+        # Line is vertical: x = C / A
+        x_val = C / A
+        return f"x = {x_val:.6g}"
+
+    # Otherwise, solve for y:
+    # y = (C - A*x) / B
+    m = -A / B
+    b = C / B
+
+    return f"y = {m:.6g}*x + {b:.6g}"
+ 
+2025-09-07 12:29:22,860 INFO Reviews:
+[a software engineer experienced in mathematical programming and numerical stability]:  
+2025-09-07 12:29:22,860 INFO Consensus Reached!. 
+2025-09-07 12:29:22,860 INFO Decision Plan:
+def find_directrix(vertex, focus):
+    """
+    Find the directrix of a parabola given its vertex and focus.
+
+    Parameters:
+    vertex (tuple): Coordinates of the vertex (h, k).
+    focus (tuple): Coordinates of the focus (f_x, f_y).
+
+    Returns:
+    str: The equation of the directrix line.
+         For vertical parabola: y = c
+         For horizontal parabola: x = c
+         For general case: y = m*x + b
+    """
+    h, k = vertex
+    f_x, f_y = focus
+
+    # Vector from vertex to focus (axis of symmetry direction)
+    dx = f_x - h
+    dy = f_y - k
+
+    # Distance from vertex to focus
+    dist = (dx**2 + dy**2)**0.5
+    if dist == 0:
+        raise ValueError("Focus and vertex cannot be the same point.")
+
+    # Unit vector along axis of symmetry (from vertex to focus)
+    ux = dx / dist
+    uy = dy / dist
+
+    # Point on directrix: symmetric to focus about vertex
+    d_x = h - dx
+    d_y = k - dy
+
+    # The directrix is perpendicular to axis of symmetry and passes through (d_x, d_y)
+    # The axis direction vector is (ux, uy)
+    # The directrix normal vector is (ux, uy)
+    # Equation of directrix line: ux*(x - d_x) + uy*(y - d_y) = 0
+    # Rearranged: ux*x + uy*y = ux*d_x + uy*d_y
+
+    A = ux
+    B = uy
+    C = ux * d_x + uy * d_y
+
+    # Handle vertical line (B close to 0)
+    if abs(B) < 1e-14:
+        # Line is vertical: x = C / A
+        x_val = C / A
+        return f"x = {x_val:.6g}"
+
+    # Otherwise, solve for y:
+    # y = (C - A*x) / B
+    m = -A / B
+    b = C / B
+
+    return f"y = {m:.6g}*x + {b:.6g}"
+ 
+2025-09-07 12:29:22,860 INFO Execution Result: 
+2025-09-07 12:29:22,860 INFO  
+2025-09-07 12:29:29,753 INFO Evaluation result:
+Score: False
+Advice: The approach to find the directrix is conceptually on the right track, but there is a critical mistake in the calculation of the directrix position. The directrix is not simply the point symmetric to the focus about the vertex; rather, it lies on the line along the axis of symmetry but at the same distance from the vertex as the focus, just on the opposite side. In other words, if the distance from vertex to focus is d, then the directrix is a line perpendicular to the axis of symmetry and located at a distance d from the vertex, but in the opposite direction from the focus.
+Currently, the code computes the directrix point as (h - dx, k - dy), which is correct for the point symmetric to the focus about the vertex, but then it uses this point directly in the line equation without considering the distance properly. The directrix is a line, not a point, so you need to use this point as a point on the directrix line and the axis vector to find the line equation.
+Additionally, the code assumes the directrix normal vector is the same as the axis vector (ux, uy), which is correct because the directrix is perpendicular to the axis of symmetry. The line equation should be constructed accordingly.
+To correct the solution, you should:
+1. Confirm the distance d between vertex and focus.
+2. Find the point on the directrix line by moving from the vertex in the opposite direction of the focus by distance d.
+3. Use the axis vector (ux, uy) as the normal vector to the directrix line.
+4. Write the line equation in the form A*x + B*y = C, where (A, B) is the normal vector and C is the dot product of the normal vector with the directrix point.
+5. Format the output line equation properly, handling vertical and horizontal lines carefully.
+For the next round, it would be helpful to recruit a mathematician specialized in analytic geometry to verify the geometric reasoning, and a software engineer experienced in numerical stability and line equation formatting to ensure the code handles edge cases and outputs the equation correctly. 
+2025-09-07 12:29:29,753 INFO Bad score! Reject! 
+2025-09-07 12:29:29,754 INFO Agent spend: 
+2025-09-07 12:29:29,754 INFO Agent (Role: AGENT_TYPES.ROLE_ASSIGNMENT) role assigner: $0.001407 
+2025-09-07 12:29:29,754 INFO Agent (Role: AGENT_TYPES.SOLVER) a mathematician specialized in analytic geometry and conic sections: $0.01 
+2025-09-07 12:29:29,754 INFO Agent (Role: AGENT_TYPES.CRITIC) a software engineer experienced in mathematical programming and numerical stability: $0.01 
+2025-09-07 12:29:29,754 INFO Agent (Role: AGENT_TYPES.EXECUTION) Executor: $0.000000 
+2025-09-07 12:29:29,754 INFO Agent (Role: AGENT_TYPES.EVALUATION) Evaluator: $0.004644 
+2025-09-07 12:29:29,754 INFO Agent (Role: AGENT_TYPES.MANAGER) Manager: $0.000000 
+2025-09-07 12:29:29,754 INFO Total spent: $0.031504 

@@ -1,0 +1,33 @@
+sequenceDiagram
+    participant C as RemoteAccessClient
+    participant U as User
+    participant D as Device
+    participant S as RemoteAccessServer
+    participant AP as AuthProvider
+    participant E as Encryption
+    participant FT as FileTransfer
+    participant AE as AuditEvent
+
+    U->>C: Launch client, login
+    C->>AP: Authenticate via OAuth2/MFA
+    AP-->>C: Authentication result
+    C->>S: Connect to server
+    S->>AP: Verify authentication
+    AP-->>S: Auth result
+    S->>D: Authorize device
+    D-->>S: Device status
+    S->>C: Connection established
+    C->>S: Request session (start remote desktop)
+    S->>E: Encrypt session data
+    E-->>S: Encrypted data
+    S->>C: Stream remote desktop (encrypted)
+    C->>FT: Initiate file transfer
+    FT->>E: Encrypt file
+    E-->>FT: Encrypted file
+    FT->>S: Send file
+    S->>AE: Log session event
+    AE-->>S: Event logged
+    C->>S: End session
+    S->>AE: Log session end
+    AE-->>S: Event logged
+    C->>S: Disconnect

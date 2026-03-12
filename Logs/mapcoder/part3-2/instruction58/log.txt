@@ -1,0 +1,953 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:43:09.373955
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python program to optimize a multithreaded job scraper for Indeed that processes ZIP codes from an .xlsx file, enhances speed and scalability across all US states while maintaining current scraping logic, supports proxy rotation, and streams results to CSV.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+You are tasked with building a multithreaded web scraper that collects product prices from multiple e-commerce websites. The scraper should read a list of product URLs from a CSV file, use proxy rotation to avoid IP bans, and write the scraped data (product name, price, URL) to a new CSV file in real-time. The solution should be scalable and efficient, handling thousands of URLs.
+]]></description>
+<code><![CDATA[
+# Step 1: Read product URLs from CSV
+import csv
+import threading
+import queue
+import requests
+from random import choice
+
+def read_urls(filename):
+    with open(filename, newline='') as f:
+        reader = csv.reader(f)
+        return [row[0] for row in reader]
+
+# Step 2: Define proxies and output queue
+proxies = ['http://proxy1:port', 'http://proxy2:port', 'http://proxy3:port']
+output_queue = queue.Queue()
+
+# Step 3: Scraper function
+def scrape_product(url):
+    proxy = {'http': choice(proxies), 'https': choice(proxies)}
+    try:
+        resp = requests.get(url, proxies=proxy, timeout=10)
+        # Dummy parsing logic
+        product_name = "Extracted Name"
+        price = "Extracted Price"
+        output_queue.put([product_name, price, url])
+    except Exception as e:
+        output_queue.put(['ERROR', str(e), url])
+
+# Step 4: Worker thread
+def worker(urls):
+    for url in urls:
+        scrape_product(url)
+
+# Step 5: Write results to CSV in real-time
+def writer(output_filename):
+    with open(output_filename, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Product Name', 'Price', 'URL'])
+        while True:
+            row = output_queue.get()
+            if row == 'DONE':
+                break
+            writer.writerow(row)
+            f.flush()
+
+# Step 6: Main execution
+def main():
+    urls = read_urls('input_urls.csv')
+    n_threads = 10
+    chunk_size = len(urls) // n_threads
+    threads = []
+    writer_thread = threading.Thread(target=writer, args=('output.csv',))
+    writer_thread.start()
+    for i in range(n_threads):
+        chunk = urls[i*chunk_size:(i+1)*chunk_size]
+        t = threading.Thread(target=worker, args=(chunk,))
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
+    output_queue.put('DONE')
+    writer_thread.join()
+
+# main()
+]]></code>
+<planning><![CDATA[
+1. Read product URLs from a CSV file.
+2. Set up a list of proxies for rotation.
+3. Define a thread-safe queue for output.
+4. Implement a scraping function that uses a random proxy for each request.
+5. Create worker threads to process chunks of URLs.
+6. Start a writer thread to stream results to a CSV file as they are scraped.
+7. Ensure all threads are joined and resources are cleaned up.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Design a scalable multithreaded Twitter hashtag tracker that reads a list of hashtags from an Excel file, uses proxy rotation to avoid rate limits, and streams live tweet data (tweet text, user, timestamp) to a CSV file. The tracker should be able to handle hundreds of hashtags in parallel and write results in real-time.
+]]></description>
+<code><![CDATA[
+# Step 1: Read hashtags from Excel
+import pandas as pd
+import threading
+import queue
+import time
+from random import choice
+
+def read_hashtags(filename):
+    df = pd.read_excel(filename)
+    return df['Hashtag'].tolist()
+
+# Step 2: Define proxies and output queue
+proxies = ['http://proxy1:port', 'http://proxy2:port', 'http://proxy3:port']
+output_queue = queue.Queue()
+
+# Step 3: Simulate Twitter API call (replace with real API in production)
+def fetch_tweets(hashtag, proxy):
+    # Simulate fetching tweets
+    time.sleep(0.1)
+    return [{'text': f'Tweet about {hashtag}', 'user': 'user1', 'timestamp': time.time()}]
+
+# Step 4: Worker function
+def worker(hashtags):
+    for hashtag in hashtags:
+        proxy = {'http': choice(proxies), 'https': choice(proxies)}
+        tweets = fetch_tweets(hashtag, proxy)
+        for tweet in tweets:
+            output_queue.put([tweet['text'], tweet['user'], tweet['timestamp'], hashtag])
+
+# Step 5: Writer thread
+def writer(output_filename):
+    with open(output_filename, 'w', newline='', encoding='utf-8') as f:
+        import csv
+        writer = csv.writer(f)
+        writer.writerow(['Tweet Text', 'User', 'Timestamp', 'Hashtag'])
+        while True:
+            row = output_queue.get()
+            if row == 'DONE':
+                break
+            writer.writerow(row)
+            f.flush()
+
+# Step 6: Main execution
+def main():
+    hashtags = read_hashtags('hashtags.xlsx')
+    n_threads = 10
+    chunk_size = len(hashtags) // n_threads
+    threads = []
+    writer_thread = threading.Thread(target=writer, args=('tweets.csv',))
+    writer_thread.start()
+    for i in range(n_threads):
+        chunk = hashtags[i*chunk_size:(i+1)*chunk_size]
+        t = threading.Thread(target=worker, args=(chunk,))
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
+    output_queue.put('DONE')
+    writer_thread.join()
+
+# main()
+]]></code>
+<planning><![CDATA[
+1. Read hashtags from an Excel file.
+2. Set up a list of proxies for rotation.
+3. Define a thread-safe queue for output.
+4. Implement a function to fetch tweets for each hashtag using a random proxy.
+5. Create worker threads to process chunks of hashtags.
+6. Start a writer thread to stream results to a CSV file as they are fetched.
+7. Ensure all threads are joined and resources are cleaned up.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Create a multithreaded real estate listing aggregator that reads a list of city names from a CSV file, scrapes property listings from multiple real estate websites using proxy rotation, and writes the results (address, price, city, URL) to a CSV file in real-time. The solution should be optimized for speed and scalability, handling hundreds of cities in parallel.
+]]></description>
+<code><![CDATA[
+# Step 1: Read city names from CSV
+import csv
+import threading
+import queue
+import requests
+from random import choice
+
+def read_cities(filename):
+    with open(filename, newline='') as f:
+        reader = csv.reader(f)
+        return [row[0] for row in reader]
+
+# Step 2: Define proxies and output queue
+proxies = ['http://proxy1:port', 'http://proxy2:port', 'http://proxy3:port']
+output_queue = queue.Queue()
+
+# Step 3: Scraper function
+def scrape_listings(city):
+    proxy = {'http': choice(proxies), 'https': choice(proxies)}
+    try:
+        # Dummy URL and parsing logic
+        url = f'https://realestate.example.com/search?city={city}'
+        resp = requests.get(url, proxies=proxy, timeout=10)
+        # Dummy parsing
+        listings = [{'address': f'123 Main St, {city}', 'price': '$500,000', 'url': url}]
+        for listing in listings:
+            output_queue.put([listing['address'], listing['price'], city, listing['url']])
+    except Exception as e:
+        output_queue.put(['ERROR', str(e), city, ''])
+
+# Step 4: Worker thread
+def worker(cities):
+    for city in cities:
+        scrape_listings(city)
+
+# Step 5: Write results to CSV in real-time
+def writer(output_filename):
+    with open(output_filename, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Address', 'Price', 'City', 'URL'])
+        while True:
+            row = output_queue.get()
+            if row == 'DONE':
+                break
+            writer.writerow(row)
+            f.flush()
+
+# Step 6: Main execution
+def main():
+    cities = read_cities('cities.csv')
+    n_threads = 10
+    chunk_size = len(cities) // n_threads
+    threads = []
+    writer_thread = threading.Thread(target=writer, args=('listings.csv',))
+    writer_thread.start()
+    for i in range(n_threads):
+        chunk = cities[i*chunk_size:(i+1)*chunk_size]
+        t = threading.Thread(target=worker, args=(chunk,))
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
+    output_queue.put('DONE')
+    writer_thread.join()
+
+# main()
+]]></code>
+<planning><![CDATA[
+1. Read city names from a CSV file.
+2. Set up a list of proxies for rotation.
+3. Define a thread-safe queue for output.
+4. Implement a scraping function for each city using a random proxy.
+5. Create worker threads to process chunks of cities.
+6. Start a writer thread to stream results to a CSV file as they are scraped.
+7. Ensure all threads are joined and resources are cleaned up.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The main algorithmic approach for the original problem is a combination of the following:
+- Multithreading (for concurrency and speed)
+- Producer-Consumer pattern (for streaming results)
+- Proxy rotation (for robustness and scalability)
+
+## Tutorial: Multithreaded Producer-Consumer Pattern with Proxy Rotation
+
+### 1. Multithreading
+Multithreading allows you to run multiple operations concurrently, making it ideal for I/O-bound tasks like web scraping. In Python, the `threading` module is commonly used for this purpose. You can create a pool of worker threads, each responsible for processing a subset of the input data (e.g., ZIP codes, URLs, cities).
+
+### 2. Producer-Consumer Pattern
+This pattern is used to decouple the production of data (scraping) from its consumption (writing to file). A thread-safe queue (such as `queue.Queue`) is used to pass data between producer threads (scrapers) and consumer threads (writers). Producers put results into the queue, and consumers take results out and write them to a file, enabling real-time streaming.
+
+### 3. Proxy Rotation
+To avoid IP bans and rate limits, you can rotate proxies for each request. Maintain a list of proxies and randomly select one for each HTTP request. This can be done by passing a proxy dictionary to the `requests` library.
+
+### 4. High-Level Steps
+- **Input Reading**: Read the list of items to process (ZIP codes, URLs, etc.) from a file.
+- **Proxy Setup**: Prepare a list of proxies for rotation.
+- **Queue Initialization**: Create a thread-safe queue for communication between threads.
+- **Worker Threads**: Start multiple threads to process the input data, each using a random proxy for requests.
+- **Writer Thread**: Start a separate thread to consume results from the queue and write them to a file in real-time.
+- **Synchronization**: Ensure all threads are properly joined and resources are released.
+
+### 5. Scalability Tips
+- Adjust the number of threads based on your system's capabilities and the target website's rate limits.
+- Use efficient data structures and avoid unnecessary locking.
+- Handle exceptions gracefully to prevent thread crashes.
+- Monitor and refresh proxies as needed.
+
+This approach is highly effective for scalable, robust, and efficient web scraping tasks that require real-time data streaming and proxy management.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+You are tasked with building a multithreaded web scraper that collects product prices from multiple e-commerce websites. The scraper should read a list of product URLs from a CSV file, use proxy rotation to avoid IP bans, and write the scraped data (product name, price, URL) to a new CSV file in real-time. The solution should be scalable and efficient, handling thousands of URLs.
+
+# Planning:
+
+1. Read product URLs from a CSV file.
+2. Set up a list of proxies for rotation.
+3. Define a thread-safe queue for output.
+4. Implement a scraping function that uses a random proxy for each request.
+5. Create worker threads to process chunks of URLs.
+6. Start a writer thread to stream results to a CSV file as they are scraped.
+7. Ensure all threads are joined and resources are cleaned up.
+
+## Relevant Algorithm to solve the next problem:
+
+The main algorithmic approach for the original problem is a combination of the following:
+- Multithreading (for concurrency and speed)
+- Producer-Consumer pattern (for streaming results)
+- Proxy rotation (for robustness and scalability)
+
+## Tutorial: Multithreaded Producer-Consumer Pattern with Proxy Rotation
+
+### 1. Multithreading
+Multithreading allows you to run multiple operations concurrently, making it ideal for I/O-bound tasks like web scraping. In Python, the `threading` module is commonly used for this purpose. You can create a pool of worker threads, each responsible for processing a subset of the input data (e.g., ZIP codes, URLs, cities).
+
+### 2. Producer-Consumer Pattern
+This pattern is used to decouple the production of data (scraping) from its consumption (writing to file). A thread-safe queue (such as `queue.Queue`) is used to pass data between producer threads (scrapers) and consumer threads (writers). Producers put results into the queue, and consumers take results out and write them to a file, enabling real-time streaming.
+
+### 3. Proxy Rotation
+To avoid IP bans and rate limits, you can rotate proxies for each request. Maintain a list of proxies and randomly select one for each HTTP request. This can be done by passing a proxy dictionary to the `requests` library.
+
+### 4. High-Level Steps
+- **Input Reading**: Read the list of items to process (ZIP codes, URLs, etc.) from a file.
+- **Proxy Setup**: Prepare a list of proxies for rotation.
+- **Queue Initialization**: Create a thread-safe queue for communication between threads.
+- **Worker Threads**: Start multiple threads to process the input data, each using a random proxy for requests.
+- **Writer Thread**: Start a separate thread to consume results from the queue and write them to a file in real-time.
+- **Synchronization**: Ensure all threads are properly joined and resources are released.
+
+### 5. Scalability Tips
+- Adjust the number of threads based on your system's capabilities and the target website's rate limits.
+- Use efficient data structures and avoid unnecessary locking.
+- Handle exceptions gracefully to prevent thread crashes.
+- Monitor and refresh proxies as needed.
+
+This approach is highly effective for scalable, robust, and efficient web scraping tasks that require real-time data streaming and proxy management.
+
+## Problem to be solved:
+
+Please help me implement a Python program to optimize a multithreaded job scraper for Indeed that processes ZIP codes from an .xlsx file, enhances speed and scalability across all US states while maintaining current scraping logic, supports proxy rotation, and streams results to CSV.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Read ZIP codes from the input `.xlsx` file.
+2. Prepare a list of proxies for rotation.
+3. Initialize a thread-safe queue for scraped job data.
+4. Define a scraping function that:
+   - Accepts a ZIP code.
+   - Selects a random proxy.
+   - Scrapes job data from Indeed using current logic.
+   - Puts results into the output queue.
+5. Create a pool of worker threads to process ZIP codes concurrently.
+6. Start a writer thread to stream results from the queue to a CSV file in real-time.
+7. Implement error handling and retry logic for failed requests.
+8. Ensure all threads are properly joined and resources are cleaned up after processing.
+9. Optimize thread count and batch size for scalability across all US states.
+10. Monitor and refresh proxies as needed during execution.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to optimize a multithreaded job scraper for Indeed that processes ZIP codes from an .xlsx file, enhances speed and scalability across all US states while maintaining current scraping logic, supports proxy rotation, and streams results to CSV.
+
+# Planning:
+**Planning:**
+
+1. Read ZIP codes from the input `.xlsx` file.
+2. Prepare a list of proxies for rotation.
+3. Initialize a thread-safe queue for scraped job data.
+4. Define a scraping function that:
+   - Accepts a ZIP code.
+   - Selects a random proxy.
+   - Scrapes job data from Indeed using current logic.
+   - Puts results into the output queue.
+5. Create a pool of worker threads to process ZIP codes concurrently.
+6. Start a writer thread to stream results from the queue to a CSV file in real-time.
+7. Implement error handling and retry logic for failed requests.
+8. Ensure all threads are properly joined and resources are cleaned up after processing.
+9. Optimize thread count and batch size for scalability across all US states.
+10. Monitor and refresh proxies as needed during execution.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': "\nThe given problem is not a typical competitive programming problem; instead, it is a real-world software engineering task involving web scraping, multithreading, proxy management, and file I/O. However, the provided plan is well-structured and covers all necessary aspects to implement a scalable, multithreaded job scraper for Indeed. It addresses reading ZIP codes, proxy rotation, thread-safe data handling, concurrent scraping, real-time CSV streaming, error handling, resource cleanup, and scalability. If implemented correctly, this plan should solve the problem as described. The only caveat is that actual implementation details (e.g., handling Indeed's anti-bot measures, rate limits, and legal considerations) are not specified, but these are outside the scope of the planning steps. Overall, the plan is correct for the problem.\n", 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Design a scalable multithreaded Twitter hashtag tracker that reads a list of hashtags from an Excel file, uses proxy rotation to avoid rate limits, and streams live tweet data (tweet text, user, timestamp) to a CSV file. The tracker should be able to handle hundreds of hashtags in parallel and write results in real-time.
+
+# Planning:
+
+1. Read hashtags from an Excel file.
+2. Set up a list of proxies for rotation.
+3. Define a thread-safe queue for output.
+4. Implement a function to fetch tweets for each hashtag using a random proxy.
+5. Create worker threads to process chunks of hashtags.
+6. Start a writer thread to stream results to a CSV file as they are fetched.
+7. Ensure all threads are joined and resources are cleaned up.
+
+## Relevant Algorithm to solve the next problem:
+
+The main algorithmic approach for the original problem is a combination of the following:
+- Multithreading (for concurrency and speed)
+- Producer-Consumer pattern (for streaming results)
+- Proxy rotation (for robustness and scalability)
+
+## Tutorial: Multithreaded Producer-Consumer Pattern with Proxy Rotation
+
+### 1. Multithreading
+Multithreading allows you to run multiple operations concurrently, making it ideal for I/O-bound tasks like web scraping. In Python, the `threading` module is commonly used for this purpose. You can create a pool of worker threads, each responsible for processing a subset of the input data (e.g., ZIP codes, URLs, cities).
+
+### 2. Producer-Consumer Pattern
+This pattern is used to decouple the production of data (scraping) from its consumption (writing to file). A thread-safe queue (such as `queue.Queue`) is used to pass data between producer threads (scrapers) and consumer threads (writers). Producers put results into the queue, and consumers take results out and write them to a file, enabling real-time streaming.
+
+### 3. Proxy Rotation
+To avoid IP bans and rate limits, you can rotate proxies for each request. Maintain a list of proxies and randomly select one for each HTTP request. This can be done by passing a proxy dictionary to the `requests` library.
+
+### 4. High-Level Steps
+- **Input Reading**: Read the list of items to process (ZIP codes, URLs, etc.) from a file.
+- **Proxy Setup**: Prepare a list of proxies for rotation.
+- **Queue Initialization**: Create a thread-safe queue for communication between threads.
+- **Worker Threads**: Start multiple threads to process the input data, each using a random proxy for requests.
+- **Writer Thread**: Start a separate thread to consume results from the queue and write them to a file in real-time.
+- **Synchronization**: Ensure all threads are properly joined and resources are released.
+
+### 5. Scalability Tips
+- Adjust the number of threads based on your system's capabilities and the target website's rate limits.
+- Use efficient data structures and avoid unnecessary locking.
+- Handle exceptions gracefully to prevent thread crashes.
+- Monitor and refresh proxies as needed.
+
+This approach is highly effective for scalable, robust, and efficient web scraping tasks that require real-time data streaming and proxy management.
+
+## Problem to be solved:
+
+Please help me implement a Python program to optimize a multithreaded job scraper for Indeed that processes ZIP codes from an .xlsx file, enhances speed and scalability across all US states while maintaining current scraping logic, supports proxy rotation, and streams results to CSV.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Read ZIP codes from the provided .xlsx file.
+2. Load and validate a list of proxies for rotation.
+3. Initialize a thread-safe queue for scraped job data.
+4. Implement a function to scrape jobs from Indeed for a given ZIP code using a randomly selected proxy.
+5. Divide ZIP codes into chunks and assign each chunk to a worker thread.
+6. Start worker threads to scrape jobs concurrently, each using proxy rotation.
+7. Start a writer thread to consume data from the queue and stream results to a CSV file in real-time.
+8. Handle exceptions and retries for failed requests.
+9. Ensure all threads are joined and resources are cleaned up after completion.
+10. Validate the output CSV for completeness and correctness.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to optimize a multithreaded job scraper for Indeed that processes ZIP codes from an .xlsx file, enhances speed and scalability across all US states while maintaining current scraping logic, supports proxy rotation, and streams results to CSV.
+
+# Planning:
+**Planning:**
+
+1. Read ZIP codes from the provided .xlsx file.
+2. Load and validate a list of proxies for rotation.
+3. Initialize a thread-safe queue for scraped job data.
+4. Implement a function to scrape jobs from Indeed for a given ZIP code using a randomly selected proxy.
+5. Divide ZIP codes into chunks and assign each chunk to a worker thread.
+6. Start worker threads to scrape jobs concurrently, each using proxy rotation.
+7. Start a writer thread to consume data from the queue and stream results to a CSV file in real-time.
+8. Handle exceptions and retries for failed requests.
+9. Ensure all threads are joined and resources are cleaned up after completion.
+10. Validate the output CSV for completeness and correctness.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a practical software engineering task involving web scraping, multithreading, proxy management, and file I/O. However, the provided plan is well-structured and covers all necessary steps to implement a scalable, multithreaded job scraper for Indeed. The plan addresses reading ZIP codes, proxy rotation, concurrent scraping, real-time CSV streaming, exception handling, and resource cleanup, which are all essential for the described requirements. Assuming the implementation follows this plan and handles edge cases (e.g., rate limiting, CAPTCHAs, thread safety), the problem is solvable using the outlined approach in Python3.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Create a multithreaded real estate listing aggregator that reads a list of city names from a CSV file, scrapes property listings from multiple real estate websites using proxy rotation, and writes the results (address, price, city, URL) to a CSV file in real-time. The solution should be optimized for speed and scalability, handling hundreds of cities in parallel.
+
+# Planning:
+
+1. Read city names from a CSV file.
+2. Set up a list of proxies for rotation.
+3. Define a thread-safe queue for output.
+4. Implement a scraping function for each city using a random proxy.
+5. Create worker threads to process chunks of cities.
+6. Start a writer thread to stream results to a CSV file as they are scraped.
+7. Ensure all threads are joined and resources are cleaned up.
+
+## Relevant Algorithm to solve the next problem:
+
+The main algorithmic approach for the original problem is a combination of the following:
+- Multithreading (for concurrency and speed)
+- Producer-Consumer pattern (for streaming results)
+- Proxy rotation (for robustness and scalability)
+
+## Tutorial: Multithreaded Producer-Consumer Pattern with Proxy Rotation
+
+### 1. Multithreading
+Multithreading allows you to run multiple operations concurrently, making it ideal for I/O-bound tasks like web scraping. In Python, the `threading` module is commonly used for this purpose. You can create a pool of worker threads, each responsible for processing a subset of the input data (e.g., ZIP codes, URLs, cities).
+
+### 2. Producer-Consumer Pattern
+This pattern is used to decouple the production of data (scraping) from its consumption (writing to file). A thread-safe queue (such as `queue.Queue`) is used to pass data between producer threads (scrapers) and consumer threads (writers). Producers put results into the queue, and consumers take results out and write them to a file, enabling real-time streaming.
+
+### 3. Proxy Rotation
+To avoid IP bans and rate limits, you can rotate proxies for each request. Maintain a list of proxies and randomly select one for each HTTP request. This can be done by passing a proxy dictionary to the `requests` library.
+
+### 4. High-Level Steps
+- **Input Reading**: Read the list of items to process (ZIP codes, URLs, etc.) from a file.
+- **Proxy Setup**: Prepare a list of proxies for rotation.
+- **Queue Initialization**: Create a thread-safe queue for communication between threads.
+- **Worker Threads**: Start multiple threads to process the input data, each using a random proxy for requests.
+- **Writer Thread**: Start a separate thread to consume results from the queue and write them to a file in real-time.
+- **Synchronization**: Ensure all threads are properly joined and resources are released.
+
+### 5. Scalability Tips
+- Adjust the number of threads based on your system's capabilities and the target website's rate limits.
+- Use efficient data structures and avoid unnecessary locking.
+- Handle exceptions gracefully to prevent thread crashes.
+- Monitor and refresh proxies as needed.
+
+This approach is highly effective for scalable, robust, and efficient web scraping tasks that require real-time data streaming and proxy management.
+
+## Problem to be solved:
+
+Please help me implement a Python program to optimize a multithreaded job scraper for Indeed that processes ZIP codes from an .xlsx file, enhances speed and scalability across all US states while maintaining current scraping logic, supports proxy rotation, and streams results to CSV.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Read ZIP codes from the input `.xlsx` file.
+2. Prepare a list of proxies for rotation.
+3. Initialize a thread-safe queue for output results.
+4. Implement a scraping function for Indeed that:
+   - Accepts a ZIP code and a proxy.
+   - Scrapes job listings using the current scraping logic.
+   - Returns job data (e.g., title, company, location, salary, URL).
+5. Create worker threads to process ZIP codes in parallel:
+   - Each worker selects a random proxy for each request.
+   - Each worker puts scraped results into the output queue.
+6. Start a writer thread to consume results from the queue and write them to a CSV file in real-time.
+7. Ensure proper synchronization:
+   - Use thread-safe mechanisms for queue operations.
+   - Signal the writer thread when all scraping is complete.
+8. Handle exceptions and proxy failures gracefully:
+   - Retry with a new proxy if a request fails.
+   - Log errors for failed ZIP codes.
+9. Tune the number of worker threads for optimal speed and resource usage.
+10. Clean up resources and join all threads before program exit.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to optimize a multithreaded job scraper for Indeed that processes ZIP codes from an .xlsx file, enhances speed and scalability across all US states while maintaining current scraping logic, supports proxy rotation, and streams results to CSV.
+
+# Planning:
+**Planning:**
+
+1. Read ZIP codes from the input `.xlsx` file.
+2. Prepare a list of proxies for rotation.
+3. Initialize a thread-safe queue for output results.
+4. Implement a scraping function for Indeed that:
+   - Accepts a ZIP code and a proxy.
+   - Scrapes job listings using the current scraping logic.
+   - Returns job data (e.g., title, company, location, salary, URL).
+5. Create worker threads to process ZIP codes in parallel:
+   - Each worker selects a random proxy for each request.
+   - Each worker puts scraped results into the output queue.
+6. Start a writer thread to consume results from the queue and write them to a CSV file in real-time.
+7. Ensure proper synchronization:
+   - Use thread-safe mechanisms for queue operations.
+   - Signal the writer thread when all scraping is complete.
+8. Handle exceptions and proxy failures gracefully:
+   - Retry with a new proxy if a request fails.
+   - Log errors for failed ZIP codes.
+9. Tune the number of worker threads for optimal speed and resource usage.
+10. Clean up resources and join all threads before program exit.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a practical software engineering task involving web scraping, multithreading, proxy management, and file I/O. However, the provided plan is well-structured and addresses all the key requirements: reading ZIP codes from an Excel file, rotating proxies, multithreaded scraping, real-time CSV streaming, exception handling, and resource cleanup. The plan also considers thread safety and scalability, which are crucial for such a scraper. Assuming the current scraping logic is robust and the implementation follows the plan, the problem is solvable using this approach.\n', 'confidence': 95}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The main algorithmic approach for the original problem is a combination of the following:
+- Multithreading (for concurrency and speed)
+- Producer-Consumer pattern (for streaming results)
+- Proxy rotation (for robustness and scalability)
+
+## Tutorial: Multithreaded Producer-Consumer Pattern with Proxy Rotation
+
+### 1. Multithreading
+Multithreading allows you to run multiple operations concurrently, making it ideal for I/O-bound tasks like web scraping. In Python, the `threading` module is commonly used for this purpose. You can create a pool of worker threads, each responsible for processing a subset of the input data (e.g., ZIP codes, URLs, cities).
+
+### 2. Producer-Consumer Pattern
+This pattern is used to decouple the production of data (scraping) from its consumption (writing to file). A thread-safe queue (such as `queue.Queue`) is used to pass data between producer threads (scrapers) and consumer threads (writers). Producers put results into the queue, and consumers take results out and write them to a file, enabling real-time streaming.
+
+### 3. Proxy Rotation
+To avoid IP bans and rate limits, you can rotate proxies for each request. Maintain a list of proxies and randomly select one for each HTTP request. This can be done by passing a proxy dictionary to the `requests` library.
+
+### 4. High-Level Steps
+- **Input Reading**: Read the list of items to process (ZIP codes, URLs, etc.) from a file.
+- **Proxy Setup**: Prepare a list of proxies for rotation.
+- **Queue Initialization**: Create a thread-safe queue for communication between threads.
+- **Worker Threads**: Start multiple threads to process the input data, each using a random proxy for requests.
+- **Writer Thread**: Start a separate thread to consume results from the queue and write them to a file in real-time.
+- **Synchronization**: Ensure all threads are properly joined and resources are released.
+
+### 5. Scalability Tips
+- Adjust the number of threads based on your system's capabilities and the target website's rate limits.
+- Use efficient data structures and avoid unnecessary locking.
+- Handle exceptions gracefully to prevent thread crashes.
+- Monitor and refresh proxies as needed.
+
+This approach is highly effective for scalable, robust, and efficient web scraping tasks that require real-time data streaming and proxy management.
+
+## Problem to be solved:
+
+Please help me implement a Python program to optimize a multithreaded job scraper for Indeed that processes ZIP codes from an .xlsx file, enhances speed and scalability across all US states while maintaining current scraping logic, supports proxy rotation, and streams results to CSV.
+
+## Planning:
+**Planning:**
+
+1. Read ZIP codes from the input `.xlsx` file.
+2. Prepare a list of proxies for rotation.
+3. Initialize a thread-safe queue for scraped job data.
+4. Define a scraping function that:
+   - Accepts a ZIP code.
+   - Selects a random proxy.
+   - Scrapes job data from Indeed using current logic.
+   - Puts results into the output queue.
+5. Create a pool of worker threads to process ZIP codes concurrently.
+6. Start a writer thread to stream results from the queue to a CSV file in real-time.
+7. Implement error handling and retry logic for failed requests.
+8. Ensure all threads are properly joined and resources are cleaned up after processing.
+9. Optimize thread count and batch size for scalability across all US states.
+10. Monitor and refresh proxies as needed during execution.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+import threading
+import queue
+import random
+import requests
+import time
+import csv
+import sys
+import traceback
+from openpyxl import load_workbook
+
+# CONFIGURABLE PARAMETERS
+NUM_WORKER_THREADS = 20
+MAX_RETRIES = 3
+RETRY_BACKOFF = 2  # seconds
+OUTPUT_CSV = 'indeed_jobs.csv'
+PROXY_LIST_FILE = 'proxies.txt'  # Each line: http://user:pass@host:port or http://host:port
+
+# 1. Read ZIP codes from .xlsx file
+def read_zip_codes(xlsx_file):
+    wb = load_workbook(xlsx_file)
+    ws = wb.active
+    zip_codes = []
+    for row in ws.iter_rows(min_row=2, values_only=True):  # Assuming header in row 1
+        zip_code = str(row[0]).strip()
+        if zip_code and zip_code.isdigit():
+            zip_codes.append(zip_code)
+    return zip_codes
+
+# 2. Prepare proxy list
+def load_proxies(proxy_file):
+    proxies = []
+    with open(proxy_file, 'r') as f:
+        for line in f:
+            proxy = line.strip()
+            if proxy:
+                proxies.append(proxy)
+    return proxies
+
+def get_random_proxy(proxies):
+    proxy_url = random.choice(proxies)
+    return {
+        'http': proxy_url,
+        'https': proxy_url
+    }
+
+# 3. Thread-safe queue for results
+result_queue = queue.Queue()
+zip_queue = queue.Queue()
+
+# 4. Scraping function
+def scrape_indeed_jobs(zip_code, proxies):
+    # Example: Scrape first page of jobs for the ZIP code
+    url = f'https://www.indeed.com/jobs?q=&l={zip_code}'
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
+    }
+    for attempt in range(MAX_RETRIES):
+        proxy = get_random_proxy(proxies)
+        try:
+            resp = requests.get(url, headers=headers, proxies=proxy, timeout=10)
+            if resp.status_code == 200:
+                # Parse jobs from HTML (simple parsing for demo; use BeautifulSoup for real scraping)
+                jobs = []
+                html = resp.text
+                # Naive parsing: look for job cards
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(html, 'html.parser')
+                for card in soup.select('div.job_seen_beacon'):
+                    title = card.select_one('h2.jobTitle')
+                    company = card.select_one('span.companyName')
+                    location = card.select_one('div.companyLocation')
+                    summary = card.select_one('div.job-snippet')
+                    job_url = card.select_one('a')
+                    jobs.append({
+                        'zip_code': zip_code,
+                        'title': title.get_text(strip=True) if title else '',
+                        'company': company.get_text(strip=True) if company else '',
+                        'location': location.get_text(strip=True) if location else '',
+                        'summary': summary.get_text(strip=True) if summary else '',
+                        'url': 'https://www.indeed.com' + job_url['href'] if job_url and job_url.has_attr('href') else ''
+                    })
+                return jobs
+            else:
+                time.sleep(RETRY_BACKOFF)
+        except Exception as e:
+            time.sleep(RETRY_BACKOFF)
+    return []
+
+def worker(proxies):
+    while True:
+        try:
+            zip_code = zip_queue.get(timeout=3)
+        except queue.Empty:
+            break
+        try:
+            jobs = scrape_indeed_jobs(zip_code, proxies)
+            for job in jobs:
+                result_queue.put(job)
+        except Exception as e:
+            traceback.print_exc()
+        finally:
+            zip_queue.task_done()
+
+def writer_thread_func(fieldnames):
+    with open(OUTPUT_CSV, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        while True:
+            job = result_queue.get()
+            if job is None:
+                break
+            writer.writerow(job)
+            result_queue.task_done()
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input', required=True, help='Input .xlsx file with ZIP codes')
+    parser.add_argument('--proxies', default=PROXY_LIST_FILE, help='Proxy list file')
+    parser.add_argument('--threads', type=int, default=NUM_WORKER_THREADS, help='Number of worker threads')
+    args = parser.parse_args()
+
+    zip_codes = read_zip_codes(args.input)
+    proxies = load_proxies(args.proxies)
+    if not proxies:
+        print("No proxies loaded. Exiting.")
+        sys.exit(1)
+
+    # Fill zip_queue
+    for z in zip_codes:
+        zip_queue.put(z)
+
+    # Fieldnames for CSV
+    fieldnames = ['zip_code', 'title', 'company', 'location', 'summary', 'url']
+
+    # Start writer thread
+    writer_thread = threading.Thread(target=writer_thread_func, args=(fieldnames,), daemon=True)
+    writer_thread.start()
+
+    # Start worker threads
+    threads = []
+    for _ in range(args.threads):
+        t = threading.Thread(target=worker, args=(proxies,))
+        t.start()
+        threads.append(t)
+
+    # Wait for all ZIP codes to be processed
+    zip_queue.join()
+    # Signal writer to finish
+    result_queue.put(None)
+    writer_thread.join()
+    # Wait for all worker threads
+    for t in threads:
+        t.join()
+
+if __name__ == '__main__':
+    main()
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 47.95 seconds
+Total Tokens: 9,210 (Input: 4,475, Output: 4,735)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 23.26      322          2,473        1         
+Planning_Generation_1     2.87       777          174          1         
+Planning_Verification_1   2.49       338          184          1         
+Planning_Generation_2     2.18       764          152          1         
+Planning_Verification_2   2.49       316          158          1         
+Planning_Generation_3     2.82       770          236          1         
+Planning_Verification_3   2.60       400          143          1         
+Final_Code_Generation     9.25       788          1,215        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:43:57.372452
+##########################
+

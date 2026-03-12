@@ -1,0 +1,49 @@
+classDiagram
+    class User {
+        +id: int
+        +email: str
+        +password_hash: str
+        +role: str
+        +created_at: datetime
+    }
+    class Survey {
+        +id: int
+        +title: str
+        +description: str
+        +questions: list[Question]
+        +created_by: int
+        +created_at: datetime
+    }
+    class Question {
+        +id: int
+        +survey_id: int
+        +text: str
+        +type: str
+        +options: list[str]
+    }
+    class Response {
+        +id: int
+        +survey_id: int
+        +user_id: int
+        +answers: dict[int, str|int|float]
+        +submitted_at: datetime
+    }
+    class AnalyticsService {
+        +get_radar_data(survey_id: int) -> dict
+        +get_heatmap_data(survey_id: int) -> dict
+    }
+    class ReportService {
+        +generate_pdf(survey_id: int) -> bytes
+        +generate_csv(survey_id: int) -> bytes
+    }
+    class AuthService {
+        +login(email: str, password: str) -> str
+        +register(email: str, password: str) -> User
+        +verify_token(token: str) -> User
+    }
+    User "1" -- "*" Survey: creates
+    Survey "1" -- "*" Question: contains
+    Survey "1" -- "*" Response: receives
+    User "1" -- "*" Response: submits
+    Survey "1" -- "1" AnalyticsService: analyzed by
+    Survey "1" -- "1" ReportService: reported by

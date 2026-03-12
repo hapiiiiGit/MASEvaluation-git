@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant P as Pipeline
+    participant I as Ingestor
+    participant T as Transformer
+    participant L as Loader
+    participant R as RetryHandler
+    participant O as Observability
+    participant D as Dashboard
+    P->>I: fetch()
+    I-->>P: raw_data
+    P->>T: transform(raw_data)
+    T-->>P: ConversationRecord(s)
+    P->>R: retry(L.insert, record)
+    R->>L: insert(record)
+    L-->>R: insert_result
+    R-->>P: result
+    P->>O: log(event, level)
+    P->>O: record_metric(name, value)
+    P->>O: trace(operation)
+    D->>O: get_status(), get_metrics(), get_logs()
+    O-->>D: status, metrics, logs

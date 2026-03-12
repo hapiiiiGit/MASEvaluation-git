@@ -1,0 +1,106 @@
+class Order:
+    def __init__(self, order_id, customer_id):
+        self.order_id = order_id
+        self.customer_id = customer_id
+        self.items = {}
+        self.total_price = 0.0
+        self.status = 'Pending'
+
+    def add_item(self, item, quantity):
+        if item.item_id in self.items:
+            self.items[item.item_id]['quantity'] += quantity
+        else:
+            self.items[item.item_id] = {'item': item, 'quantity': quantity}
+        self.calculate_total()
+
+    def remove_item(self, item_id):
+        if item_id in self.items:
+            del self.items[item_id]
+            self.calculate_total()
+
+    def calculate_total(self):
+        self.total_price = sum(item['item'].price * item['quantity'] for item in self.items.values())
+
+    def update_status(self, status):
+        self.status = status
+
+
+class Inventory:
+    def __init__(self):
+        self.items = {}
+
+    def add_item(self, item_id, name, quantity, price):
+        self.items[item_id] = {'name': name, 'quantity': quantity, 'price': price}
+
+    def remove_item(self, item_id):
+        if item_id in self.items:
+            del self.items[item_id]
+
+    def update_quantity(self, item_id, quantity):
+        if item_id in self.items:
+            self.items[item_id]['quantity'] += quantity
+
+    def get_item_details(self, item_id):
+        return self.items.get(item_id, None)
+
+
+class Customer:
+    def __init__(self, customer_id, name, contact_info):
+        self.customer_id = customer_id
+        self.name = name
+        self.contact_info = contact_info
+        self.order_history = []
+
+    def add_order(self, order):
+        self.order_history.append(order)
+
+    def view_order_history(self):
+        return self.order_history
+
+    def update_contact_info(self, new_contact_info):
+        self.contact_info = new_contact_info
+
+
+class POSSystem:
+    def __init__(self):
+        self.orders = {}
+        self.inventory = Inventory()
+        self.customers = {}
+
+    def create_order(self, order_id, customer_id):
+        if customer_id not in self.customers:
+            raise ValueError("Customer not found.")
+        order = Order(order_id, customer_id)
+        self.orders[order_id] = order
+        self.customers[customer_id].add_order(order)
+        return order
+
+    def cancel_order(self, order_id):
+        if order_id in self.orders:
+            order = self.orders[order_id]
+            for item_id, item_info in order.items.items():
+                self.inventory.update_quantity(item_id, item_info['quantity'])
+            del self.orders[order_id]
+
+    def add_inventory_item(self, item_id, name, quantity, price):
+        self.inventory.add_item(item_id, name, quantity, price)
+
+    def remove_inventory_item(self, item_id):
+        self.inventory.remove_item(item_id)
+
+    def view_inventory(self):
+        return self.inventory.items
+
+    def get_order_details(self, order_id):
+        return self.orders.get(order_id, None)
+
+    def place_order(self, order_id, customer_id):
+        order = self.create_order(order_id, customer_id)
+        for item_id, item_info in order.items.items():
+            if self.inventory.get_item_details(item_id)['quantity'] < item_info['quantity']:
+                raise ValueError("Insufficient stock for item: {}".format(item_info['item'].name))
+        order.update_status('Completed')
+
+    def track_inventory(self, threshold):
+        low_stock_items = {item_id: details for item_id, details in self.inventory.items.items() if details['quantity'] < threshold}
+        return low_stock_items

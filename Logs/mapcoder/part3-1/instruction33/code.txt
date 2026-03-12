@@ -1,0 +1,160 @@
+# settings.py
+INSTALLED_APPS = [
+    ...
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'hotel_management',
+]
+
+# models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+class Room(models.Model):
+    room_number = models.CharField(max_length=10)
+    room_type = models.CharField(max_length=50)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    is_available = models.BooleanField(default=True)
+
+class Reservation(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    check_in_date = models.DateField()
+    check_out_date = models.DateField()
+
+class Tour(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+class Report(models.Model):
+    date = models.DateField()
+    total_reservations = models.IntegerField()
+    total_revenue = models.DecimalField(max_digits=10, decimal_places=2)
+
+# views.py
+from django.shortcuts import render, redirect
+from .models import Room, Reservation, Tour, Report
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def admin_dashboard(request):
+    rooms = Room.objects.all()
+    reports = Report.objects.all()
+    return render(request, 'admin_dashboard.html', {'rooms': rooms, 'reports': reports})
+
+@login_required
+def add_room(request):
+    if request.method == 'POST':
+        room_number = request.POST['room_number']
+        room_type = request.POST['room_type']
+        price = request.POST['price']
+        Room.objects.create(room_number=room_number, room_type=room_type, price=price)
+        return redirect('admin_dashboard')
+    return render(request, 'add_room.html')
+
+@login_required
+def staff_dashboard(request):
+    reservations = Reservation.objects.filter(room__is_available=False)
+    return render(request, 'staff_dashboard.html', {'reservations': reservations})
+
+@login_required
+def guest_dashboard(request):
+    tours = Tour.objects.all()
+    return render(request, 'guest_dashboard.html', {'tours': tours})
+
+@login_required
+def book_room(request, room_id):
+    room = Room.objects.get(id=room_id)
+    if request.method == 'POST':
+        check_in_date = request.POST['check_in_date']
+        check_out_date = request.POST['check_out_date']
+        Reservation.objects.create(user=request.user, room=room, check_in_date=check_in_date, check_out_date=check_out_date)
+        room.is_available = False
+        room.save()
+        return redirect('guest_dashboard')
+    return render(request, 'book_room.html', {'room': room})
+
+# urls.py
+from django.urls import path
+from .views import admin_dashboard, add_room, staff_dashboard, guest_dashboard, book_room
+
+urlpatterns = [
+    path('admin/', admin_dashboard, name='admin_dashboard'),
+    path('admin/add_room/', add_room, name='add_room'),
+    path('staff/', staff_dashboard, name='staff_dashboard'),
+    path('guest/', guest_dashboard, name='guest_dashboard'),
+    path('guest/book_room/<int:room_id>/', book_room, name='book_room'),
+]
+
+# templates/admin_dashboard.html
+{% extends 'base.html' %}
+{% block content %}
+<h1>Admin Dashboard</h1>
+<a href="{% url 'add_room' %}">Add Room</a>
+<h2>Rooms</h2>
+<ul>
+    {% for room in rooms %}
+    <li>{{ room.room_number }} - {{ room.room_type }} - {{ room.price }}</li>
+    {% endfor %}
+</ul>
+<h2>Reports</h2>
+<ul>
+    {% for report in reports %}
+    <li>{{ report.date }} - {{ report.total_reservations }} - {{ report.total_revenue }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+# templates/add_room.html
+{% extends 'base.html' %}
+{% block content %}
+<h1>Add Room</h1>
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="room_number" placeholder="Room Number" required>
+    <input type="text" name="room_type" placeholder="Room Type" required>
+    <input type="number" name="price" placeholder="Price" required>
+    <button type="submit">Add Room</button>
+</form>
+{% endblock %}
+
+# templates/staff_dashboard.html
+{% extends 'base.html' %}
+{% block content %}
+<h1>Staff Dashboard</h1>
+<h2>Reservations</h2>
+<ul>
+    {% for reservation in reservations %}
+    <li>{{ reservation.user.username }} - {{ reservation.room.room_number }} - {{ reservation.check_in_date }} to {{ reservation.check_out_date }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+# templates/guest_dashboard.html
+{% extends 'base.html' %}
+{% block content %}
+<h1>Guest Dashboard</h1>
+<h2>Tours</h2>
+<ul>
+    {% for tour in tours %}
+    <li>{{ tour.name }} - {{ tour.price }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+# templates/book_room.html
+{% extends 'base.html' %}
+{% block content %}
+<h1>Book Room: {{ room.room_number }}</h1>
+<form method="post">
+    {% csrf_token %}
+    <input type="date" name="check_in_date" required>
+    <input type="date" name="check_out_date" required>
+    <button type="submit">Book Room</button>
+</form>
+{% endblock %}

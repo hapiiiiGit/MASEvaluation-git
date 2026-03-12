@@ -1,0 +1,986 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:40:19.847464
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python program to create a trading bot using the IBKR TWS API that executes a momentum trading strategy, includes a GUI interface for user interaction, and allows for forward testing.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+Design a Python program to create a stock price alert system using the Alpaca API, which notifies users via email when a stock price crosses a user-defined threshold. The program should include a simple GUI for users to input stock symbols and thresholds.
+]]></description>
+<code><![CDATA[
+# Step 1: Import necessary libraries
+import alpaca_trade_api as tradeapi
+import smtplib
+from email.mime.text import MIMEText
+import tkinter as tk
+from threading import Thread
+import time
+
+# Step 2: Define function to send email
+def send_email(subject, body, to_email):
+    msg = MIMEText(body)
+    msg['Subject'] = subject
+    msg['From'] = 'your_email@gmail.com'
+    msg['To'] = to_email
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+        server.login('your_email@gmail.com', 'your_password')
+        server.send_message(msg)
+
+# Step 3: Define function to check stock price
+def check_price(symbol, threshold, direction, email):
+    api = tradeapi.REST('APCA-API-KEY-ID', 'APCA-API-SECRET-KEY', base_url='https://paper-api.alpaca.markets')
+    while True:
+        barset = api.get_barset(symbol, 'minute', limit=1)
+        price = barset[symbol][0].c
+        if (direction == 'above' and price > threshold) or (direction == 'below' and price < threshold):
+            send_email(f"Alert: {symbol} price {direction} {threshold}", f"Current price: {price}", email)
+            break
+        time.sleep(60)
+
+# Step 4: Create GUI
+def start_alert():
+    symbol = symbol_entry.get()
+    threshold = float(threshold_entry.get())
+    direction = direction_var.get()
+    email = email_entry.get()
+    Thread(target=check_price, args=(symbol, threshold, direction, email)).start()
+
+root = tk.Tk()
+root.title("Stock Price Alert")
+
+tk.Label(root, text="Symbol:").pack()
+symbol_entry = tk.Entry(root)
+symbol_entry.pack()
+
+tk.Label(root, text="Threshold:").pack()
+threshold_entry = tk.Entry(root)
+threshold_entry.pack()
+
+direction_var = tk.StringVar(value='above')
+tk.Radiobutton(root, text="Above", variable=direction_var, value='above').pack()
+tk.Radiobutton(root, text="Below", variable=direction_var, value='below').pack()
+
+tk.Label(root, text="Email:").pack()
+email_entry = tk.Entry(root)
+email_entry.pack()
+
+tk.Button(root, text="Start Alert", command=start_alert).pack()
+
+root.mainloop()
+]]></code>
+<planning><![CDATA[
+1. Set up Alpaca API credentials and email credentials.
+2. Create a function to send email notifications.
+3. Create a function to fetch the latest stock price and compare it to the threshold.
+4. Build a GUI for user input (symbol, threshold, direction, email).
+5. Use threading to run the price checking in the background.
+6. Notify the user via email when the condition is met.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Develop a Python application that uses the Binance API to implement a simple moving average (SMA) crossover trading strategy. The program should display buy/sell signals on a real-time price chart using a GUI.
+]]></description>
+<code><![CDATA[
+# Step 1: Import necessary libraries
+import tkinter as tk
+from binance.client import Client
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import pandas as pd
+import threading
+import time
+
+# Step 2: Define function to fetch historical data
+def fetch_data(symbol, interval, lookback):
+    client = Client('API_KEY', 'API_SECRET')
+    klines = client.get_historical_klines(symbol, interval, lookback)
+    df = pd.DataFrame(klines, columns=['time','open','high','low','close','volume','close_time','quote_asset_volume','number_of_trades','taker_buy_base','taker_buy_quote','ignore'])
+    df['close'] = df['close'].astype(float)
+    return df
+
+# Step 3: Define function to calculate SMA and generate signals
+def sma_strategy(df, short_window=5, long_window=20):
+    df['SMA_short'] = df['close'].rolling(window=short_window).mean()
+    df['SMA_long'] = df['close'].rolling(window=long_window).mean()
+    df['signal'] = 0
+    df['signal'][short_window:] = (df['SMA_short'][short_window:] > df['SMA_long'][short_window:]).astype(int)
+    df['positions'] = df['signal'].diff()
+    return df
+
+# Step 4: Plotting function
+def plot_chart(df):
+    fig, ax = plt.subplots()
+    ax.plot(df['close'], label='Close Price')
+    ax.plot(df['SMA_short'], label='SMA Short')
+    ax.plot(df['SMA_long'], label='SMA Long')
+    buy_signals = df[df['positions'] == 1]
+    sell_signals = df[df['positions'] == -1]
+    ax.plot(buy_signals.index, df['close'][buy_signals.index], '^', markersize=10, color='g', label='Buy')
+    ax.plot(sell_signals.index, df['close'][sell_signals.index], 'v', markersize=10, color='r', label='Sell')
+    ax.legend()
+    return fig
+
+# Step 5: GUI integration
+def update_chart():
+    df = fetch_data(symbol_entry.get(), '1m', '1 day ago UTC')
+    df = sma_strategy(df)
+    fig = plot_chart(df)
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas.get_tk_widget().pack()
+    canvas.draw()
+
+root = tk.Tk()
+root.title("SMA Crossover Strategy")
+
+tk.Label(root, text="Symbol (e.g., BTCUSDT):").pack()
+symbol_entry = tk.Entry(root)
+symbol_entry.pack()
+
+tk.Button(root, text="Show Chart", command=update_chart).pack()
+
+root.mainloop()
+]]></code>
+<planning><![CDATA[
+1. Set up Binance API credentials.
+2. Fetch historical price data for a given symbol.
+3. Calculate short and long period SMAs.
+4. Generate buy/sell signals based on SMA crossovers.
+5. Plot the price, SMAs, and signals on a chart.
+6. Build a GUI for user input and chart display.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Create a Python program that connects to the Interactive Brokers (IBKR) TWS API to monitor a portfolio's real-time performance, displaying key metrics (e.g., P&L, exposure, positions) in a live-updating GUI dashboard.
+]]></description>
+<code><![CDATA[
+# Step 1: Import necessary libraries
+from ibapi.client import EClient
+from ibapi.wrapper import EWrapper
+from ibapi.contract import Contract
+import threading
+import tkinter as tk
+
+# Step 2: Define IBKR API client
+class IBApp(EWrapper, EClient):
+    def __init__(self):
+        EClient.__init__(self, self)
+        self.pnl = 0
+        self.positions = []
+
+    def updatePortfolio(self, contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName):
+        self.positions.append((contract.symbol, position, marketPrice, unrealizedPNL, realizedPNL))
+
+    def pnlSingle(self, reqId, pos, dailyPnL, unrealizedPnL, realizedPnL, value):
+        self.pnl = dailyPnL
+
+def run_loop(app):
+    app.run()
+
+# Step 3: GUI to display metrics
+def update_dashboard():
+    positions_text.delete(1.0, tk.END)
+    for pos in app.positions:
+        positions_text.insert(tk.END, f"{pos}\n")
+    pnl_label.config(text=f"PnL: {app.pnl}")
+    root.after(1000, update_dashboard)
+
+app = IBApp()
+app.connect("127.0.0.1", 7497, 0)
+thread = threading.Thread(target=run_loop, args=(app,), daemon=True)
+thread.start()
+
+root = tk.Tk()
+root.title("Portfolio Dashboard")
+
+pnl_label = tk.Label(root, text="PnL: 0")
+pnl_label.pack()
+
+positions_text = tk.Text(root, height=10, width=50)
+positions_text.pack()
+
+root.after(1000, update_dashboard)
+root.mainloop()
+]]></code>
+<planning><![CDATA[
+1. Set up IBKR TWS API connection.
+2. Implement methods to fetch real-time portfolio data (positions, P&L).
+3. Store and update portfolio metrics in the application.
+4. Build a GUI dashboard to display metrics.
+5. Use a timer to refresh the dashboard with live data.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem (momentum trading bot with GUI and forward testing using IBKR TWS API) is best approached using the Event-driven Programming paradigm, combined with the Greedy algorithm for the momentum strategy.
+
+Tutorial:
+1. **Event-driven Programming**: This paradigm is essential for trading bots, as actions (like fetching data, executing trades, updating GUI) are triggered by events (market data updates, user input, timer ticks). In Python, this is often implemented using callbacks, threading, or asynchronous programming. For GUI, libraries like Tkinter or PyQt are used to handle user events.
+
+2. **Greedy Algorithm for Momentum Strategy**: The momentum strategy is a greedy approach where the bot makes trading decisions based on recent price trends (e.g., buying when price increases, selling when it decreases). At each step, the bot chooses the action that appears best at that moment, without considering future consequences.
+
+**High-level Steps for Implementation:**
+- Connect to the IBKR TWS API to receive real-time market data.
+- Implement the momentum logic: e.g., if price increases over a window, buy; if it decreases, sell.
+- Use event-driven programming to react to new data and user actions.
+- Build a GUI for user interaction (strategy parameters, start/stop, logs).
+- Implement forward testing by running the strategy on live data and tracking performance metrics.
+
+**Key Points:**
+- Use threading or async to keep the GUI responsive while processing data.
+- Maintain state (positions, P&L, trade history) for analysis and forward testing.
+- Ensure robust error handling and logging for live trading environments.
+
+This approach is generic and can be adapted to other trading strategies or APIs.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Design a Python program to create a stock price alert system using the Alpaca API, which notifies users via email when a stock price crosses a user-defined threshold. The program should include a simple GUI for users to input stock symbols and thresholds.
+
+# Planning:
+
+1. Set up Alpaca API credentials and email credentials.
+2. Create a function to send email notifications.
+3. Create a function to fetch the latest stock price and compare it to the threshold.
+4. Build a GUI for user input (symbol, threshold, direction, email).
+5. Use threading to run the price checking in the background.
+6. Notify the user via email when the condition is met.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem (momentum trading bot with GUI and forward testing using IBKR TWS API) is best approached using the Event-driven Programming paradigm, combined with the Greedy algorithm for the momentum strategy.
+
+Tutorial:
+1. **Event-driven Programming**: This paradigm is essential for trading bots, as actions (like fetching data, executing trades, updating GUI) are triggered by events (market data updates, user input, timer ticks). In Python, this is often implemented using callbacks, threading, or asynchronous programming. For GUI, libraries like Tkinter or PyQt are used to handle user events.
+
+2. **Greedy Algorithm for Momentum Strategy**: The momentum strategy is a greedy approach where the bot makes trading decisions based on recent price trends (e.g., buying when price increases, selling when it decreases). At each step, the bot chooses the action that appears best at that moment, without considering future consequences.
+
+**High-level Steps for Implementation:**
+- Connect to the IBKR TWS API to receive real-time market data.
+- Implement the momentum logic: e.g., if price increases over a window, buy; if it decreases, sell.
+- Use event-driven programming to react to new data and user actions.
+- Build a GUI for user interaction (strategy parameters, start/stop, logs).
+- Implement forward testing by running the strategy on live data and tracking performance metrics.
+
+**Key Points:**
+- Use threading or async to keep the GUI responsive while processing data.
+- Maintain state (positions, P&L, trade history) for analysis and forward testing.
+- Ensure robust error handling and logging for live trading environments.
+
+This approach is generic and can be adapted to other trading strategies or APIs.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a trading bot using the IBKR TWS API that executes a momentum trading strategy, includes a GUI interface for user interaction, and allows for forward testing.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Set up IBKR TWS API credentials and connection.
+2. Design the GUI (using Tkinter or PyQt) for user input: symbol, strategy parameters (e.g., window size, threshold), start/stop buttons, and logs.
+3. Implement a function to fetch real-time market data from IBKR TWS API.
+4. Implement the momentum trading logic (greedy algorithm): detect price trends over a user-defined window and generate buy/sell signals.
+5. Implement order execution functions to place trades via the IBKR TWS API.
+6. Use threading or asynchronous programming to run data fetching and trading logic in the background, keeping the GUI responsive.
+7. Maintain and display state: current positions, P&L, trade history, and logs in the GUI.
+8. Implement forward testing: track and display performance metrics as the strategy runs on live data.
+9. Add robust error handling and logging for all API interactions and trading actions.
+10. Test the system with sample parameters and verify correct operation through the GUI and logs.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to create a trading bot using the IBKR TWS API that executes a momentum trading strategy, includes a GUI interface for user interaction, and allows for forward testing.
+
+# Planning:
+**Planning:**
+
+1. Set up IBKR TWS API credentials and connection.
+2. Design the GUI (using Tkinter or PyQt) for user input: symbol, strategy parameters (e.g., window size, threshold), start/stop buttons, and logs.
+3. Implement a function to fetch real-time market data from IBKR TWS API.
+4. Implement the momentum trading logic (greedy algorithm): detect price trends over a user-defined window and generate buy/sell signals.
+5. Implement order execution functions to place trades via the IBKR TWS API.
+6. Use threading or asynchronous programming to run data fetching and trading logic in the background, keeping the GUI responsive.
+7. Maintain and display state: current positions, P&L, trade history, and logs in the GUI.
+8. Implement forward testing: track and display performance metrics as the strategy runs on live data.
+9. Add robust error handling and logging for all API interactions and trading actions.
+10. Test the system with sample parameters and verify correct operation through the GUI and logs.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': 'The given problem is to implement a trading bot using the IBKR TWS API with a GUI, momentum strategy, and forward testing. The provided plan covers all necessary steps: setting up the API, designing the GUI, fetching real-time data, implementing the trading logic, executing orders, maintaining state, forward testing, error handling, and testing. Each step logically addresses a required component of the system. While the plan is high-level and does not include code-level details, it is sufficiently comprehensive and correctly sequenced to solve the problem as described. Therefore, the plan is correct for solving the problem.', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Develop a Python application that uses the Binance API to implement a simple moving average (SMA) crossover trading strategy. The program should display buy/sell signals on a real-time price chart using a GUI.
+
+# Planning:
+
+1. Set up Binance API credentials.
+2. Fetch historical price data for a given symbol.
+3. Calculate short and long period SMAs.
+4. Generate buy/sell signals based on SMA crossovers.
+5. Plot the price, SMAs, and signals on a chart.
+6. Build a GUI for user input and chart display.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem (momentum trading bot with GUI and forward testing using IBKR TWS API) is best approached using the Event-driven Programming paradigm, combined with the Greedy algorithm for the momentum strategy.
+
+Tutorial:
+1. **Event-driven Programming**: This paradigm is essential for trading bots, as actions (like fetching data, executing trades, updating GUI) are triggered by events (market data updates, user input, timer ticks). In Python, this is often implemented using callbacks, threading, or asynchronous programming. For GUI, libraries like Tkinter or PyQt are used to handle user events.
+
+2. **Greedy Algorithm for Momentum Strategy**: The momentum strategy is a greedy approach where the bot makes trading decisions based on recent price trends (e.g., buying when price increases, selling when it decreases). At each step, the bot chooses the action that appears best at that moment, without considering future consequences.
+
+**High-level Steps for Implementation:**
+- Connect to the IBKR TWS API to receive real-time market data.
+- Implement the momentum logic: e.g., if price increases over a window, buy; if it decreases, sell.
+- Use event-driven programming to react to new data and user actions.
+- Build a GUI for user interaction (strategy parameters, start/stop, logs).
+- Implement forward testing by running the strategy on live data and tracking performance metrics.
+
+**Key Points:**
+- Use threading or async to keep the GUI responsive while processing data.
+- Maintain state (positions, P&L, trade history) for analysis and forward testing.
+- Ensure robust error handling and logging for live trading environments.
+
+This approach is generic and can be adapted to other trading strategies or APIs.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a trading bot using the IBKR TWS API that executes a momentum trading strategy, includes a GUI interface for user interaction, and allows for forward testing.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. Set up IBKR TWS API connection and authentication.
+2. Design GUI for user input (symbol, strategy parameters, start/stop, logs).
+3. Fetch real-time market data for selected symbol via API.
+4. Implement momentum strategy logic (e.g., detect price trends over a window).
+5. Use event-driven programming to trigger strategy actions on new data/events.
+6. Execute buy/sell orders via API based on strategy signals.
+7. Track and display positions, P&L, and trade history in GUI.
+8. Implement forward testing: run strategy on live data, log performance metrics.
+9. Ensure threading or async to keep GUI responsive.
+10. Add robust error handling and logging throughout the application.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to create a trading bot using the IBKR TWS API that executes a momentum trading strategy, includes a GUI interface for user interaction, and allows for forward testing.
+
+# Planning:
+**Planning:**
+
+1. Set up IBKR TWS API connection and authentication.
+2. Design GUI for user input (symbol, strategy parameters, start/stop, logs).
+3. Fetch real-time market data for selected symbol via API.
+4. Implement momentum strategy logic (e.g., detect price trends over a window).
+5. Use event-driven programming to trigger strategy actions on new data/events.
+6. Execute buy/sell orders via API based on strategy signals.
+7. Track and display positions, P&L, and trade history in GUI.
+8. Implement forward testing: run strategy on live data, log performance metrics.
+9. Ensure threading or async to keep GUI responsive.
+10. Add robust error handling and logging throughout the application.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is to implement a trading bot using the IBKR TWS API with a GUI, momentum strategy, and forward testing in Python3. The provided plan covers all necessary components: API connection, GUI design, real-time data fetching, strategy logic, event-driven execution, order placement, tracking and displaying results, forward testing, threading for responsiveness, and error handling. Each step logically addresses a requirement of the problem, and the plan is detailed enough to guide a correct implementation. Therefore, the plan is correct and sufficient to solve the problem as described.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Create a Python program that connects to the Interactive Brokers (IBKR) TWS API to monitor a portfolio's real-time performance, displaying key metrics (e.g., P&L, exposure, positions) in a live-updating GUI dashboard.
+
+# Planning:
+
+1. Set up IBKR TWS API connection.
+2. Implement methods to fetch real-time portfolio data (positions, P&L).
+3. Store and update portfolio metrics in the application.
+4. Build a GUI dashboard to display metrics.
+5. Use a timer to refresh the dashboard with live data.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem (momentum trading bot with GUI and forward testing using IBKR TWS API) is best approached using the Event-driven Programming paradigm, combined with the Greedy algorithm for the momentum strategy.
+
+Tutorial:
+1. **Event-driven Programming**: This paradigm is essential for trading bots, as actions (like fetching data, executing trades, updating GUI) are triggered by events (market data updates, user input, timer ticks). In Python, this is often implemented using callbacks, threading, or asynchronous programming. For GUI, libraries like Tkinter or PyQt are used to handle user events.
+
+2. **Greedy Algorithm for Momentum Strategy**: The momentum strategy is a greedy approach where the bot makes trading decisions based on recent price trends (e.g., buying when price increases, selling when it decreases). At each step, the bot chooses the action that appears best at that moment, without considering future consequences.
+
+**High-level Steps for Implementation:**
+- Connect to the IBKR TWS API to receive real-time market data.
+- Implement the momentum logic: e.g., if price increases over a window, buy; if it decreases, sell.
+- Use event-driven programming to react to new data and user actions.
+- Build a GUI for user interaction (strategy parameters, start/stop, logs).
+- Implement forward testing by running the strategy on live data and tracking performance metrics.
+
+**Key Points:**
+- Use threading or async to keep the GUI responsive while processing data.
+- Maintain state (positions, P&L, trade history) for analysis and forward testing.
+- Ensure robust error handling and logging for live trading environments.
+
+This approach is generic and can be adapted to other trading strategies or APIs.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a trading bot using the IBKR TWS API that executes a momentum trading strategy, includes a GUI interface for user interaction, and allows for forward testing.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+# Planning
+
+1. **Set Up Environment**
+   - Install IBKR TWS API (ib_insync or ibapi).
+   - Install GUI library (Tkinter or PyQt5).
+   - Set up logging.
+
+2. **Connect to IBKR TWS API**
+   - Initialize API client.
+   - Handle connection, disconnection, and error events.
+
+3. **Market Data Subscription**
+   - Allow user to select instruments (e.g., via GUI).
+   - Subscribe to real-time market data for selected instruments.
+
+4. **Implement Momentum Strategy Logic**
+   - Define parameters (lookback window, thresholds).
+   - On new price data, calculate momentum.
+   - Generate buy/sell/hold signals based on momentum.
+
+5. **Order Execution**
+   - Place orders via API when signals are generated.
+   - Track open positions and order status.
+   - Implement basic risk management (e.g., max position size).
+
+6. **Portfolio and Performance Tracking**
+   - Monitor real-time P&L, positions, trade history.
+   - Store metrics for forward testing and analysis.
+
+7. **GUI Interface**
+   - Display live market data, signals, positions, P&L.
+   - Allow user to start/stop strategy, adjust parameters.
+   - Show logs and error messages.
+
+8. **Event-driven Architecture**
+   - Use threading or async to keep GUI responsive.
+   - Update GUI on data/events (market data, order status, P&L).
+
+9. **Forward Testing Module**
+   - Log all trades and performance metrics.
+   - Provide summary statistics and charts in GUI.
+
+10. **Error Handling and Logging**
+    - Handle API errors, connection issues, and invalid data.
+    - Log all actions and errors for debugging and audit.
+
+11. **Testing**
+    - Test with IBKR demo account.
+    - Validate strategy logic and GUI responsiveness.
+
+12. **Deployment**
+    - Package application for easy execution.
+    - Provide user documentation for setup and usage.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program to create a trading bot using the IBKR TWS API that executes a momentum trading strategy, includes a GUI interface for user interaction, and allows for forward testing.
+
+# Planning:
+# Planning
+
+1. **Set Up Environment**
+   - Install IBKR TWS API (ib_insync or ibapi).
+   - Install GUI library (Tkinter or PyQt5).
+   - Set up logging.
+
+2. **Connect to IBKR TWS API**
+   - Initialize API client.
+   - Handle connection, disconnection, and error events.
+
+3. **Market Data Subscription**
+   - Allow user to select instruments (e.g., via GUI).
+   - Subscribe to real-time market data for selected instruments.
+
+4. **Implement Momentum Strategy Logic**
+   - Define parameters (lookback window, thresholds).
+   - On new price data, calculate momentum.
+   - Generate buy/sell/hold signals based on momentum.
+
+5. **Order Execution**
+   - Place orders via API when signals are generated.
+   - Track open positions and order status.
+   - Implement basic risk management (e.g., max position size).
+
+6. **Portfolio and Performance Tracking**
+   - Monitor real-time P&L, positions, trade history.
+   - Store metrics for forward testing and analysis.
+
+7. **GUI Interface**
+   - Display live market data, signals, positions, P&L.
+   - Allow user to start/stop strategy, adjust parameters.
+   - Show logs and error messages.
+
+8. **Event-driven Architecture**
+   - Use threading or async to keep GUI responsive.
+   - Update GUI on data/events (market data, order status, P&L).
+
+9. **Forward Testing Module**
+   - Log all trades and performance metrics.
+   - Provide summary statistics and charts in GUI.
+
+10. **Error Handling and Logging**
+    - Handle API errors, connection issues, and invalid data.
+    - Log all actions and errors for debugging and audit.
+
+11. **Testing**
+    - Test with IBKR demo account.
+    - Validate strategy logic and GUI responsiveness.
+
+12. **Deployment**
+    - Package application for easy execution.
+    - Provide user documentation for setup and usage.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a real-world software engineering task involving API integration, GUI development, and trading strategy implementation. However, the provided plan is comprehensive and logically structured to solve the stated problem. It covers all necessary aspects: environment setup, API connection, market data handling, strategy logic, order execution, GUI, event-driven architecture, forward testing, error handling, and deployment. Each step is appropriate for building a trading bot with a GUI and forward testing capabilities using the IBKR TWS API in Python. Therefore, the plan is correct and sufficient to solve the problem as described.\n', 'confidence': 95}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem (momentum trading bot with GUI and forward testing using IBKR TWS API) is best approached using the Event-driven Programming paradigm, combined with the Greedy algorithm for the momentum strategy.
+
+Tutorial:
+1. **Event-driven Programming**: This paradigm is essential for trading bots, as actions (like fetching data, executing trades, updating GUI) are triggered by events (market data updates, user input, timer ticks). In Python, this is often implemented using callbacks, threading, or asynchronous programming. For GUI, libraries like Tkinter or PyQt are used to handle user events.
+
+2. **Greedy Algorithm for Momentum Strategy**: The momentum strategy is a greedy approach where the bot makes trading decisions based on recent price trends (e.g., buying when price increases, selling when it decreases). At each step, the bot chooses the action that appears best at that moment, without considering future consequences.
+
+**High-level Steps for Implementation:**
+- Connect to the IBKR TWS API to receive real-time market data.
+- Implement the momentum logic: e.g., if price increases over a window, buy; if it decreases, sell.
+- Use event-driven programming to react to new data and user actions.
+- Build a GUI for user interaction (strategy parameters, start/stop, logs).
+- Implement forward testing by running the strategy on live data and tracking performance metrics.
+
+**Key Points:**
+- Use threading or async to keep the GUI responsive while processing data.
+- Maintain state (positions, P&L, trade history) for analysis and forward testing.
+- Ensure robust error handling and logging for live trading environments.
+
+This approach is generic and can be adapted to other trading strategies or APIs.
+
+## Problem to be solved:
+
+Please help me implement a Python program to create a trading bot using the IBKR TWS API that executes a momentum trading strategy, includes a GUI interface for user interaction, and allows for forward testing.
+
+## Planning:
+**Planning:**
+
+1. Set up IBKR TWS API credentials and connection.
+2. Design the GUI (using Tkinter or PyQt) for user input: symbol, strategy parameters (e.g., window size, threshold), start/stop buttons, and logs.
+3. Implement a function to fetch real-time market data from IBKR TWS API.
+4. Implement the momentum trading logic (greedy algorithm): detect price trends over a user-defined window and generate buy/sell signals.
+5. Implement order execution functions to place trades via the IBKR TWS API.
+6. Use threading or asynchronous programming to run data fetching and trading logic in the background, keeping the GUI responsive.
+7. Maintain and display state: current positions, P&L, trade history, and logs in the GUI.
+8. Implement forward testing: track and display performance metrics as the strategy runs on live data.
+9. Add robust error handling and logging for all API interactions and trading actions.
+10. Test the system with sample parameters and verify correct operation through the GUI and logs.
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+import threading
+import queue
+import time
+import tkinter as tk
+from tkinter import ttk, scrolledtext, messagebox
+
+# IBKR API imports
+from ibapi.client import EClient
+from ibapi.wrapper import EWrapper
+from ibapi.contract import Contract
+from ibapi.order import Order
+
+# ========== IBKR API Wrapper ==========
+class IBKRWrapper(EWrapper, EClient):
+    def __init__(self, event_queue):
+        EClient.__init__(self, self)
+        self.event_queue = event_queue
+        self.market_data = {}
+        self.nextOrderId = None
+        self.positions = {}
+        self.pnl = 0.0
+        self.trade_history = []
+
+    def error(self, reqId, errorCode, errorString):
+        self.event_queue.put(('log', f"Error {errorCode}: {errorString}"))
+
+    def nextValidId(self, orderId):
+        self.nextOrderId = orderId
+        self.event_queue.put(('log', f"Next valid order id: {orderId}"))
+
+    def tickPrice(self, reqId, tickType, price, attrib):
+        if tickType == 4:  # Last price
+            self.market_data[reqId] = price
+            self.event_queue.put(('price', reqId, price))
+
+    def orderStatus(self, orderId, status, filled, remaining, avgFillPrice, permId,
+                    parentId, lastFillPrice, clientId, whyHeld, mktCapPrice):
+        self.event_queue.put(('log', f"Order {orderId} status: {status}, filled: {filled}, avgFillPrice: {avgFillPrice}"))
+
+    def execDetails(self, reqId, contract, execution):
+        self.event_queue.put(('log', f"Execution: {execution.side} {execution.shares} @ {execution.price}"))
+        self.trade_history.append((execution.time, execution.side, execution.shares, execution.price))
+
+    def position(self, account, contract, position, avgCost):
+        symbol = contract.symbol
+        self.positions[symbol] = position
+        self.event_queue.put(('position', symbol, position, avgCost))
+
+    def pnl(self, reqId, dailyPnL, unrealizedPnL, realizedPnL):
+        self.pnl = dailyPnL
+        self.event_queue.put(('pnl', dailyPnL, unrealizedPnL, realizedPnL))
+
+# ========== Momentum Strategy ==========
+class MomentumStrategy:
+    def __init__(self, symbol, window, threshold, ibkr, event_queue):
+        self.symbol = symbol
+        self.window = window
+        self.threshold = threshold
+        self.ibkr = ibkr
+        self.event_queue = event_queue
+        self.prices = []
+        self.position = 0
+        self.running = False
+        self.contract = self.create_contract(symbol)
+        self.reqId = 1
+
+    def create_contract(self, symbol):
+        contract = Contract()
+        contract.symbol = symbol
+        contract.secType = "STK"
+        contract.exchange = "SMART"
+        contract.currency = "USD"
+        return contract
+
+    def start(self):
+        self.running = True
+        self.event_queue.put(('log', f"Strategy started for {self.symbol}"))
+        self.ibkr.reqMktData(self.reqId, self.contract, "", False, False, [])
+        threading.Thread(target=self.run, daemon=True).start()
+
+    def stop(self):
+        self.running = False
+        self.ibkr.cancelMktData(self.reqId)
+        self.event_queue.put(('log', "Strategy stopped."))
+
+    def run(self):
+        while self.running:
+            price = self.ibkr.market_data.get(self.reqId)
+            if price is not None:
+                self.prices.append(price)
+                if len(self.prices) > self.window:
+                    self.prices.pop(0)
+                    momentum = self.prices[-1] - self.prices[0]
+                    self.event_queue.put(('log', f"Momentum: {momentum:.2f}"))
+                    if momentum > self.threshold and self.position <= 0:
+                        self.place_order("BUY", 100)
+                        self.position += 100
+                    elif momentum < -self.threshold and self.position >= 0:
+                        self.place_order("SELL", 100)
+                        self.position -= 100
+            time.sleep(1)
+
+    def place_order(self, action, quantity):
+        order = Order()
+        order.action = action
+        order.orderType = "MKT"
+        order.totalQuantity = quantity
+        order.transmit = True
+        order_id = self.ibkr.nextOrderId
+        if order_id is not None:
+            self.ibkr.placeOrder(order_id, self.contract, order)
+            self.ibkr.nextOrderId += 1
+            self.event_queue.put(('log', f"Placed {action} order for {quantity} shares of {self.symbol}"))
+        else:
+            self.event_queue.put(('log', "Order ID not available yet."))
+
+# ========== GUI ==========
+class TradingBotGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Momentum Trading Bot")
+        self.event_queue = queue.Queue()
+        self.ibkr = IBKRWrapper(self.event_queue)
+        self.strategy = None
+        self.create_widgets()
+        self.update_gui()
+        threading.Thread(target=self.run_ibkr, daemon=True).start()
+
+    def create_widgets(self):
+        frame = ttk.Frame(self.root, padding="10")
+        frame.grid(row=0, column=0, sticky="nsew")
+
+        ttk.Label(frame, text="Symbol:").grid(row=0, column=0, sticky="w")
+        self.symbol_entry = ttk.Entry(frame)
+        self.symbol_entry.grid(row=0, column=1, sticky="ew")
+        self.symbol_entry.insert(0, "AAPL")
+
+        ttk.Label(frame, text="Window Size:").grid(row=1, column=0, sticky="w")
+        self.window_entry = ttk.Entry(frame)
+        self.window_entry.grid(row=1, column=1, sticky="ew")
+        self.window_entry.insert(0, "5")
+
+        ttk.Label(frame, text="Threshold:").grid(row=2, column=0, sticky="w")
+        self.threshold_entry = ttk.Entry(frame)
+        self.threshold_entry.grid(row=2, column=1, sticky="ew")
+        self.threshold_entry.insert(0, "1.0")
+
+        self.start_button = ttk.Button(frame, text="Start", command=self.start_strategy)
+        self.start_button.grid(row=3, column=0, sticky="ew")
+        self.stop_button = ttk.Button(frame, text="Stop", command=self.stop_strategy, state="disabled")
+        self.stop_button.grid(row=3, column=1, sticky="ew")
+
+        ttk.Label(frame, text="Logs:").grid(row=4, column=0, sticky="w")
+        self.log_text = scrolledtext.ScrolledText(frame, width=60, height=10, state="disabled")
+        self.log_text.grid(row=5, column=0, columnspan=2, sticky="ew")
+
+        ttk.Label(frame, text="Positions:").grid(row=6, column=0, sticky="w")
+        self.position_label = ttk.Label(frame, text="None")
+        self.position_label.grid(row=6, column=1, sticky="w")
+
+        ttk.Label(frame, text="PnL:").grid(row=7, column=0, sticky="w")
+        self.pnl_label = ttk.Label(frame, text="0.0")
+        self.pnl_label.grid(row=7, column=1, sticky="w")
+
+        ttk.Label(frame, text="Trade History:").grid(row=8, column=0, sticky="w")
+        self.trade_text = scrolledtext.ScrolledText(frame, width=60, height=5, state="disabled")
+        self.trade_text.grid(row=9, column=0, columnspan=2, sticky="ew")
+
+        frame.columnconfigure(1, weight=1)
+
+    def run_ibkr(self):
+        try:
+            self.ibkr.connect("127.0.0.1", 7497, 0)
+            self.ibkr.run()
+        except Exception as e:
+            self.event_queue.put(('log', f"IBKR connection error: {e}"))
+
+    def start_strategy(self):
+        symbol = self.symbol_entry.get().strip()
+        try:
+            window = int(self.window_entry.get())
+            threshold = float(self.threshold_entry.get())
+        except ValueError:
+            messagebox.showerror("Error", "Invalid window or threshold value.")
+            return
+        self.strategy = MomentumStrategy(symbol, window, threshold, self.ibkr, self.event_queue)
+        self.strategy.start()
+        self.start_button.config(state="disabled")
+        self.stop_button.config(state="normal")
+
+    def stop_strategy(self):
+        if self.strategy:
+            self.strategy.stop()
+        self.start_button.config(state="normal")
+        self.stop_button.config(state="disabled")
+
+    def update_gui(self):
+        while not self.event_queue.empty():
+            event = self.event_queue.get()
+            if event[0] == 'log':
+                self.log_text.config(state="normal")
+                self.log_text.insert(tk.END, event[1] + "\n")
+                self.log_text.see(tk.END)
+                self.log_text.config(state="disabled")
+            elif event[0] == 'price':
+                pass  # Could display live price if desired
+            elif event[0] == 'position':
+                symbol, position, avgCost = event[1], event[2], event[3]
+                self.position_label.config(text=f"{symbol}: {position} @ {avgCost:.2f}")
+            elif event[0] == 'pnl':
+                dailyPnL, unrealizedPnL, realizedPnL = event[1], event[2], event[3]
+                self.pnl_label.config(text=f"{dailyPnL:.2f} (Unrealized: {unrealizedPnL:.2f}, Realized: {realizedPnL:.2f})")
+            # Update trade history
+            self.trade_text.config(state="normal")
+            self.trade_text.delete(1.0, tk.END)
+            for trade in self.ibkr.trade_history[-10:]:
+                self.trade_text.insert(tk.END, f"{trade[0]} {trade[1]} {trade[2]} @ {trade[3]}\n")
+            self.trade_text.config(state="disabled")
+        self.root.after(500, self.update_gui)
+
+# ========== Main ==========
+def main():
+    root = tk.Tk()
+    app = TradingBotGUI(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 68.48 seconds
+Total Tokens: 9,632 (Input: 3,950, Output: 5,682)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 23.26      310          2,244        1         
+Planning_Generation_1     2.86       591          217          1         
+Planning_Verification_1   2.40       369          140          1         
+Planning_Generation_2     1.86       569          152          1         
+Planning_Verification_2   2.52       304          134          1         
+Planning_Generation_3     4.58       570          405          1         
+Planning_Verification_3   2.14       557          149          1         
+Final_Code_Generation     28.86      680          2,241        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:41:28.423741
+##########################
+

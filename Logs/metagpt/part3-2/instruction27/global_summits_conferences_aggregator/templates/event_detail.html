@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>{{ event.title }}</h2>
+        {% if event.image %}
+            <img src="{{ event.image.url }}" class="img-fluid mb-3" alt="{{ event.title }}">
+        {% else %}
+            <img src="{% static 'img/default_event.jpg' %}" class="img-fluid mb-3" alt="Default Event">
+        {% endif %}
+        <p>
+            <strong>Type:</strong> {{ event.get_event_type_display }}<br>
+            <strong>Date:</strong> {{ event.start_date|date:"M d, Y H:i" }} - {{ event.end_date|date:"M d, Y H:i" }}<br>
+            <strong>Location:</strong> {{ event.location }}<br>
+            {% if event.address %}
+                <strong>Address:</strong> {{ event.address }}<br>
+            {% endif %}
+            {% if event.category %}
+                <strong>Category:</strong> {{ event.category }}<br>
+            {% endif %}
+            {% if event.is_featured %}
+                <span class="badge bg-warning text-dark">Featured</span>
+            {% endif %}
+        </p>
+        <p>{{ event.description|linebreaks }}</p>
+
+        {% if event.summit_details %}
+            <div class="mb-3">
+                <h4>Summit Details</h4>
+                <p>
+                    <strong>Theme:</strong> {{ event.summit_details.theme }}<br>
+                    <strong>Sponsors:</strong> {{ event.summit_details.sponsors }}<br>
+                    {% if event.summit_details.website %}
+                        <strong>Website:</strong> <a href="{{ event.summit_details.website }}" target="_blank">{{ event.summit_details.website }}</a>
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+
+        {% if event.conference_details %}
+            <div class="mb-3">
+                <h4>Conference Details</h4>
+                <p>
+                    <strong>Tracks:</strong> {{ event.conference_details.tracks }}<br>
+                    <strong>Sponsors:</strong> {{ event.conference_details.sponsors }}<br>
+                    {% if event.conference_details.website %}
+                        <strong>Website:</strong> <a href="{{ event.conference_details.website }}" target="_blank">{{ event.conference_details.website }}</a>
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+
+        <div class="mb-4">
+            <h4>Sessions</h4>
+            {% if event.sessions.all %}
+                <ul class="list-group">
+                    {% for session in event.sessions.all %}
+                        <li class="list-group-item">
+                            <strong>{{ session.title }}</strong> <br>
+                            <span>{{ session.start_time|date:"M d, Y H:i" }} - {{ session.end_time|date:"M d, Y H:i" }}</span><br>
+                            {% if session.room %}
+                                <span><strong>Room:</strong> {{ session.room }}</span><br>
+                            {% endif %}
+                            {% if session.speakers.all %}
+                                <span><strong>Speakers:</strong>
+                                    {% for speaker in session.speakers.all %}
+                                        {{ speaker.full_name }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </span><br>
+                            {% endif %}
+                            {% if session.resources %}
+                                <span><strong>Resources:</strong> {{ session.resources }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="alert alert-info">No sessions available for this event.</div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Speakers</h5>
+            </div>
+            <div class="card-body">
+                {% if event.speakers.all %}
+                    <ul class="list-unstyled">
+                        {% for speaker in event.speakers.all %}
+                            <li class="mb-3">
+                                {% if speaker.profile_picture %}
+                                    <img src="{{ speaker.profile_picture.url }}" class="rounded-circle me-2" width="40" height="40" alt="{{ speaker.full_name }}">
+                                {% else %}
+                                    <img src="{% static 'img/default_profile.png' %}" class="rounded-circle me-2" width="40" height="40" alt="Default Profile">
+                                {% endif %}
+                                <strong>{{ speaker.full_name }}</strong>
+                                {% if speaker.expertise %}
+                                    <br><span class="text-muted">{{ speaker.expertise }}</span>
+                                {% endif %}
+                                {% if speaker.linkedin_url %}
+                                    <br><a href="{{ speaker.linkedin_url }}" target="_blank"><img src="{% static 'img/linkedin.png' %}" width="16" alt="LinkedIn"></a>
+                                {% endif %}
+                                {% if speaker.website_url %}
+                                    <a href="{{ speaker.website_url }}" target="_blank"><img src="{% static 'img/website.png' %}" width="16" alt="Website"></a>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="alert alert-info">No speakers listed for this event.</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Register / Buy Ticket</h5>
+            </div>
+            <div class="card-body">
+                {% if user.is_authenticated and user.role == 'delegate' %}
+                    <form method="post" action="{% url 'event-register' event.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100">Register as Delegate</button>
+                    </form>
+                {% elif user.is_authenticated and user.role == 'organizer' %}
+                    <div class="alert alert-info">You are the organizer of this event.</div>
+                {% elif user.is_authenticated and user.role == 'speaker' %}
+                    <div class="alert alert-info">You are a speaker for this event.</div>
+                {% else %}
+                    <a href="{% url 'login' %}?next={% url 'event-detail' event.id %}" class="btn btn-primary w-100">Login to Register</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Contact Organizer</h5>
+            </div>
+            <div class="card-body">
+                {% if event.organizers.all %}
+                    <ul class="list-unstyled">
+                        {% for organizer in event.organizers.all %}
+                            <li>
+                                <strong>{{ organizer.full_name }}</strong>
+                                {% if organizer.contact_number %}
+                                    <br><span class="text-muted">Phone: {{ organizer.contact_number }}</span>
+                                {% endif %}
+                                {% if organizer.email %}
+                                    <br><span class="text-muted">Email: {{ organizer.email }}</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="alert alert-info">No organizer contact information available.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

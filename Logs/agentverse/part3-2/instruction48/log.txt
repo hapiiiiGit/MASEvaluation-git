@@ -1,0 +1,1564 @@
+2026-01-13 22:34:39,772 WARNING  No vLLM server running at the specified URL.
+2026-01-13 22:34:39,798 WARNING  BMTools is not installed, tools in the simulation environment cannot be used. To install BMTools, please follow the instruction in the README.md file. If you aren't running a *simulation* case with tool, you can ignore this warning.
+2026-01-13 22:34:41,228 INFO  Loop Round 0
+2026-01-13 22:34:44,435 INFO Role Assignment:
+a full-stack web developer experienced in building React or Next.js frontends integrated with Node.js (Express) backends, skilled in API design and data visualization libraries for radar charts and heatmaps
+a data analyst or data visualization expert proficient in survey data interpretation, statistical analysis, and generating reports in PDF and CSV formats 
+2026-01-13 22:35:13,148 INFO Initial Plan:
+Please help me implement a Python or Node.js (Express) web application with a React or Next.js frontend to create an MVP for capturing surveys, analyzing data via radar charts and heatmaps, providing APIs for survey management, and generating PDF/CSV reports.
+
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import io
+import csv
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib.backends.backend_pdf import PdfPages
+
+app = Flask(__name__)
+CORS(app)
+
+# In-memory storage for surveys and responses
+surveys = {}
+responses = {}
+
+@app.route('/api/surveys', methods=['POST'])
+def create_survey():
+    data = request.json
+    survey_id = str(len(surveys) + 1)
+    surveys[survey_id] = data
+    responses[survey_id] = []
+    return jsonify({"survey_id": survey_id}), 201
+
+@app.route('/api/surveys/<survey_id>', methods=['GET'])
+def get_survey(survey_id):
+    survey = surveys.get(survey_id)
+    if not survey:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(survey)
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['POST'])
+def submit_response(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    data = request.json
+    responses[survey_id].append(data)
+    return jsonify({"message": "Response recorded"}), 201
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['GET'])
+def get_responses(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(responses[survey_id])
+
+def create_radar_chart(data, categories):
+    N = len(categories)
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    data += data[:1]
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
+    ax.fill(angles, data, color='red', alpha=0.25)
+    ax.plot(angles, data, color='red', linewidth=2)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.set_yticklabels([])
+    return fig
+
+def create_heatmap(data, x_labels, y_labels):
+    fig, ax = plt.subplots(figsize=(8,6))
+    cax = ax.matshow(data, cmap='coolwarm')
+    fig.colorbar(cax)
+    ax.set_xticks(np.arange(len(x_labels)))
+    ax.set_yticks(np.arange(len(y_labels)))
+    ax.set_xticklabels(x_labels)
+    ax.set_yticklabels(y_labels)
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="left", rotation_mode="anchor")
+    return fig
+
+@app.route('/api/surveys/<survey_id>/analysis/radar', methods=['GET'])
+def radar_chart(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for radar chart"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    categories = [q['question'] for q in survey['questions']]
+    # Average scores per category
+    scores = []
+    for q in survey['questions']:
+        vals = [r.get(q['id'], 0) for r in resp]
+        avg = sum(vals) / len(vals) if vals else 0
+        scores.append(avg)
+
+    fig = create_radar_chart(scores, categories)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/analysis/heatmap', methods=['GET'])
+def heatmap(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for heatmap"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    questions = [q['question'] for q in survey['questions']]
+    respondents = [f"Resp {i+1}" for i in range(len(resp))]
+
+    data = []
+    for r in resp:
+        row = []
+        for q in survey['questions']:
+            row.append(r.get(q['id'], 0))
+        data.append(row)
+
+    data = np.array(data).T  # questions x respondents
+
+    fig = create_heatmap(data, respondents, questions)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/export/csv', methods=['GET'])
+def export_csv(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    header = ['Respondent'] + [q['question'] for q in survey['questions']]
+    writer.writerow(header)
+    for i, r in enumerate(resp):
+        row = [f"Resp {i+1}"]
+        for q in survey['questions']:
+            row.append(r.get(q['id'], ''))
+        writer.writerow(row)
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name=f'survey_{survey_id}_responses.csv')
+
+@app.route('/api/surveys/<survey_id>/export/pdf', methods=['GET'])
+def export_pdf(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    pdf_buffer = io.BytesIO()
+    with PdfPages(pdf_buffer) as pdf:
+        # Add radar chart
+        categories = [q['question'] for q in survey['questions']]
+        scores = []
+        for q in survey['questions']:
+            vals = [r.get(q['id'], 0) for r in resp]
+            avg = sum(vals) / len(vals) if vals else 0
+            scores.append(avg)
+        fig1 = create_radar_chart(scores, categories)
+        pdf.savefig(fig1)
+        plt.close(fig1)
+
+        # Add heatmap
+        questions = [q['question'] for q in survey['questions']]
+        respondents = [f"Resp {i+1}" for i in range(len(resp))]
+        data = []
+        for r in resp:
+            row = []
+            for q in survey['questions']:
+                row.append(r.get(q['id'], 0))
+            data.append(row)
+        data = np.array(data).T
+        fig2 = create_heatmap(data, respondents, questions)
+        pdf.savefig(fig2)
+        plt.close(fig2)
+
+        # Add raw data table page
+        fig3, ax = plt.subplots(figsize=(8, len(resp)*0.3 + 2))
+        ax.axis('off')
+        table_data = []
+        header = ['Respondent'] + questions
+        table_data.append(header)
+        for i, r in enumerate(resp):
+            row = [f"Resp {i+1}"]
+            for q in survey['questions']:
+                row.append(r.get(q['id'], ''))
+            table_data.append(row)
+        table = ax.table(cellText=table_data, loc='center', cellLoc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(8)
+        table.scale(1, 1.5)
+        pdf.savefig(fig3)
+        plt.close(fig3)
+
+    pdf_buffer.seek(0)
+    return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=True, download_name=f'survey_{survey_id}_report.pdf')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+ 
+2026-01-13 22:35:33,089 INFO Reviews:
+[a data analyst or data visualization expert proficient in survey data interpretation, statistical analysis, and generating reports in PDF and CSV formats]: ```python
+# Given code and completion:
+
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import io
+import csv
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib.backends.backend_pdf import PdfPages
+
+app = Flask(__name__)
+CORS(app)
+
+# In-memory storage for surveys and responses
+surveys = {}
+responses = {}
+
+@app.route('/api/surveys', methods=['POST'])
+def create_survey():
+    data = request.json
+    survey_id = str(len(surveys) + 1)
+    surveys[survey_id] = data
+    responses[survey_id] = []
+    return jsonify({"survey_id": survey_id}), 201
+
+@app.route('/api/surveys/<survey_id>', methods=['GET'])
+def get_survey(survey_id):
+    survey = surveys.get(survey_id)
+    if not survey:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(survey)
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['POST'])
+def submit_response(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    data = request.json
+    responses[survey_id].append(data)
+    return jsonify({"message": "Response recorded"}), 201
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['GET'])
+def get_responses(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(responses[survey_id])
+
+def create_radar_chart(data, categories):
+    N = len(categories)
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    data += data[:1]
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
+    ax.fill(angles, data, color='red', alpha=0.25)
+    ax.plot(angles, data, color='red', linewidth=2)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.set_yticklabels([])
+    return fig
+
+def create_heatmap(data, x_labels, y_labels):
+    fig, ax = plt.subplots(figsize=(8,6))
+    cax = ax.matshow(data, cmap='coolwarm')
+    fig.colorbar(cax)
+    ax.set_xticks(np.arange(len(x_labels)))
+    ax.set_yticks(np.arange(len(y_labels)))
+    ax.set_xticklabels(x_labels)
+    ax.set_yticklabels(y_labels)
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="left", rotation_mode="anchor")
+    return fig
+
+@app.route('/api/surveys/<survey_id>/analysis/radar', methods=['GET'])
+def radar_chart(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for radar chart"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    categories = [q['question'] for q in survey['questions']]
+    # Average scores per category
+    scores = []
+    for q in survey['questions']:
+        vals = [r.get(q['id'], 0) for r in resp]
+        avg = sum(vals) / len(vals) if vals else 0
+        scores.append(avg)
+
+    fig = create_radar_chart(scores, categories)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/analysis/heatmap', methods=['GET'])
+def heatmap(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for heatmap"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    questions = [q['question'] for q in survey['questions']]
+    respondents = [f"Resp {i+1}" for i in range(len(resp))]
+
+    data = []
+    for r in resp:
+        row = []
+        for q in survey['questions']:
+            row.append(r.get(q['id'], 0))
+        data.append(row)
+
+    data = np.array(data).T  # questions x respondents
+
+    fig = create_heatmap(data, respondents, questions)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/export/csv', methods=['GET'])
+def export_csv(survey_id):
+    
+2026-01-13 22:36:28,954 INFO Updated Plan:
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import io
+import csv
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_pdf import PdfPages
+
+app = Flask(__name__)
+CORS(app)
+
+# In-memory storage for surveys and responses
+surveys = {}
+responses = {}
+
+@app.route('/api/surveys', methods=['POST'])
+def create_survey():
+    data = request.json
+    survey_id = str(len(surveys) + 1)
+    surveys[survey_id] = data
+    responses[survey_id] = []
+    return jsonify({"survey_id": survey_id}), 201
+
+@app.route('/api/surveys/<survey_id>', methods=['GET'])
+def get_survey(survey_id):
+    survey = surveys.get(survey_id)
+    if not survey:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(survey)
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['POST'])
+def submit_response(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    data = request.json
+    responses[survey_id].append(data)
+    return jsonify({"message": "Response recorded"}), 201
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['GET'])
+def get_responses(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(responses[survey_id])
+
+def create_radar_chart(data, categories):
+    N = len(categories)
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    data += data[:1]
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
+    ax.fill(angles, data, color='blue', alpha=0.25)
+    ax.plot(angles, data, color='blue', linewidth=2)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.set_yticklabels([])
+    ax.set_ylim(0, max(data))
+    return fig
+
+def create_heatmap(data, x_labels, y_labels):
+    fig, ax = plt.subplots(figsize=(8,6))
+    cax = ax.matshow(data, cmap='coolwarm')
+    fig.colorbar(cax)
+    ax.set_xticks(np.arange(len(x_labels)))
+    ax.set_yticks(np.arange(len(y_labels)))
+    ax.set_xticklabels(x_labels)
+    ax.set_yticklabels(y_labels)
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    return fig
+
+@app.route('/api/surveys/<survey_id>/analysis/radar', methods=['GET'])
+def radar_chart(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for radar chart"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    categories = [q['question'] for q in survey['questions']]
+    scores = []
+    for q in survey['questions']:
+        vals = [r.get(q['id'], 0) for r in resp]
+        avg = sum(vals) / len(vals) if vals else 0
+        scores.append(avg)
+
+    fig = create_radar_chart(scores, categories)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/analysis/heatmap', methods=['GET'])
+def heatmap(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for heatmap"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    questions = [q['question'] for q in survey['questions']]
+    respondents = [f"Resp {i+1}" for i in range(len(resp))]
+
+    data = []
+    for r in resp:
+        row = []
+        for q in survey['questions']:
+            row.append(r.get(q['id'], 0))
+        data.append(row)
+
+    data = np.array(data).T  # questions x respondents
+
+    fig = create_heatmap(data, respondents, questions)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/export/csv', methods=['GET'])
+def export_csv(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    header = ['Respondent'] + [q['question'] for q in survey['questions']]
+    writer.writerow(header)
+    for i, r in enumerate(resp):
+        row = [f"Resp {i+1}"]
+        for q in survey['questions']:
+            row.append(r.get(q['id'], ''))
+        writer.writerow(row)
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name=f'survey_{survey_id}_responses.csv')
+
+@app.route('/api/surveys/<survey_id>/export/pdf', methods=['GET'])
+def export_pdf(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    pdf_buffer = io.BytesIO()
+    with PdfPages(pdf_buffer) as pdf:
+        # Radar chart page
+        categories = [q['question'] for q in survey['questions']]
+        scores = []
+        for q in survey['questions']:
+            vals = [r.get(q['id'], 0) for r in resp]
+            avg = sum(vals) / len(vals) if vals else 0
+            scores.append(avg)
+        fig1 = create_radar_chart(scores, categories)
+        pdf.savefig(fig1)
+        plt.close(fig1)
+
+        # Heatmap page
+        questions = [q['question'] for q in survey['questions']]
+        respondents = [f"Resp {i+1}" for i in range(len(resp))]
+        data = []
+        for r in resp:
+            row = []
+            for q in survey['questions']:
+                row.append(r.get(q['id'], 0))
+            data.append(row)
+        data = np.array(data).T
+        fig2 = create_heatmap(data, respondents, questions)
+        pdf.savefig(fig2)
+        plt.close(fig2)
+
+        # Raw data table page
+        fig3, ax = plt.subplots(figsize=(8, max(2, len(resp)*0.3 + 1)))
+        ax.axis('off')
+        table_data = []
+        header = ['Respondent'] + questions
+        table_data.append(header)
+        for i, r in enumerate(resp):
+            row = [f"Resp {i+1}"]
+            for q in survey['questions']:
+                row.append(r.get(q['id'], ''))
+            table_data.append(row)
+        table = ax.table(cellText=table_data, loc='center', cellLoc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(8)
+        table.scale(1, 1.5)
+        pdf.savefig(fig3)
+        plt.close(fig3)
+
+    pdf_buffer.seek(0)
+    return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=True, download_name=f'survey_{survey_id}_report.pdf')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+ 
+2026-01-13 22:36:46,281 INFO Reviews:
+[a data analyst or data visualization expert proficient in survey data interpretation, statistical analysis, and generating reports in PDF and CSV formats]: ```python
+# Given code and completion:
+
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import io
+import csv
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_pdf import PdfPages
+
+app = Flask(__name__)
+CORS(app)
+
+# In-memory storage for surveys and responses
+surveys = {}
+responses = {}
+
+@app.route('/api/surveys', methods=['POST'])
+def create_survey():
+    data = request.json
+    survey_id = str(len(surveys) + 1)
+    surveys[survey_id] = data
+    responses[survey_id] = []
+    return jsonify({"survey_id": survey_id}), 201
+
+@app.route('/api/surveys/<survey_id>', methods=['GET'])
+def get_survey(survey_id):
+    survey = surveys.get(survey_id)
+    if not survey:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(survey)
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['POST'])
+def submit_response(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    data = request.json
+    responses[survey_id].append(data)
+    return jsonify({"message": "Response recorded"}), 201
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['GET'])
+def get_responses(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(responses[survey_id])
+
+def create_radar_chart(data, categories):
+    N = len(categories)
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    data += data[:1]
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
+    ax.fill(angles, data, color='blue', alpha=0.25)
+    ax.plot(angles, data, color='blue', linewidth=2)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.set_yticklabels([])
+    ax.set_ylim(0, max(data))
+    return fig
+
+def create_heatmap(data, x_labels, y_labels):
+    fig, ax = plt.subplots(figsize=(8,6))
+    cax = ax.matshow(data, cmap='coolwarm')
+    fig.colorbar(cax)
+    ax.set_xticks(np.arange(len(x_labels)))
+    ax.set_yticks(np.arange(len(y_labels)))
+    ax.set_xticklabels(x_labels)
+    ax.set_yticklabels(y_labels)
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    return fig
+
+@app.route('/api/surveys/<survey_id>/analysis/radar', methods=['GET'])
+def radar_chart(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for radar chart"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    categories = [q['question'] for q in survey['questions']]
+    scores = []
+    for q in survey['questions']:
+        vals = [r.get(q['id'], 0) for r in resp]
+        avg = sum(vals) / len(vals) if vals else 0
+        scores.append(avg)
+
+    fig = create_radar_chart(scores, categories)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/analysis/heatmap', methods=['GET'])
+def heatmap(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for heatmap"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    questions = [q['question'] for q in survey['questions']]
+    respondents = [f"Resp {i+1}" for i in range(len(resp))]
+
+    data = []
+    for r in resp:
+        row = []
+        for q in survey['questions']:
+            row.append(r.get(q['id'], 0))
+        data.append(row)
+
+    data = np.array(data).T  # questions x respondents
+
+    fig = create_heatmap(data, respondents, questions)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/export/csv', methods=['GET'])
+ 
+2026-01-13 22:37:19,695 INFO Updated Plan:
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import io
+import csv
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_pdf import PdfPages
+
+app = Flask(__name__)
+CORS(app)
+
+# In-memory storage for surveys and responses
+surveys = {}
+responses = {}
+
+@app.route('/api/surveys', methods=['POST'])
+def create_survey():
+    data = request.json
+    survey_id = str(len(surveys) + 1)
+    surveys[survey_id] = data
+    responses[survey_id] = []
+    return jsonify({"survey_id": survey_id}), 201
+
+@app.route('/api/surveys/<survey_id>', methods=['GET'])
+def get_survey(survey_id):
+    survey = surveys.get(survey_id)
+    if not survey:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(survey)
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['POST'])
+def submit_response(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    data = request.json
+    responses[survey_id].append(data)
+    return jsonify({"message": "Response recorded"}), 201
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['GET'])
+def get_responses(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(responses[survey_id])
+
+def create_radar_chart(data, categories):
+    N = len(categories)
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    data += data[:1]
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
+    ax.fill(angles, data, color='blue', alpha=0.25)
+    ax.plot(angles, data, color='blue', linewidth=2)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.set_yticklabels([])
+    ax.set_ylim(0, max(data))
+    return fig
+
+def create_heatmap(data, x_labels, y_labels):
+    fig, ax = plt.subplots(figsize=(8,6))
+    cax = ax.matshow(data, cmap='coolwarm')
+    fig.colorbar(cax)
+    ax.set_xticks(np.arange(len(x_labels)))
+    ax.set_yticks(np.arange(len(y_labels)))
+    ax.set_xticklabels(x_labels)
+    ax.set_yticklabels(y_labels)
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    return fig
+
+@app.route('/api/surveys/<survey_id>/analysis/radar', methods=['GET'])
+def radar_chart(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for radar chart"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    categories = [q['question'] for q in survey['questions']]
+    scores = []
+    for q in survey['questions']:
+        vals = [r.get(q['id'], 0) for r in resp]
+        avg = sum(vals) / len(vals) if vals else 0
+        scores.append(avg)
+
+    fig = create_radar_chart(scores, categories)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/analysis/heatmap', methods=['GET'])
+def heatmap(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for heatmap"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    questions = [q['question'] for q in survey['questions']]
+    respondents = [f"Resp {i+1}" for i in range(len(resp))]
+
+    data = []
+    for r in resp:
+        row = []
+        for q in survey['questions']:
+            row.append(r.get(q['id'], 0))
+        data.append(row)
+
+    data = np.array(data).T  # questions x respondents
+
+    fig = create_heatmap(data, respondents, questions)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/export/csv', methods=['GET'])
+def export_csv(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    header = ['Respondent'] + [q['question'] for q in survey['questions']]
+    writer.writerow(header)
+    for i, r in enumerate(resp):
+        row = [f"Resp {i+1}"]
+        for q in survey['questions']:
+            row.append(r.get(q['id'], ''))
+        writer.writerow(row)
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name=f'survey_{survey_id}_responses.csv')
+
+@app.route('/api/surveys/<survey_id>/export/pdf', methods=['GET'])
+def export_pdf(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    pdf_buffer = io.BytesIO()
+    with PdfPages(pdf_buffer) as pdf:
+        # Radar chart page
+        categories = [q['question'] for q in survey['questions']]
+        scores = []
+        for q in survey['questions']:
+            vals = [r.get(q['id'], 0) for r in resp]
+            avg = sum(vals) / len(vals) if vals else 0
+            scores.append(avg)
+        fig1 = create_radar_chart(scores, categories)
+        pdf.savefig(fig1)
+        plt.close(fig1)
+
+        # Heatmap page
+        questions = [q['question'] for q in survey['questions']]
+        respondents = [f"Resp {i+1}" for i in range(len(resp))]
+        data = []
+        for r in resp:
+            row = []
+            for q in survey['questions']:
+                row.append(r.get(q['id'], 0))
+            data.append(row)
+        data = np.array(data).T
+        fig2 = create_heatmap(data, respondents, questions)
+        pdf.savefig(fig2)
+        plt.close(fig2)
+
+        # Raw data table page
+        fig3, ax = plt.subplots(figsize=(8, max(2, len(resp)*0.3 + 1)))
+        ax.axis('off')
+        table_data = []
+        header = ['Respondent'] + questions
+        table_data.append(header)
+        for i, r in enumerate(resp):
+            row = [f"Resp {i+1}"]
+            for q in survey['questions']:
+                row.append(r.get(q['id'], ''))
+            table_data.append(row)
+        table = ax.table(cellText=table_data, loc='center', cellLoc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(8)
+        table.scale(1, 1.5)
+        pdf.savefig(fig3)
+        plt.close(fig3)
+
+    pdf_buffer.seek(0)
+    return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=True, download_name=f'survey_{survey_id}_report.pdf')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+ 
+2026-01-13 22:37:42,092 INFO Reviews:
+[a data analyst or data visualization expert proficient in survey data interpretation, statistical analysis, and generating reports in PDF and CSV formats]: ```python
+# Given code and completion:
+
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import io
+import csv
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_pdf import PdfPages
+
+app = Flask(__name__)
+CORS(app)
+
+# In-memory storage for surveys and responses
+surveys = {}
+responses = {}
+
+@app.route('/api/surveys', methods=['POST'])
+def create_survey():
+    data = request.json
+    survey_id = str(len(surveys) + 1)
+    surveys[survey_id] = data
+    responses[survey_id] = []
+    return jsonify({"survey_id": survey_id}), 201
+
+@app.route('/api/surveys/<survey_id>', methods=['GET'])
+def get_survey(survey_id):
+    survey = surveys.get(survey_id)
+    if not survey:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(survey)
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['POST'])
+def submit_response(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    data = request.json
+    responses[survey_id].append(data)
+    return jsonify({"message": "Response recorded"}), 201
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['GET'])
+def get_responses(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(responses[survey_id])
+
+def create_radar_chart(data, categories):
+    N = len(categories)
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    data += data[:1]
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
+    ax.fill(angles, data, color='blue', alpha=0.25)
+    ax.plot(angles, data, color='blue', linewidth=2)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.set_yticklabels([])
+    ax.set_ylim(0, max(data))
+    return fig
+
+def create_heatmap(data, x_labels, y_labels):
+    fig, ax = plt.subplots(figsize=(8,6))
+    cax = ax.matshow(data, cmap='coolwarm')
+    fig.colorbar(cax)
+    ax.set_xticks(np.arange(len(x_labels)))
+    ax.set_yticks(np.arange(len(y_labels)))
+    ax.set_xticklabels(x_labels)
+    ax.set_yticklabels(y_labels)
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    return fig
+
+@app.route('/api/surveys/<survey_id>/analysis/radar', methods=['GET'])
+def radar_chart(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for radar chart"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    categories = [q['question'] for q in survey['questions']]
+    scores = []
+    for q in survey['questions']:
+        vals = [r.get(q['id'], 0) for r in resp]
+        avg = sum(vals) / len(vals) if vals else 0
+        scores.append(avg)
+
+    fig = create_radar_chart(scores, categories)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/analysis/heatmap', methods=['GET'])
+def heatmap(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for heatmap"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    questions = [q['question'] for q in survey['questions']]
+    respondents = [f"Resp {i+1}" for i in range(len(resp))]
+
+    data = []
+    for r in resp:
+        row = []
+        for q in survey['questions']:
+            row.append(r.get(q['id'], 0))
+        data.append(row)
+
+    data = np.array(data).T  # questions x respondents
+
+    fig = create_heatmap(data, respondents, questions)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/export/csv', methods=['GET'])
+ 
+2026-01-13 22:38:08,603 INFO Updated Plan:
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import io
+import csv
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_pdf import PdfPages
+
+app = Flask(__name__)
+CORS(app)
+
+# In-memory storage for surveys and responses
+surveys = {}
+responses = {}
+
+@app.route('/api/surveys', methods=['POST'])
+def create_survey():
+    data = request.json
+    survey_id = str(len(surveys) + 1)
+    surveys[survey_id] = data
+    responses[survey_id] = []
+    return jsonify({"survey_id": survey_id}), 201
+
+@app.route('/api/surveys/<survey_id>', methods=['GET'])
+def get_survey(survey_id):
+    survey = surveys.get(survey_id)
+    if not survey:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(survey)
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['POST'])
+def submit_response(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    data = request.json
+    responses[survey_id].append(data)
+    return jsonify({"message": "Response recorded"}), 201
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['GET'])
+def get_responses(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(responses[survey_id])
+
+def create_radar_chart(data, categories):
+    N = len(categories)
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    data += data[:1]
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
+    ax.fill(angles, data, color='blue', alpha=0.25)
+    ax.plot(angles, data, color='blue', linewidth=2)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.set_yticklabels([])
+    ax.set_ylim(0, max(data))
+    return fig
+
+def create_heatmap(data, x_labels, y_labels):
+    fig, ax = plt.subplots(figsize=(8,6))
+    cax = ax.matshow(data, cmap='coolwarm')
+    fig.colorbar(cax)
+    ax.set_xticks(np.arange(len(x_labels)))
+    ax.set_yticks(np.arange(len(y_labels)))
+    ax.set_xticklabels(x_labels)
+    ax.set_yticklabels(y_labels)
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    return fig
+
+@app.route('/api/surveys/<survey_id>/analysis/radar', methods=['GET'])
+def radar_chart(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for radar chart"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    categories = [q['question'] for q in survey['questions']]
+    scores = []
+    for q in survey['questions']:
+        vals = [r.get(q['id'], 0) for r in resp]
+        avg = sum(vals) / len(vals) if vals else 0
+        scores.append(avg)
+
+    fig = create_radar_chart(scores, categories)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/analysis/heatmap', methods=['GET'])
+def heatmap(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for heatmap"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    questions = [q['question'] for q in survey['questions']]
+    respondents = [f"Resp {i+1}" for i in range(len(resp))]
+
+    data = []
+    for r in resp:
+        row = []
+        for q in survey['questions']:
+            row.append(r.get(q['id'], 0))
+        data.append(row)
+
+    data = np.array(data).T  # questions x respondents
+
+    fig = create_heatmap(data, respondents, questions)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/export/csv', methods=['GET'])
+def export_csv(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    header = ['Respondent'] + [q['question'] for q in survey['questions']]
+    writer.writerow(header)
+    for i, r in enumerate(resp):
+        row = [f"Resp {i+1}"]
+        for q in survey['questions']:
+            row.append(r.get(q['id'], ''))
+        writer.writerow(row)
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name=f'survey_{survey_id}_responses.csv')
+
+@app.route('/api/surveys/<survey_id>/export/pdf', methods=['GET'])
+def export_pdf(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    pdf_buffer = io.BytesIO()
+    with PdfPages(pdf_buffer) as pdf:
+        # Radar chart page
+        categories = [q['question'] for q in survey['questions']]
+        scores = []
+        for q in survey['questions']:
+            vals = [r.get(q['id'], 0) for r in resp]
+            avg = sum(vals) / len(vals) if vals else 0
+            scores.append(avg)
+        fig1 = create_radar_chart(scores, categories)
+        pdf.savefig(fig1)
+        plt.close(fig1)
+
+        # Heatmap page
+        questions = [q['question'] for q in survey['questions']]
+        respondents = [f"Resp {i+1}" for i in range(len(resp))]
+        data = []
+        for r in resp:
+            row = []
+            for q in survey['questions']:
+                row.append(r.get(q['id'], 0))
+            data.append(row)
+        data = np.array(data).T
+        fig2 = create_heatmap(data, respondents, questions)
+        pdf.savefig(fig2)
+        plt.close(fig2)
+
+        # Raw data table page
+        fig3, ax = plt.subplots(figsize=(8, max(2, len(resp)*0.3 + 1)))
+        ax.axis('off')
+        table_data = []
+        header = ['Respondent'] + questions
+        table_data.append(header)
+        for i, r in enumerate(resp):
+            row = [f"Resp {i+1}"]
+            for q in survey['questions']:
+                row.append(r.get(q['id'], ''))
+            table_data.append(row)
+        table = ax.table(cellText=table_data, loc='center', cellLoc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(8)
+        table.scale(1, 1.5)
+        pdf.savefig(fig3)
+        plt.close(fig3)
+
+    pdf_buffer.seek(0)
+    return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=True, download_name=f'survey_{survey_id}_report.pdf')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+ 
+2026-01-13 22:38:08,603 INFO Decision Plan:
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import io
+import csv
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_pdf import PdfPages
+
+app = Flask(__name__)
+CORS(app)
+
+# In-memory storage for surveys and responses
+surveys = {}
+responses = {}
+
+@app.route('/api/surveys', methods=['POST'])
+def create_survey():
+    data = request.json
+    survey_id = str(len(surveys) + 1)
+    surveys[survey_id] = data
+    responses[survey_id] = []
+    return jsonify({"survey_id": survey_id}), 201
+
+@app.route('/api/surveys/<survey_id>', methods=['GET'])
+def get_survey(survey_id):
+    survey = surveys.get(survey_id)
+    if not survey:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(survey)
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['POST'])
+def submit_response(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    data = request.json
+    responses[survey_id].append(data)
+    return jsonify({"message": "Response recorded"}), 201
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['GET'])
+def get_responses(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(responses[survey_id])
+
+def create_radar_chart(data, categories):
+    N = len(categories)
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    data += data[:1]
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
+    ax.fill(angles, data, color='blue', alpha=0.25)
+    ax.plot(angles, data, color='blue', linewidth=2)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.set_yticklabels([])
+    ax.set_ylim(0, max(data))
+    return fig
+
+def create_heatmap(data, x_labels, y_labels):
+    fig, ax = plt.subplots(figsize=(8,6))
+    cax = ax.matshow(data, cmap='coolwarm')
+    fig.colorbar(cax)
+    ax.set_xticks(np.arange(len(x_labels)))
+    ax.set_yticks(np.arange(len(y_labels)))
+    ax.set_xticklabels(x_labels)
+    ax.set_yticklabels(y_labels)
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    return fig
+
+@app.route('/api/surveys/<survey_id>/analysis/radar', methods=['GET'])
+def radar_chart(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for radar chart"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    categories = [q['question'] for q in survey['questions']]
+    scores = []
+    for q in survey['questions']:
+        vals = [r.get(q['id'], 0) for r in resp]
+        avg = sum(vals) / len(vals) if vals else 0
+        scores.append(avg)
+
+    fig = create_radar_chart(scores, categories)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/analysis/heatmap', methods=['GET'])
+def heatmap(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for heatmap"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    questions = [q['question'] for q in survey['questions']]
+    respondents = [f"Resp {i+1}" for i in range(len(resp))]
+
+    data = []
+    for r in resp:
+        row = []
+        for q in survey['questions']:
+            row.append(r.get(q['id'], 0))
+        data.append(row)
+
+    data = np.array(data).T  # questions x respondents
+
+    fig = create_heatmap(data, respondents, questions)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/export/csv', methods=['GET'])
+def export_csv(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    header = ['Respondent'] + [q['question'] for q in survey['questions']]
+    writer.writerow(header)
+    for i, r in enumerate(resp):
+        row = [f"Resp {i+1}"]
+        for q in survey['questions']:
+            row.append(r.get(q['id'], ''))
+        writer.writerow(row)
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name=f'survey_{survey_id}_responses.csv')
+
+@app.route('/api/surveys/<survey_id>/export/pdf', methods=['GET'])
+def export_pdf(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    pdf_buffer = io.BytesIO()
+    with PdfPages(pdf_buffer) as pdf:
+        # Radar chart page
+        categories = [q['question'] for q in survey['questions']]
+        scores = []
+        for q in survey['questions']:
+            vals = [r.get(q['id'], 0) for r in resp]
+            avg = sum(vals) / len(vals) if vals else 0
+            scores.append(avg)
+        fig1 = create_radar_chart(scores, categories)
+        pdf.savefig(fig1)
+        plt.close(fig1)
+
+        # Heatmap page
+        questions = [q['question'] for q in survey['questions']]
+        respondents = [f"Resp {i+1}" for i in range(len(resp))]
+        data = []
+        for r in resp:
+            row = []
+            for q in survey['questions']:
+                row.append(r.get(q['id'], 0))
+            data.append(row)
+        data = np.array(data).T
+        fig2 = create_heatmap(data, respondents, questions)
+        pdf.savefig(fig2)
+        plt.close(fig2)
+
+        # Raw data table page
+        fig3, ax = plt.subplots(figsize=(8, max(2, len(resp)*0.3 + 1)))
+        ax.axis('off')
+        table_data = []
+        header = ['Respondent'] + questions
+        table_data.append(header)
+        for i, r in enumerate(resp):
+            row = [f"Resp {i+1}"]
+            for q in survey['questions']:
+                row.append(r.get(q['id'], ''))
+            table_data.append(row)
+        table = ax.table(cellText=table_data, loc='center', cellLoc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(8)
+        table.scale(1, 1.5)
+        pdf.savefig(fig3)
+        plt.close(fig3)
+
+    pdf_buffer.seek(0)
+    return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=True, download_name=f'survey_{survey_id}_report.pdf')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+ 
+2026-01-13 22:38:08,604 INFO Execution Result: 
+2026-01-13 22:38:08,604 INFO  
+2026-01-13 22:38:12,822 INFO Evaluation result:
+Score: True
+Advice: The provided Flask-based Python backend implementation is functionally correct for the described MVP. It supports survey creation, response submission, retrieval, radar chart and heatmap generation, and exporting reports as CSV and PDF. The use of in-memory storage is acceptable for an MVP, and the endpoints are logically structured. The radar chart and heatmap generation using matplotlib and numpy are well-implemented, and the PDF export includes multiple pages with charts and data tables, which is a good touch.
+For improvement and next steps, consider recruiting a full-stack web developer experienced with React or Next.js to build a frontend that interacts with these APIs, providing a user-friendly interface for survey creation, response input, and visualization display. Additionally, a data visualization expert could help enhance the chart aesthetics and usability, and a data analyst could assist in refining the analysis logic or adding more insightful metrics. 
+2026-01-13 22:38:12,822 INFO Good score! Accept! Final Result:
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+import io
+import csv
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_pdf import PdfPages
+
+app = Flask(__name__)
+CORS(app)
+
+# In-memory storage for surveys and responses
+surveys = {}
+responses = {}
+
+@app.route('/api/surveys', methods=['POST'])
+def create_survey():
+    data = request.json
+    survey_id = str(len(surveys) + 1)
+    surveys[survey_id] = data
+    responses[survey_id] = []
+    return jsonify({"survey_id": survey_id}), 201
+
+@app.route('/api/surveys/<survey_id>', methods=['GET'])
+def get_survey(survey_id):
+    survey = surveys.get(survey_id)
+    if not survey:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(survey)
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['POST'])
+def submit_response(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    data = request.json
+    responses[survey_id].append(data)
+    return jsonify({"message": "Response recorded"}), 201
+
+@app.route('/api/surveys/<survey_id>/responses', methods=['GET'])
+def get_responses(survey_id):
+    if survey_id not in surveys:
+        return jsonify({"error": "Survey not found"}), 404
+    return jsonify(responses[survey_id])
+
+def create_radar_chart(data, categories):
+    N = len(categories)
+    angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+    data += data[:1]
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
+    ax.fill(angles, data, color='blue', alpha=0.25)
+    ax.plot(angles, data, color='blue', linewidth=2)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.set_yticklabels([])
+    ax.set_ylim(0, max(data))
+    return fig
+
+def create_heatmap(data, x_labels, y_labels):
+    fig, ax = plt.subplots(figsize=(8,6))
+    cax = ax.matshow(data, cmap='coolwarm')
+    fig.colorbar(cax)
+    ax.set_xticks(np.arange(len(x_labels)))
+    ax.set_yticks(np.arange(len(y_labels)))
+    ax.set_xticklabels(x_labels)
+    ax.set_yticklabels(y_labels)
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    return fig
+
+@app.route('/api/surveys/<survey_id>/analysis/radar', methods=['GET'])
+def radar_chart(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for radar chart"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    categories = [q['question'] for q in survey['questions']]
+    scores = []
+    for q in survey['questions']:
+        vals = [r.get(q['id'], 0) for r in resp]
+        avg = sum(vals) / len(vals) if vals else 0
+        scores.append(avg)
+
+    fig = create_radar_chart(scores, categories)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/analysis/heatmap', methods=['GET'])
+def heatmap(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data for heatmap"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    questions = [q['question'] for q in survey['questions']]
+    respondents = [f"Resp {i+1}" for i in range(len(resp))]
+
+    data = []
+    for r in resp:
+        row = []
+        for q in survey['questions']:
+            row.append(r.get(q['id'], 0))
+        data.append(row)
+
+    data = np.array(data).T  # questions x respondents
+
+    fig = create_heatmap(data, respondents, questions)
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close(fig)
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/surveys/<survey_id>/export/csv', methods=['GET'])
+def export_csv(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    header = ['Respondent'] + [q['question'] for q in survey['questions']]
+    writer.writerow(header)
+    for i, r in enumerate(resp):
+        row = [f"Resp {i+1}"]
+        for q in survey['questions']:
+            row.append(r.get(q['id'], ''))
+        writer.writerow(row)
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name=f'survey_{survey_id}_responses.csv')
+
+@app.route('/api/surveys/<survey_id>/export/pdf', methods=['GET'])
+def export_pdf(survey_id):
+    if survey_id not in surveys or not responses[survey_id]:
+        return jsonify({"error": "No data to export"}), 404
+    survey = surveys[survey_id]
+    resp = responses[survey_id]
+
+    pdf_buffer = io.BytesIO()
+    with PdfPages(pdf_buffer) as pdf:
+        # Radar chart page
+        categories = [q['question'] for q in survey['questions']]
+        scores = []
+        for q in survey['questions']:
+            vals = [r.get(q['id'], 0) for r in resp]
+            avg = sum(vals) / len(vals) if vals else 0
+            scores.append(avg)
+        fig1 = create_radar_chart(scores, categories)
+        pdf.savefig(fig1)
+        plt.close(fig1)
+
+        # Heatmap page
+        questions = [q['question'] for q in survey['questions']]
+        respondents = [f"Resp {i+1}" for i in range(len(resp))]
+        data = []
+        for r in resp:
+            row = []
+            for q in survey['questions']:
+                row.append(r.get(q['id'], 0))
+            data.append(row)
+        data = np.array(data).T
+        fig2 = create_heatmap(data, respondents, questions)
+        pdf.savefig(fig2)
+        plt.close(fig2)
+
+        # Raw data table page
+        fig3, ax = plt.subplots(figsize=(8, max(2, len(resp)*0.3 + 1)))
+        ax.axis('off')
+        table_data = []
+        header = ['Respondent'] + questions
+        table_data.append(header)
+        for i, r in enumerate(resp):
+            row = [f"Resp {i+1}"]
+            for q in survey['questions']:
+                row.append(r.get(q['id'], ''))
+            table_data.append(row)
+        table = ax.table(cellText=table_data, loc='center', cellLoc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(8)
+        table.scale(1, 1.5)
+        pdf.savefig(fig3)
+        plt.close(fig3)
+
+    pdf_buffer.seek(0)
+    return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=True, download_name=f'survey_{survey_id}_report.pdf')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+ 
+2026-01-13 22:38:12,823 INFO Agent spend: 
+2026-01-13 22:38:12,823 INFO Agent (Role: AGENT_TYPES.ROLE_ASSIGNMENT) role assigner: $0.000204 
+2026-01-13 22:38:12,823 INFO Agent (Role: AGENT_TYPES.SOLVER) a full-stack web developer experienced in building React or Next.js frontends integrated with Node.js (Express) backends, skilled in API design and data visualization libraries for radar charts and heatmaps: $0.02 
+2026-01-13 22:38:12,823 INFO Agent (Role: AGENT_TYPES.CRITIC) a data analyst or data visualization expert proficient in survey data interpretation, statistical analysis, and generating reports in PDF and CSV formats: $0.01 
+2026-01-13 22:38:12,823 INFO Agent (Role: AGENT_TYPES.EXECUTION) Executor: $0.000000 
+2026-01-13 22:38:12,823 INFO Agent (Role: AGENT_TYPES.EVALUATION) Evaluator: $0.001255 
+2026-01-13 22:38:12,823 INFO Agent (Role: AGENT_TYPES.MANAGER) Manager: $0.000000 
+2026-01-13 22:38:12,823 INFO Total spent: $0.030191 

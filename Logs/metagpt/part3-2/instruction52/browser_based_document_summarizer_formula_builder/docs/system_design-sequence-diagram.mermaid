@@ -1,0 +1,41 @@
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant BE as Backend
+    participant Doc as Document
+    participant Sum as Summary
+    participant Form as Formula
+    participant FR as FormulaResult
+
+    U->>FE: Login/Register
+    FE->>BE: POST /api/auth/login
+    BE->>U: Auth token
+
+    U->>FE: Upload documents (PDF, Word, txt)
+    FE->>BE: POST /api/documents/upload
+    BE->>Doc: Save file, parse content
+    Doc-->>BE: Parsed content
+    BE->>Sum: Generate summary
+    Sum-->>BE: Summary text
+    BE-->>FE: Document list + summaries
+
+    U->>FE: View dashboard
+    FE->>BE: GET /api/documents, /api/summaries, /api/formulas
+    BE-->>FE: Data for dashboard
+
+    U->>FE: Build formula
+    FE->>BE: POST /api/formulas (name, expression)
+    BE->>Form: Save formula
+    Form-->>BE: Formula saved
+    BE-->>FE: Formula list
+
+    U->>FE: Apply formula to data
+    FE->>BE: POST /api/formulas/evaluate (formula_id, input_data)
+    BE->>Form: Evaluate expression
+    Form-->>FR: Store result
+    FR-->>BE: Result
+    BE-->>FE: Calculation result
+
+    U->>FE: Save/reuse formula
+    FE->>BE: GET/POST /api/formulas
+    BE-->>FE: Formula data

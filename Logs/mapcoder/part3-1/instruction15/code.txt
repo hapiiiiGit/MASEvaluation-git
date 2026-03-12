@@ -1,0 +1,74 @@
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import streamlit as st
+from PIL import Image
+
+# Load and preprocess the dataset
+def load_data():
+    # Placeholder for loading dataset
+    # Replace with actual data loading logic
+    pass
+
+def preprocess_images(images):
+    images = [image.resize((128, 128)) for image in images]
+    images = np.array([np.array(image) / 255.0 for image in images])
+    return images
+
+# Build the CNN model
+def build_model():
+    model = models.Sequential([
+        layers.Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3)),
+        layers.MaxPooling2D(pool_size=(2, 2)),
+        layers.Conv2D(64, (3, 3), activation='relu'),
+        layers.MaxPooling2D(pool_size=(2, 2)),
+        layers.Conv2D(128, (3, 3), activation='relu'),
+        layers.MaxPooling2D(pool_size=(2, 2)),
+        layers.Flatten(),
+        layers.Dense(128, activation='relu'),
+        layers.Dropout(0.5),
+        layers.Dense(3, activation='softmax')  # Assuming 3 classes for freshness
+    ])
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+# Train the model
+def train_model(model, train_data, val_data):
+    model.fit(train_data, validation_data=val_data, epochs=10)
+    model.save('fruit_freshness_model.h5')
+
+# Load the trained model
+def load_model():
+    return models.load_model('fruit_freshness_model.h5')
+
+# Predict remaining days before expiry
+def predict_remaining_days(model, image):
+    image = preprocess_images([image])
+    predictions = model.predict(image)
+    return np.argmax(predictions), np.max(predictions)
+
+# Streamlit GUI
+def main():
+    st.title("Fruit Freshness Classification")
+    st.write("Upload an image of a fruit to classify its freshness and predict remaining days before expiry.")
+
+    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+    
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file)
+        st.image(image, caption='Uploaded Image', use_column_width=True)
+        st.write("")
+        
+        model = load_model()
+        class_index, confidence = predict_remaining_days(model, image)
+        
+        freshness_classes = {0: "Fresh", 1: "Ripe", 2: "Overripe"}
+        st.write(f"Predicted Class: {freshness_classes[class_index]}")
+        st.write(f"Confidence: {confidence:.2f}")
+        # Placeholder for remaining days prediction
+        st.write("Predicted Remaining Days Before Expiry: TBD")
+
+if __name__ == "__main__":
+    main()

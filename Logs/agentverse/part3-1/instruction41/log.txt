@@ -1,0 +1,735 @@
+2025-09-02 17:52:37,471 WARNING  No vLLM server running at the specified URL.
+2025-09-02 17:52:37,498 WARNING  BMTools is not installed, tools in the simulation environment cannot be used. To install BMTools, please follow the instruction in the README.md file. If you aren't running a *simulation* case with tool, you can ignore this warning.
+2025-09-02 17:52:39,152 INFO  Loop Round 0
+2025-09-02 17:52:40,936 INFO Role Assignment:
+a financial analyst with expertise in stock market trends and trading strategies in Spain, the USA, and Australia
+a software developer proficient in Python and experienced in automating alerts and email notifications for financial applications 
+2025-09-02 17:52:49,128 INFO Initial Plan:
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"
+    from_password = "your_password"
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    with smtplib.SMTP('smtp.example.com', 587) as server:
+        server.starttls()
+        server.login(from_email, from_password)
+        server.send_message(msg)
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, threshold, to_email):
+    for ticker in tickers:
+        data = fetch_stock_data(ticker)
+        current_price = data['Close'].iloc[-1]
+        
+        if current_price > threshold:
+            subject = f"Alert: {ticker} price exceeded threshold"
+            body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+            send_email_alert(subject, body, to_email)
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    threshold = 150  # Example threshold
+    to_email = "recipient@example.com"
+    
+    while True:
+        check_stocks_and_alert(tickers, threshold, to_email)
+        time.sleep(3600)  # Check every hour
+
+if __name__ == "__main__":
+    main()
+ 
+2025-09-02 17:53:26,949 INFO Reviews:
+[a software developer proficient in Python and experienced in automating alerts and email notifications for financial applications]: ```python
+# Given code
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"
+    from_password = "your_password"
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    with smtplib.SMTP('smtp.example.com', 587) as server:
+        server.starttls()
+        server.login(from_email, from_password)
+        server.send_message(msg)
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, threshold, to_email):
+    for ticker in tickers:
+        data = fetch_stock_data(ticker)
+        current_price = data['Close'].iloc[-1]
+        
+        if current_price > threshold:
+            subject = f"Alert: {ticker} price exceeded threshold"
+            body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+            send_email_alert(subject, body, to_email)
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    threshold = 150  # Example threshold
+    to_email = "recipient@example.com"
+    
+    while True:
+        check_stocks_and_alert(tickers, threshold, to_email)
+        time.sleep(3600)  # Check every hour
+
+if __name__ == "__main__":
+    main()
+
+# Critique
+# 1. The SMTP server and port should be configured correctly based on the email provider.
+# 2. The email credentials should not be hardcoded for security reasons.
+# 3. The threshold should be defined per stock, as different stocks have different price ranges.
+# 4. The program does not handle exceptions which may occur during data fetching or email sending.
+
+# Corrected code
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"
+    from_password = "your_password"
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        with smtplib.SMTP('smtp.example.com', 587) as server:
+            server.starttls()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, thresholds, to_email):
+    for ticker, threshold in zip(tickers, thresholds):
+        data = fetch_stock_data(ticker)
+        current_price = data['Close'].iloc[-1]
+        
+        if current_price > threshold:
+            subject = f"Alert: {ticker} price exceeded threshold"
+            body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+            send_email_alert(subject, body, to_email)
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    thresholds = [150, 300, 3500, 9000, 70]  # Example thresholds for each stock
+    to_email = "recipient@example.com"
+    
+    while True:
+        check_stocks_and_alert(tickers, thresholds, to_email)
+        time.sleep(3600)  # Check every hour
+
+if __name__ == "__main__":
+    main()
+``` 
+2025-09-02 17:53:33,021 INFO Updated Plan:
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"
+    from_password = "your_password"
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        with smtplib.SMTP('smtp.example.com', 587) as server:
+            server.starttls()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, thresholds, to_email):
+    for ticker, threshold in zip(tickers, thresholds):
+        data = fetch_stock_data(ticker)
+        current_price = data['Close'].iloc[-1]
+        
+        if current_price > threshold:
+            subject = f"Alert: {ticker} price exceeded threshold"
+            body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+            send_email_alert(subject, body, to_email)
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    thresholds = [150, 300, 3500, 9000, 70]  # Example thresholds for each stock
+    to_email = "recipient@example.com"
+    
+    while True:
+        check_stocks_and_alert(tickers, thresholds, to_email)
+        time.sleep(3600)  # Check every hour
+
+if __name__ == "__main__":
+    main()
+ 
+2025-09-02 17:53:47,380 INFO Reviews:
+[a software developer proficient in Python and experienced in automating alerts and email notifications for financial applications]: ```python
+# Given code
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"
+    from_password = "your_password"
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        with smtplib.SMTP('smtp.example.com', 587) as server:
+            server.starttls()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, thresholds, to_email):
+    for ticker, threshold in zip(tickers, thresholds):
+        data = fetch_stock_data(ticker)
+        current_price = data['Close'].iloc[-1]
+        
+        if current_price > threshold:
+            subject = f"Alert: {ticker} price exceeded threshold"
+            body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+            send_email_alert(subject, body, to_email)
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    thresholds = [150, 300, 3500, 9000, 70]  # Example thresholds for each stock
+    to_email = "recipient@example.com"
+    
+    while True:
+        check_stocks_and_alert(tickers, thresholds, to_email)
+        time.sleep(3600)  # Check every hour
+
+if __name__ == "__main__":
+    main()
+
+# Critique
+# 1. The SMTP server and port should be configured correctly based on the email provider.
+# 2. The email credentials should not be hardcoded for security reasons.
+# 3. The program does not handle exceptions which may occur during data fetching or email sending.
+# 4. The thresholds should be defined per stock, as different stocks have different price ranges.
+
+# Corrected code
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"
+    from_password = "your_password"
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        with smtplib.SMTP('smtp.example.com', 587) as server:
+            server.starttls()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, thresholds, to_email):
+    for ticker, threshold in zip(tickers, thresholds):
+        data = fetch_stock_data(ticker)
+        current_price = data['Close'].iloc[-1]
+        
+        if current_price > threshold:
+            subject = f"Alert: {ticker} price exceeded threshold"
+            body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+            send_email_alert(subject, body, to_email)
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    thresholds = [150, 300, 3500, 9000, 70]  # Example thresholds for each stock
+    to_email = "recipient@example.com"
+    
+    while True:
+        check_stocks_and_alert(tickers, thresholds, to_email)
+        time.sleep(3600)  # Check every hour
+
+if __name__ == "__main__":
+    main()
+``` 
+2025-09-02 17:53:56,299 INFO Updated Plan:
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"
+    from_password = "your_password"
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        with smtplib.SMTP('smtp.example.com', 587) as server:
+            server.starttls()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, thresholds, to_email):
+    for ticker, threshold in zip(tickers, thresholds):
+        data = fetch_stock_data(ticker)
+        current_price = data['Close'].iloc[-1]
+        
+        if current_price > threshold:
+            subject = f"Alert: {ticker} price exceeded threshold"
+            body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+            send_email_alert(subject, body, to_email)
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    thresholds = [150, 300, 3500, 9000, 70]  # Example thresholds for each stock
+    to_email = "recipient@example.com"
+    
+    while True:
+        check_stocks_and_alert(tickers, thresholds, to_email)
+        time.sleep(3600)  # Check every hour
+
+if __name__ == "__main__":
+    main()
+ 
+2025-09-02 17:54:04,977 INFO Reviews:
+[a software developer proficient in Python and experienced in automating alerts and email notifications for financial applications]: ```python
+# Given code
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"
+    from_password = "your_password"
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        with smtplib.SMTP('smtp.example.com', 587) as server:
+            server.starttls()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, thresholds, to_email):
+    for ticker, threshold in zip(tickers, thresholds):
+        data = fetch_stock_data(ticker)
+        current_price = data['Close'].iloc[-1]
+        
+        if current_price > threshold:
+            subject = f"Alert: {ticker} price exceeded threshold"
+            body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+            send_email_alert(subject, body, to_email)
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    thresholds = [150, 300, 3500, 9000, 70]  # Example thresholds for each stock
+    to_email = "recipient@example.com"
+    
+    while True:
+        check_stocks_and_alert(tickers, thresholds, to_email)
+        time.sleep(3600)  # Check every hour
+
+if __name__ == "__main__":
+    main()
+
+# Critique
+# 1. The SMTP server and port should be configured correctly based on the email provider.
+# 2. The email credentials should not be hardcoded for security reasons.
+# 3. The program does not handle exceptions which may occur during data fetching or email sending.
+# 4. The thresholds should be defined per stock, as different stocks have different price ranges.
+
+# Corrected code
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"  # Replace with your email
+    from_password = "your_password"  # Replace with your password
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        with smtplib.SMTP('smtp.example.com', 587) as server:  # Replace with your SMTP server
+            server.starttls()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, thresholds, to_email):
+    for ticker, threshold in zip(tickers, thresholds):
+        try:
+            data = fetch_stock_data(ticker)
+            current_price = data['Close'].iloc[-1]
+            
+            if current_price > threshold:
+                subject = f"Alert: {ticker} price exceeded threshold"
+                body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+                send_email_alert(subject, body, to_email)
+        except Exception as e:
+            print(f"Error fetching data for {ticker}: {e}")
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    thresholds = [150, 300, 3500, 9000, 70]  # Example thresholds for each stock
+    to_email = "recipient@example.com"  # Replace with recipient's email
+    
+    while True:
+        check_stocks_and_alert(tickers, thresholds, to_email)
+        time.sleep( 
+2025-09-02 17:54:11,955 INFO Updated Plan:
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"  # Replace with your email
+    from_password = "your_password"  # Replace with your password
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        with smtplib.SMTP('smtp.example.com', 587) as server:  # Replace with your SMTP server
+            server.starttls()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, thresholds, to_email):
+    for ticker, threshold in zip(tickers, thresholds):
+        try:
+            data = fetch_stock_data(ticker)
+            current_price = data['Close'].iloc[-1]
+            
+            if current_price > threshold:
+                subject = f"Alert: {ticker} price exceeded threshold"
+                body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+                send_email_alert(subject, body, to_email)
+        except Exception as e:
+            print(f"Error fetching data for {ticker}: {e}")
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    thresholds = [150, 300, 3500, 9000, 70]  # Example thresholds for each stock
+    to_email = "recipient@example.com"  # Replace with recipient's email
+    
+    while True:
+        check_stocks_and_alert(tickers, thresholds, to_email)
+        time.sleep(3600)  # Check every hour
+
+if __name__ == "__main__":
+    main()
+ 
+2025-09-02 17:54:11,955 INFO Decision Plan:
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"  # Replace with your email
+    from_password = "your_password"  # Replace with your password
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        with smtplib.SMTP('smtp.example.com', 587) as server:  # Replace with your SMTP server
+            server.starttls()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, thresholds, to_email):
+    for ticker, threshold in zip(tickers, thresholds):
+        try:
+            data = fetch_stock_data(ticker)
+            current_price = data['Close'].iloc[-1]
+            
+            if current_price > threshold:
+                subject = f"Alert: {ticker} price exceeded threshold"
+                body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+                send_email_alert(subject, body, to_email)
+        except Exception as e:
+            print(f"Error fetching data for {ticker}: {e}")
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    thresholds = [150, 300, 3500, 9000, 70]  # Example thresholds for each stock
+    to_email = "recipient@example.com"  # Replace with recipient's email
+    
+    while True:
+        check_stocks_and_alert(tickers, thresholds, to_email)
+        time.sleep(3600)  # Check every hour
+
+if __name__ == "__main__":
+    main()
+ 
+2025-09-02 17:54:11,955 INFO Execution Result: 
+2025-09-02 17:54:11,955 INFO  
+2025-09-02 17:54:17,506 INFO Evaluation result:
+Score: True
+Advice: The provided code is functionally correct and implements the desired features of fetching stock data, checking against thresholds, and sending email alerts. However, I would suggest a few improvements for robustness and maintainability:
+1. **Error Handling**: While there is some error handling in place, consider adding more specific exceptions to catch potential issues with the Yahoo Finance API or email sending. This will help in diagnosing problems more effectively.
+2. **Configuration Management**: Instead of hardcoding email credentials and SMTP server details, consider using a configuration file or environment variables. This will enhance security and make it easier to manage different environments (e.g., development, production).
+3. **Logging**: Implement logging instead of using print statements. This will help in tracking the application's behavior over time and make it easier to debug issues.
+4. **Testing**: Consider writing unit tests for the functions, especially for `fetch_stock_data` and `send_email_alert`, to ensure they work as expected under different scenarios.
+5. **Modularization**: You might want to separate the email functionality into its own module or class. This will make the code cleaner and more organized.
+For the next round of experts, I suggest recruiting a cybersecurity expert to provide insights on securing email credentials and a DevOps engineer to assist with deployment and configuration management best practices. 
+2025-09-02 17:54:17,506 INFO Good score! Accept! Final Result:
+import yfinance as yf
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import time
+
+# Function to fetch stock data
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period="1d")
+    return data
+
+# Function to send email alerts
+def send_email_alert(subject, body, to_email):
+    from_email = "your_email@example.com"  # Replace with your email
+    from_password = "your_password"  # Replace with your password
+    
+    msg = MIMEMultipart()
+    msg['From'] = from_email
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        with smtplib.SMTP('smtp.example.com', 587) as server:  # Replace with your SMTP server
+            server.starttls()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Function to check stock conditions and send alerts
+def check_stocks_and_alert(tickers, thresholds, to_email):
+    for ticker, threshold in zip(tickers, thresholds):
+        try:
+            data = fetch_stock_data(ticker)
+            current_price = data['Close'].iloc[-1]
+            
+            if current_price > threshold:
+                subject = f"Alert: {ticker} price exceeded threshold"
+                body = f"The current price of {ticker} is {current_price}, which exceeds the threshold of {threshold}."
+                send_email_alert(subject, body, to_email)
+        except Exception as e:
+            print(f"Error fetching data for {ticker}: {e}")
+
+# Main function to run the program
+def main():
+    tickers = ['AAPL', 'MSFT', 'AMZN', 'IBEX.MC', 'ASX.AX']  # Example tickers
+    thresholds = [150, 300, 3500, 9000, 70]  # Example thresholds for each stock
+    to_email = "recipient@example.com"  # Replace with recipient's email
+    
+    while True:
+        check_stocks_and_alert(tickers, thresholds, to_email)
+        time.sleep(3600)  # Check every hour
+
+if __name__ == "__main__":
+    main()
+ 
+2025-09-02 17:54:17,507 INFO Agent spend: 
+2025-09-02 17:54:17,507 INFO Agent (Role: AGENT_TYPES.ROLE_ASSIGNMENT) role assigner: $0.000362 
+2025-09-02 17:54:17,507 INFO Agent (Role: AGENT_TYPES.SOLVER) a financial analyst with expertise in stock market trends and trading strategies in Spain, the USA, and Australia: $0.02 
+2025-09-02 17:54:17,507 INFO Agent (Role: AGENT_TYPES.CRITIC) a software developer proficient in Python and experienced in automating alerts and email notifications for financial applications: $0.01 
+2025-09-02 17:54:17,507 INFO Agent (Role: AGENT_TYPES.EXECUTION) Executor: $0.000000 
+2025-09-02 17:54:17,507 INFO Agent (Role: AGENT_TYPES.EVALUATION) Evaluator: $0.001630 
+2025-09-02 17:54:17,507 INFO Agent (Role: AGENT_TYPES.MANAGER) Manager: $0.000000 
+2025-09-02 17:54:17,507 INFO Total spent: $0.032317 

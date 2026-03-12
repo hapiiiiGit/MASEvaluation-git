@@ -1,0 +1,42 @@
+sequenceDiagram
+    participant U as User
+    participant API as API
+    participant BC as BotConfig
+    participant DF as DataFeed
+    participant TS as TrendStrategy
+    participant RM as RiskManager
+    participant EX as Exchange
+    participant MN as Monitor
+    participant NT as Notifier
+
+    U->>API: set_config(config)
+    API->>BC: save(config)
+    U->>API: get_status()
+    API->>MN: get_status()
+    MN-->>API: status
+    API-->>U: status
+
+    DF->>EX: subscribe(symbols)
+    loop Real-time Data
+        DF->>TS: get_latest(symbol)
+        TS->>TS: generate_signal(data)
+        TS-->>RM: signal
+        RM->>RM: check_risk(position, signal)
+        alt Risk OK
+            RM->>EX: place_order(symbol, side, qty, price, type)
+            EX-->>MN: log_trade(trade)
+            MN->>NT: alert(event)
+        else Risk Not OK
+            MN->>NT: alert(risk_event)
+        end
+    end
+
+    U->>API: get_logs()
+    API->>MN: get_logs()
+    MN-->>API: logs
+    API-->>U: logs
+
+    U->>Backtester: run(strategy, data, risk)
+    Backtester->>TS: generate_signal(data)
+    Backtester->>RM: check_risk(position, signal)
+    Backtester-->>U: report()

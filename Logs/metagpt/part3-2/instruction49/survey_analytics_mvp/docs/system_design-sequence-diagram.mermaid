@@ -1,0 +1,43 @@
+sequenceDiagram
+    participant F as Frontend
+    participant A as AuthService
+    participant S as SurveyAPI
+    participant Q as QuestionAPI
+    participant R as ResponseAPI
+    participant AN as AnalyticsService
+    participant RP as ReportService
+    participant DB as Database
+
+    F->>A: POST /api/auth/login (email, password)
+    A->>DB: verify credentials
+    A-->>F: JWT token
+
+    F->>S: POST /api/survey (token, survey data)
+    S->>DB: create survey
+    S-->>F: survey id
+
+    F->>Q: POST /api/survey/{id}/question (token, question data)
+    Q->>DB: add question
+    Q-->>F: question id
+
+    F->>R: POST /api/survey/{id}/response (token, answers)
+    R->>DB: save response
+    R-->>F: response id
+
+    F->>AN: GET /api/survey/{id}/analytics/radar (token)
+    AN->>DB: fetch responses
+    AN-->>F: radar chart data
+
+    F->>AN: GET /api/survey/{id}/analytics/heatmap (token)
+    AN->>DB: fetch responses
+    AN-->>F: heatmap data
+
+    F->>RP: GET /api/survey/{id}/report/pdf (token)
+    RP->>DB: fetch survey & responses
+    RP->>RP: generate PDF
+    RP-->>F: PDF file
+
+    F->>RP: GET /api/survey/{id}/report/csv (token)
+    RP->>DB: fetch survey & responses
+    RP->>RP: generate CSV
+    RP-->>F: CSV file

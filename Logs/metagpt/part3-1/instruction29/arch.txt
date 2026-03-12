@@ -1,0 +1,52 @@
+--- 文件来源: cross_exchange_trading_bot/docs/system_design.md ---
+## Implementation approach
+
+We will use Python as the primary programming language for the trading bot. The bot will utilize the `ccxt` library for connecting to the Poloniex and CoinEx exchanges to retrieve real-time order-book and funding-rate data. Additionally, we will implement a live analytics layer using `pandas` for data manipulation and analysis. The bot will be designed to identify pricing gaps and execute trades automatically based on configurable settings.
+
+## File list
+
+- main.py
+- trading_bot.py
+- analytics.py
+- settings.json
+- requirements.txt
+
+## Data structures and interfaces:
+
+classDiagram
+    class TradingBot {
+        +__init__(exchange: str, settings: dict)
+        +retrieve_data() -> dict
+        +identify_gaps() -> list
+        +execute_trade(gap: float)
+    }
+    class Analytics {
+        +__init__(data: dict)
+        +recalculate_spreads() -> float
+        +calculate_fees() -> float
+    }
+    class Settings {
+        +__init__(file_path: str)
+        +load_settings() -> dict
+    }
+    TradingBot --> Analytics : uses
+    TradingBot --> Settings : loads
+
+## Program call flow:
+
+sequenceDiagram
+    participant M as Main
+    participant TB as TradingBot
+    participant A as Analytics
+    participant S as Settings
+    M->>S: load_settings()
+    S-->>M: return settings
+    M->>TB: __init__(exchange, settings)
+    TB->>TB: retrieve_data()
+    TB-->>M: return data
+    TB->>A: __init__(data)
+    A->>A: recalculate_spreads()
+    A-->>TB: return spreads
+    TB->>TB: identify_gaps()
+    TB-->>M: return gaps
+    M->>TB: execute_trade(gap)

@@ -1,0 +1,72 @@
+import paramiko
+from scp import SCPClient
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+class RemoteManager:
+    def __init__(self, host, username, password=None, key_file=None):
+        self.host = host
+        self.username = username
+        self.password = password
+        self.key_file = key_file
+        self.ssh_client = None
+
+    def establish_connection(self):
+        try:
+            self.ssh_client = paramiko.SSHClient()
+            self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            if self.key_file:
+                self.ssh_client.connect(self.host, username=self.username, key_filename=self.key_file)
+            else:
+                self.ssh_client.connect(self.host, username=self.username, password=self.password)
+            logging.info(f"Connected to {self.host}")
+        except Exception as e:
+            logging.error(f"Failed to connect to {self.host}: {e}")
+            raise
+
+    def execute_command(self, command):
+        try:
+            stdin, stdout, stderr = self.ssh_client.exec_command(command)
+            output = stdout.read().decode()
+            error = stderr.read().decode()
+            logging.info(f"Executed command: {command}")
+            return output, error
+        except Exception as e:
+            logging.error(f"Command execution failed: {e}")
+            raise
+
+    def deploy_payload(self, local_file, remote_path):
+        try:
+            with SCPClient(self.ssh_client.get_transport()) as scp:
+                scp.put(local_file, remote_path)
+            logging.info(f"Deployed {local_file} to {remote_path} on {self.host}")
+        except Exception as e:
+            logging.error(f"File transfer failed: {e}")
+            raise
+
+    def close_connection(self):
+        if self.ssh_client:
+            self.ssh_client.close()
+            logging.info(f"Connection to {self.host} closed")
+
+# Example usage
+if __name__ == "__main__":
+    # Configuration for remote PCs
+    servers = [
+        {"host": "192.168.1.10", "username": "user1", "password": "pass1"},
+        {"host": "192.168.1.11", "username": "user2", "key_file": "/path/to/private/key"},
+    ]
+
+    for server in servers:
+        manager = RemoteManager(**server)
+        try:
+            manager.establish_connection()
+            output, error = manager.execute_command("ls -la")
+            print("Output:", output)
+            print("Error:", error)
+            manager.deploy_payload("local_script.sh", "/tmp/remote_script.sh")
+            manager.execute_command("bash /tmp/remote_script.sh")
+        finally:
+            manager.close_connection()

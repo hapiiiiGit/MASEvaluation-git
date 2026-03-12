@@ -1,0 +1,50 @@
+# app.py
+from flask import Flask, request, jsonify, render_template
+from flask_sqlalchemy import SQLAlchemy
+from transformers import pipeline
+import os
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///annotations.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Database model for storing annotations
+class Annotation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.String, nullable=False)
+    sentiment = db.Column(db.String, nullable=False)
+    timestamp = db.Column(db.DateTime, server_default=db.func.now())
+
+# Load the sentiment analysis model
+sentiment_model = pipeline("sentiment-analysis", model="akhooli/arabic-sentiment")
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/annotate', methods=['POST'])
+def annotate():
+    data = request.json
+    text = data.get('text', '')
+    if text:
+        result = sentiment_model(text)
+        sentiment = result[0]['label']
+        
+        # Save to database
+        annotation = Annotation(text=text, sentiment=sentiment)
+        db.session.add(annotation)
+        db.session.commit()
+        
+        return jsonify({'text': text, 'sentiment': sentiment}), 200
+    return jsonify({'error': 'No text provided'}), 400
+
+@app.route('/annotations', methods=['GET'])
+def get_annotations():
+    annotations = Annotation.query.all()
+    return jsonify([{'id': a.id, 'text': a.text, 'sentiment': a.sentiment, 'timestamp': a.timestamp} for a in annotations]), 200
+
+if __name__ == '__main__':
+    if not os.path.exists('annotations.db'):
+        db.create_all()
+    app.run(debug=True)

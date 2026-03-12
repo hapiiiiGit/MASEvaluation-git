@@ -1,0 +1,57 @@
+import re
+from collections import defaultdict
+
+class Candidate:
+    def __init__(self, name, resume, interview_notes):
+        self.name = name
+        self.resume = resume
+        self.interview_notes = interview_notes
+
+def keyword_filter(candidates, keywords):
+    filtered_candidates = []
+    for candidate in candidates:
+        if any(re.search(r'\b' + re.escape(keyword) + r'\b', candidate.resume, re.IGNORECASE) for keyword in keywords):
+            filtered_candidates.append(candidate)
+    return filtered_candidates
+
+def categorize_candidates(candidates):
+    categorized = defaultdict(list)
+    for candidate in candidates:
+        skills = extract_skills(candidate.resume)
+        categorized[tuple(skills)].append(candidate)
+    return categorized
+
+def extract_skills(resume):
+    skills = []
+    if re.search(r'\bJavaScript\b', resume, re.IGNORECASE):
+        skills.append('JavaScript')
+    if re.search(r'\bPython\b', resume, re.IGNORECASE):
+        skills.append('Python')
+    if re.search(r'\bJava\b', resume, re.IGNORECASE):
+        skills.append('Java')
+    return skills
+
+def present_candidates(categorized_candidates):
+    for skills, candidates in categorized_candidates.items():
+        print(f"Candidates with skills: {', '.join(skills)}")
+        for candidate in candidates:
+            print(f" - {candidate.name}: {candidate.interview_notes}")
+
+# Sample data
+candidates = [
+    Candidate("Alice", "Experienced in JavaScript and Python.", "Great problem solver."),
+    Candidate("Bob", "Proficient in Java and JavaScript.", "Strong team player."),
+    Candidate("Charlie", "Expert in Python.", "Needs improvement in communication."),
+]
+
+# Define keywords
+keywords = ["JavaScript", "Python", "Java"]
+
+# Filtering candidates
+filtered_candidates = keyword_filter(candidates, keywords)
+
+# Categorizing candidates
+categorized_candidates = categorize_candidates(filtered_candidates)
+
+# Presenting candidates
+present_candidates(categorized_candidates)

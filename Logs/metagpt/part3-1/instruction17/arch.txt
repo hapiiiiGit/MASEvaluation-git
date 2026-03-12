@@ -1,0 +1,48 @@
+--- 文件来源: stock_options_trading_model/docs/system_design.md ---
+## Implementation approach
+
+We will refactor the training loop and hyper-parameter tuning routine of the stock-options trading model to improve algorithmic efficiency. The implementation will utilize Python libraries such as Optuna for Bayesian optimization and Scikit-Optimize for bandit-style search. The focus will be on minimizing resource usage while maintaining baseline accuracy.
+
+## File list
+
+- main.py
+- training_loop.py
+- hyperparameter_tuning.py
+- requirements.txt
+- docs/system_design.md
+
+## Data structures and interfaces:
+
+classDiagram
+    class TrainingLoop {
+        +__init__(self, model: Model, data: Data)
+        +train(self) -> None
+        +evaluate(self) -> float
+    }
+    class HyperparameterTuning {
+        +__init__(self, model: Model)
+        +optimize(self) -> Dict[str, Any]
+    }
+    class Model {
+        +__init__(self, params: Dict[str, Any])
+        +fit(self, data: Data) -> None
+        +predict(self, data: Data) -> Any
+    }
+    class Data {
+        +__init__(self, features: List[float], labels: List[float])
+    }
+    TrainingLoop --> Model : uses
+    HyperparameterTuning --> Model : optimizes
+
+## Program call flow:
+
+sequenceDiagram
+    participant M as Main
+    participant TL as TrainingLoop
+    participant HT as HyperparameterTuning
+    participant D as Data
+    M->>D: load_data()
+    M->>TL: train()
+    TL->>HT: optimize()
+    HT->>TL: return optimized parameters
+    TL->>M: return evaluation results

@@ -1,0 +1,73 @@
+classDiagram
+    class Donor {
+        +id: str
+        +name: str
+        +blood_type: str
+        +location: str
+        +contact_info: str
+        +last_donation: datetime
+        +is_active: bool
+        +register(data: dict) -> Donor
+        +update_info(data: dict) -> None
+    }
+    class DonorForm {
+        +__init__(self, data: dict)
+        +is_valid(self) -> bool
+        +save(self) -> Donor
+    }
+    class DonorView {
+        +list(request) -> HttpResponse
+        +detail(request, donor_id: str) -> HttpResponse
+        +create(request) -> HttpResponse
+        +edit(request, donor_id: str) -> HttpResponse
+        +delete(request, donor_id: str) -> HttpResponse
+    }
+    class FirebaseService {
+        +__init__(self, config: dict)
+        +get_donors(self) -> list[Donor]
+        +add_donor(self, donor: Donor) -> None
+        +update_donor(self, donor: Donor) -> None
+        +delete_donor(self, donor_id: str) -> None
+    }
+    class AdminUser {
+        +id: str
+        +username: str
+        +role: str
+        +is_active: bool
+        +set_role(role: str) -> None
+    }
+    class AdminPanelView {
+        +dashboard(request) -> HttpResponse
+        +manage_users(request) -> HttpResponse
+        +audit_logs(request) -> HttpResponse
+    }
+    class Report {
+        +id: str
+        +type: str
+        +created_at: datetime
+        +generate(params: dict) -> Report
+        +export(format: str) -> File
+    }
+    class ReportingView {
+        +generate_report(request) -> HttpResponse
+        +export_report(request, report_id: str, format: str) -> HttpResponse
+    }
+    class AuthService {
+        +login(request) -> HttpResponse
+        +logout(request) -> HttpResponse
+        +register(request) -> HttpResponse
+        +reset_password(request) -> HttpResponse
+    }
+    class AuditMiddleware {
+        +process_request(request) -> None
+        +process_response(request, response) -> None
+    }
+    DonorForm --|> Donor
+    DonorView --> Donor
+    DonorView --> DonorForm
+    DonorView --> FirebaseService
+    AdminPanelView --> AdminUser
+    AdminPanelView --> AuditMiddleware
+    ReportingView --> Report
+    AuthService --> AdminUser
+    AuditMiddleware --> AdminUser

@@ -1,0 +1,49 @@
+import cv2
+import numpy as np
+import pytesseract
+
+# Load Haar Cascade classifiers for car and license plate detection
+car_cascade = cv2.CascadeClassifier('haarcascade_car.xml')
+plate_cascade = cv2.CascadeClassifier('haarcascade_license_plate.xml')
+
+# Function to process the image
+def process_image(image_path):
+    # Load the input image
+    image = cv2.imread(image_path)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    # Detect cars
+    cars = car_cascade.detectMultiScale(blurred, scaleFactor=1.1, minNeighbors=5)
+
+    for (x, y, w, h) in cars:
+        # Draw rectangle around cars
+        cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+        # Region of interest for license plate detection
+        roi = gray[y:y + h, x:x + w]
+        plates = plate_cascade.detectMultiScale(roi, scaleFactor=1.1, minNeighbors=5)
+
+        for (px, py, pw, ph) in plates:
+            # Draw rectangle around license plates
+            cv2.rectangle(image, (x + px, y + py), (x + px + pw, y + py + ph), (0, 255, 0), 2)
+
+            # Crop the license plate area
+            plate_image = roi[py:py + ph, px:px + pw]
+            plate_image = cv2.cvtColor(plate_image, cv2.COLOR_GRAY2BGR)
+
+            # Use pytesseract to extract text from the license plate
+            plate_text = pytesseract.image_to_string(plate_image, config='--psm 8')
+            cv2.putText(image, plate_text.strip(), (x + px, y + py - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+    # Save the modified image
+    output_path = 'output_' + image_path.split('/')[-1]
+    cv2.imwrite(output_path, image)
+
+    # Display the result
+    cv2.imshow('Detected Cars and License Plates', image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+# Example usage
+process_image('input_image.jpg')

@@ -1,0 +1,52 @@
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend
+    participant API as API
+    participant FB as FacebookOAuth
+    participant HS as HubSpotOAuth
+    participant S as Scheduler
+    participant M as Mapping
+    participant AM as AdMetric
+    participant C as Contact
+    participant D as Deal
+    participant L as Logger
+    participant N as Notifier
+
+    U->>FE: Login & authorize Facebook/HubSpot
+    FE->>API: /auth/facebook, /auth/hubspot
+    API->>FB: get_auth_url()
+    FB-->>API: auth_url
+    API-->>FE: redirect to auth_url
+    FE->>API: /auth/callback (with code)
+    API->>FB: fetch_token(code)
+    FB-->>API: access_token
+    API->>HS: fetch_token(code)
+    HS-->>API: access_token
+    API-->>FE: Auth success
+
+    U->>FE: Set sync interval, mapping rules
+    FE->>API: /settings (interval, rules)
+    API->>S: adjust_interval(new_interval)
+
+    S->>API: run_sync()
+    API->>FB: fetch ad metrics
+    FB-->>API: metrics
+    API->>M: map_metrics_to_contacts(metrics)
+    M->>C: update_from_metric(metric)
+    API->>M: map_metrics_to_deals(metrics)
+    M->>D: update_from_metric(metric)
+    API->>HS: update contacts/deals
+    HS-->>API: update status
+    API->>L: log_info("Sync completed")
+    API->>N: notify_success("Sync completed")
+
+    FE->>API: /metrics, /contacts, /deals (with filters)
+    API->>AM: get_metrics(filter)
+    API->>C: get_contacts(filter)
+    API->>D: get_deals(filter)
+    API-->>FE: filtered data
+
+    FE->>U: Display dashboard (table, charts, segmentation)
+
+    S->>L: log_error(msg) on failure
+    S->>N: notify_error(msg) on failure

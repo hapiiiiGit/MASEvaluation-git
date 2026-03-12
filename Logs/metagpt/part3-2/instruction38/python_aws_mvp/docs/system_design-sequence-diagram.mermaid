@@ -1,0 +1,37 @@
+sequenceDiagram
+    participant FE as Frontend
+    participant API as API
+    participant Auth as AuthManager
+    participant Storage as StorageManager
+    participant Billing as BillingManager
+    participant Obs as ObservabilityManager
+    participant AWS as AWS Services
+    participant Stripe as Stripe
+
+    FE->>API: POST /auth/login (email, password)
+    API->>Auth: login(email, password)
+    Auth-->>API: JWT token
+    API-->>FE: JWT token
+
+    FE->>API: GET /storage/presigned-url (filename)
+    API->>Storage: generate_presigned_url(user_id, filename)
+    Storage->>AWS: Request presigned S3 URL
+    AWS-->>Storage: Presigned URL
+    Storage-->>API: Presigned URL
+    API-->>FE: Presigned URL
+
+    FE->>AWS: PUT file to S3 using presigned URL
+    AWS-->>FE: Upload success
+    FE->>API: POST /billing/usage (usage data)
+    API->>Billing: meter_usage(user_id, usage)
+    Billing->>Stripe: Record usage
+    Stripe-->>Billing: Confirmation
+    Billing-->>API: Success
+    API-->>FE: Success
+
+    API->>Obs: log_event(event)
+    Obs->>AWS: Send logs/metrics to CloudWatch
+    Obs->>Sentry: Track error (if any)
+
+    FE->>API: GET /docs
+    API-->>FE: OpenAPI docs

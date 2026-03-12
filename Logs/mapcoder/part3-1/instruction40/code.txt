@@ -1,0 +1,118 @@
+# models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+class Template(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    image = models.ImageField(upload_to='templates/')
+
+class Event(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    date = models.DateTimeField()
+    template = models.ForeignKey(Template, on_delete=models.SET_NULL, null=True)
+    image = models.ImageField(upload_to='events/')
+
+class RSVP(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    guest_name = models.CharField(max_length=100)
+    email = models.EmailField()
+    attending = models.BooleanField(default=False)
+
+class Payment(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20)
+
+# views.py
+from rest_framework import viewsets
+from .models import Event, Template, RSVP, Payment
+from .serializers import EventSerializer, TemplateSerializer, RSVPSerializer, PaymentSerializer
+from rest_framework.permissions import IsAuthenticated
+
+class EventViewSet(viewsets.ModelViewSet):
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+class TemplateViewSet(viewsets.ModelViewSet):
+    queryset = Template.objects.all()
+    serializer_class = TemplateSerializer
+
+class RSVPViewSet(viewsets.ModelViewSet):
+    queryset = RSVP.objects.all()
+    serializer_class = RSVPSerializer
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+
+# serializers.py
+from rest_framework import serializers
+from .models import Event, Template, RSVP, Payment
+
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = '__all__'
+
+class TemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Template
+        fields = '__all__'
+
+class RSVPSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RSVP
+        fields = '__all__'
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = '__all__'
+
+# urls.py
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import EventViewSet, TemplateViewSet, RSVPViewSet, PaymentViewSet
+
+router = DefaultRouter()
+router.register(r'events', EventViewSet)
+router.register(r'templates', TemplateViewSet)
+router.register(r'rsvps', RSVPViewSet)
+router.register(r'payments', PaymentViewSet)
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+
+# settings.py (add necessary configurations)
+INSTALLED_APPS = [
+    ...
+    'rest_framework',
+    'corsheaders',
+    'your_app_name',
+]
+
+# Add middleware for CORS
+MIDDLEWARE = [
+    ...
+    'corsheaders.middleware.CorsMiddleware',
+    ...
+]
+
+# Configure CORS
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
+
+# Add image storage settings
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Run migrations
+# python manage.py makemigrations
+# python manage.py migrate

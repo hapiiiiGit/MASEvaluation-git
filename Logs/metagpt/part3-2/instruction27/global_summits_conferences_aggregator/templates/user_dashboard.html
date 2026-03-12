@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Profile</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" class="rounded-circle mb-3" width="100" height="100" alt="{{ user.full_name }}">
+                {% else %}
+                    <img src="{% static 'img/default_profile.png' %}" class="rounded-circle mb-3" width="100" height="100" alt="Default Profile">
+                {% endif %}
+                <h4>{{ user.full_name }}</h4>
+                <p class="text-muted">{{ user.get_role_display }}</p>
+                {% if user.organization %}
+                    <p><strong>Organization:</strong> {{ user.organization }}</p>
+                {% endif %}
+                {% if user.contact_number %}
+                    <p><strong>Contact:</strong> {{ user.contact_number }}</p>
+                {% endif %}
+                {% if user.linkedin_url %}
+                    <p>
+                        <a href="{{ user.linkedin_url }}" target="_blank">
+                            <img src="{% static 'img/linkedin.png' %}" width="20" alt="LinkedIn">
+                        </a>
+                    </p>
+                {% endif %}
+                {% if user.website_url %}
+                    <p>
+                        <a href="{{ user.website_url }}" target="_blank">
+                            <img src="{% static 'img/website.png' %}" width="20" alt="Website">
+                        </a>
+                    </p>
+                {% endif %}
+                <p>{{ user.bio|linebreaks }}</p>
+                <a href="{% url 'profile-edit' %}" class="btn btn-outline-primary w-100">Edit Profile</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        {% if user.role == 'delegate' %}
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Registered Events</h5>
+                </div>
+                <div class="card-body">
+                    {% if registered_events %}
+                        <ul class="list-group">
+                            {% for event in registered_events %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="{% url 'event-detail' event.id %}">{{ event.title }}</a>
+                                    <span class="badge bg-primary">{{ event.get_event_type_display }}</span>
+                                    <span class="text-muted">{{ event.start_date|date:"M d, Y" }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="alert alert-info">You have not registered for any events yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if user.role == 'organizer' %}
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Managed Events</h5>
+                </div>
+                <div class="card-body">
+                    {% if managed_events %}
+                        <ul class="list-group">
+                            {% for event in managed_events %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="{% url 'event-detail' event.id %}">{{ event.title }}</a>
+                                    <span class="badge bg-primary">{{ event.get_event_type_display }}</span>
+                                    <span class="text-muted">{{ event.start_date|date:"M d, Y" }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="alert alert-info">You are not managing any events yet.</div>
+                    {% endif %}
+                    <a href="{% url 'event-create' %}" class="btn btn-success mt-3">Create New Event</a>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if user.role == 'speaker' %}
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">Speaking Sessions</h5>
+                </div>
+                <div class="card-body">
+                    {% if speaking_sessions %}
+                        <ul class="list-group">
+                            {% for session in speaking_sessions %}
+                                <li class="list-group-item">
+                                    <strong>{{ session.title }}</strong>
+                                    <br>
+                                    <span class="text-muted">{{ session.start_time|date:"M d, Y H:i" }} - {{ session.end_time|date:"M d, Y H:i" }}</span>
+                                    <br>
+                                    <a href="{% url 'event-detail' session.event.id %}">{{ session.event.title }}</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="alert alert-info">You are not speaking at any sessions yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">My Tickets</h5>
+            </div>
+            <div class="card-body">
+                {% if tickets %}
+                    <ul class="list-group">
+                        {% for ticket in tickets %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <a href="{% url 'event-detail' ticket.event.id %}">{{ ticket.event.title }}</a>
+                                    <span class="badge bg-info ms-2">{{ ticket.get_ticket_type_display }}</span>
+                                </span>
+                                <span>
+                                    <span class="badge bg-success">{{ ticket.status }}</span>
+                                    {% if ticket.qr_code %}
+                                        <a href="{{ ticket.qr_code.url }}" target="_blank" class="ms-2">
+                                            <img src="{{ ticket.qr_code.url }}" width="32" alt="QR Code">
+                                        </a>
+                                    {% endif %}
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="alert alert-info">You have no tickets yet.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

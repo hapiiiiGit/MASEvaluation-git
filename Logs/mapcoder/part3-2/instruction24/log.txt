@@ -1,0 +1,929 @@
+#########################
+Running start ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:02:32.114444
+##########################
+
+DEBUG: Base.run() is starting loop 0 with task_id: Custom/tetris_game
+DEBUG: MapCoder.run_single_pass() received task_id: Custom/tetris_game
+
+
+
+________________________
+Input for knowledge base and exemplars: 
+Given a problem, provide relevant problems then identify the algorithm behind it and also explain the tutorial of the algorithm.
+# Problem:
+
+Please help me implement a Python program for a cross-platform desktop application that extracts data from authenticated web pages and local PDFs, storing the structured output in an Excel file along with the associated PDF files in separate folders.
+
+
+# Exemplars:
+Recall three (03) relevant and distinct problems (different from problem mentioned above). For each problem,
+1. describe it
+2. generate Python3 code step by step to solve that problem
+3. finally generate a planning to solve that problem
+
+# Algorithm:
+
+----------------
+Important:
+Your response must follow the following xml format-
+
+<root>
+<problem>
+# Recall three (03) relevant and distinct problems (different from problem mentioned above). Write each problem in the following format.
+<description>
+# Describe the problem.
+</description>
+<code>
+# Let's think step by step to solve this problem in Python3 programming language.
+</code>
+<planning>
+# Planning to solve this problem.
+</planning>
+</problem>
+
+# similarly add more problems here...
+
+<algorithm>
+# Identify the algorithm (Brute-force, Dynamic Programming, Divide-and-conquer, Greedy, Backtracking, Recursive, Binary search, and so on) that needs to be used to solve the original problem.
+# Write a useful tutorial about the above mentioned algorithms. Provide a high level generic tutorial for solving this types of problem. Do not generate code.
+</algorithm>
+</root>
+
+
+
+________________________
+Response from knowledge base and exemplars: 
+<root>
+<problem>
+<description><![CDATA[
+You are tasked with building a Python program that downloads images from a list of authenticated web pages, renames them according to a specific pattern, and stores them in organized folders based on their categories.
+]]></description>
+<code><![CDATA[
+# Step 1: Authenticate and fetch web pages
+import requests
+from bs4 import BeautifulSoup
+import os
+
+session = requests.Session()
+login_url = 'https://example.com/login'
+payload = {'username': 'your_username', 'password': 'your_password'}
+session.post(login_url, data=payload)
+
+# Step 2: Get image URLs from each page
+page_urls = ['https://example.com/page1', 'https://example.com/page2']
+image_links = []
+for url in page_urls:
+    resp = session.get(url)
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    for img in soup.find_all('img'):
+        image_links.append((img['src'], 'category1'))  # Assume category1 for demo
+
+# Step 3: Download and rename images
+for idx, (img_url, category) in enumerate(image_links):
+    img_resp = session.get(img_url)
+    folder = f'images/{category}'
+    os.makedirs(folder, exist_ok=True)
+    filename = f'{folder}/image_{idx+1}.jpg'
+    with open(filename, 'wb') as f:
+        f.write(img_resp.content)
+]]></code>
+<planning><![CDATA[
+1. Authenticate to the website using requests.Session.
+2. Iterate through the list of web pages and parse HTML to extract image URLs.
+3. For each image, determine its category and download it.
+4. Rename images according to the required pattern and save them in category-based folders.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Create a Python desktop application that reads multiple local CSV files, merges them based on a common key, performs data cleaning (removing duplicates and handling missing values), and exports the cleaned data to a new Excel file.
+]]></description>
+<code><![CDATA[
+# Step 1: Read CSV files
+import pandas as pd
+import glob
+
+csv_files = glob.glob('data/*.csv')
+dfs = [pd.read_csv(f) for f in csv_files]
+
+# Step 2: Merge DataFrames on a common key
+merged_df = dfs[0]
+for df in dfs[1:]:
+    merged_df = pd.merge(merged_df, df, on='common_key', how='outer')
+
+# Step 3: Data cleaning
+merged_df.drop_duplicates(inplace=True)
+merged_df.fillna('N/A', inplace=True)
+
+# Step 4: Export to Excel
+merged_df.to_excel('cleaned_data.xlsx', index=False)
+]]></code>
+<planning><![CDATA[
+1. Use glob to find all CSV files in a directory.
+2. Read each CSV file into a pandas DataFrame.
+3. Merge all DataFrames on a common key using pandas.merge.
+4. Remove duplicate rows and handle missing values.
+5. Export the cleaned DataFrame to an Excel file.
+]]></planning>
+</problem>
+
+<problem>
+<description><![CDATA[
+Develop a Python script that scans a directory for PDF files, extracts text from each PDF, searches for specific keywords, and generates a summary report in an Excel file listing the PDF file name, found keywords, and their counts.
+]]></description>
+<code><![CDATA[
+# Step 1: Scan directory for PDFs
+import os
+import PyPDF2
+import pandas as pd
+
+pdf_folder = 'pdfs'
+pdf_files = [f for f in os.listdir(pdf_folder) if f.endswith('.pdf')]
+keywords = ['invoice', 'payment', 'due']
+
+report = []
+
+# Step 2: Extract text and search for keywords
+for pdf_file in pdf_files:
+    with open(os.path.join(pdf_folder, pdf_file), 'rb') as f:
+        reader = PyPDF2.PdfReader(f)
+        text = ''
+        for page in reader.pages:
+            text += page.extract_text() or ''
+        found = {kw: text.lower().count(kw) for kw in keywords}
+        report.append({'file': pdf_file, **found})
+
+# Step 3: Export report to Excel
+df = pd.DataFrame(report)
+df.to_excel('pdf_keyword_report.xlsx', index=False)
+]]></code>
+<planning><![CDATA[
+1. List all PDF files in the target directory.
+2. For each PDF, extract text using PyPDF2.
+3. Search for specified keywords and count their occurrences.
+4. Store results in a structured format.
+5. Export the summary report to an Excel file.
+]]></planning>
+</problem>
+
+<algorithm><![CDATA[
+The original problem requires a combination of algorithms and techniques:
+- Web scraping (with authentication)
+- File I/O (PDF reading and saving)
+- Data extraction and structuring
+- Exporting to Excel
+
+The main algorithmic approach is a combination of procedural programming and modular design, with elements of Brute-force (iterating over files/pages), and using libraries for parsing and extraction.
+
+Tutorial:
+1. **Web Scraping with Authentication**: Use requests.Session to maintain login state. After authenticating, fetch pages and parse them using BeautifulSoup or similar libraries. Always respect robots.txt and site policies.
+2. **PDF Extraction**: Use libraries like PyPDF2 or pdfplumber to read and extract text/data from PDFs. Handle exceptions for corrupted or encrypted files.
+3. **Data Structuring**: Use pandas DataFrames to organize extracted data. Clean and format as needed.
+4. **Exporting to Excel**: pandas provides to_excel for easy export. For more advanced formatting, use openpyxl or xlsxwriter.
+5. **File Management**: Use os and shutil to organize and move files into folders.
+
+High-level steps:
+- Authenticate and fetch web content.
+- Download or access local PDFs.
+- Extract and parse relevant data.
+- Structure data in DataFrames.
+- Save structured data to Excel.
+- Organize associated files in folders.
+
+This approach is modular and can be adapted for similar data extraction and organization tasks. Always modularize code for maintainability and scalability.
+]]></algorithm>
+</root>
+
+
+________________________
+Input for our problem planning using example: 1: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+You are tasked with building a Python program that downloads images from a list of authenticated web pages, renames them according to a specific pattern, and stores them in organized folders based on their categories.
+
+# Planning:
+
+1. Authenticate to the website using requests.Session.
+2. Iterate through the list of web pages and parse HTML to extract image URLs.
+3. For each image, determine its category and download it.
+4. Rename images according to the required pattern and save them in category-based folders.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of algorithms and techniques:
+- Web scraping (with authentication)
+- File I/O (PDF reading and saving)
+- Data extraction and structuring
+- Exporting to Excel
+
+The main algorithmic approach is a combination of procedural programming and modular design, with elements of Brute-force (iterating over files/pages), and using libraries for parsing and extraction.
+
+Tutorial:
+1. **Web Scraping with Authentication**: Use requests.Session to maintain login state. After authenticating, fetch pages and parse them using BeautifulSoup or similar libraries. Always respect robots.txt and site policies.
+2. **PDF Extraction**: Use libraries like PyPDF2 or pdfplumber to read and extract text/data from PDFs. Handle exceptions for corrupted or encrypted files.
+3. **Data Structuring**: Use pandas DataFrames to organize extracted data. Clean and format as needed.
+4. **Exporting to Excel**: pandas provides to_excel for easy export. For more advanced formatting, use openpyxl or xlsxwriter.
+5. **File Management**: Use os and shutil to organize and move files into folders.
+
+High-level steps:
+- Authenticate and fetch web content.
+- Download or access local PDFs.
+- Extract and parse relevant data.
+- Structure data in DataFrames.
+- Save structured data to Excel.
+- Organize associated files in folders.
+
+This approach is modular and can be adapted for similar data extraction and organization tasks. Always modularize code for maintainability and scalability.
+
+## Problem to be solved:
+
+Please help me implement a Python program for a cross-platform desktop application that extracts data from authenticated web pages and local PDFs, storing the structured output in an Excel file along with the associated PDF files in separate folders.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning to Solve the Problem:**
+
+1. **Authentication**
+   - Use `requests.Session` to log in to the website and maintain session state.
+
+2. **Web Page Data Extraction**
+   - Iterate through the list of authenticated web pages.
+   - Fetch each page’s HTML content.
+   - Parse HTML using `BeautifulSoup` to extract required data fields.
+
+3. **PDF Download/Access**
+   - Identify and download PDF files linked on each page, or access local PDFs as specified.
+   - Save PDFs in a temporary or designated folder.
+
+4. **PDF Data Extraction**
+   - Use `pdfplumber` or `PyPDF2` to open each PDF.
+   - Extract relevant text/data from each PDF.
+   - Handle exceptions for corrupted or encrypted files.
+
+5. **Data Structuring**
+   - Organize extracted web and PDF data into a `pandas.DataFrame`.
+   - Clean and format data as needed (e.g., remove duplicates, normalize fields).
+
+6. **Excel Export**
+   - Export the structured DataFrame to an Excel file using `pandas.to_excel`.
+   - Optionally, use `openpyxl` or `xlsxwriter` for advanced formatting.
+
+7. **File Organization**
+   - Create separate folders for each category or data group.
+   - Move associated PDF files into their respective folders.
+
+8. **Cross-Platform Packaging**
+   - Ensure all file paths and operations are OS-independent using `os` and `pathlib`.
+   - Package the application using `PyInstaller` or `cx_Freeze` for cross-platform desktop use.
+
+9. **Error Handling & Logging**
+   - Implement robust error handling for network, file, and parsing operations.
+   - Log progress and errors for debugging and user feedback.
+
+10. **User Interface (Optional)**
+    - Design a simple GUI using `tkinter` or `PyQt` for user interaction (e.g., input credentials, select folders, start extraction).
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program for a cross-platform desktop application that extracts data from authenticated web pages and local PDFs, storing the structured output in an Excel file along with the associated PDF files in separate folders.
+
+# Planning:
+**Planning to Solve the Problem:**
+
+1. **Authentication**
+   - Use `requests.Session` to log in to the website and maintain session state.
+
+2. **Web Page Data Extraction**
+   - Iterate through the list of authenticated web pages.
+   - Fetch each page’s HTML content.
+   - Parse HTML using `BeautifulSoup` to extract required data fields.
+
+3. **PDF Download/Access**
+   - Identify and download PDF files linked on each page, or access local PDFs as specified.
+   - Save PDFs in a temporary or designated folder.
+
+4. **PDF Data Extraction**
+   - Use `pdfplumber` or `PyPDF2` to open each PDF.
+   - Extract relevant text/data from each PDF.
+   - Handle exceptions for corrupted or encrypted files.
+
+5. **Data Structuring**
+   - Organize extracted web and PDF data into a `pandas.DataFrame`.
+   - Clean and format data as needed (e.g., remove duplicates, normalize fields).
+
+6. **Excel Export**
+   - Export the structured DataFrame to an Excel file using `pandas.to_excel`.
+   - Optionally, use `openpyxl` or `xlsxwriter` for advanced formatting.
+
+7. **File Organization**
+   - Create separate folders for each category or data group.
+   - Move associated PDF files into their respective folders.
+
+8. **Cross-Platform Packaging**
+   - Ensure all file paths and operations are OS-independent using `os` and `pathlib`.
+   - Package the application using `PyInstaller` or `cx_Freeze` for cross-platform desktop use.
+
+9. **Error Handling & Logging**
+   - Implement robust error handling for network, file, and parsing operations.
+   - Log progress and errors for debugging and user feedback.
+
+10. **User Interface (Optional)**
+    - Design a simple GUI using `tkinter` or `PyQt` for user interaction (e.g., input credentials, select folders, start extraction).
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a practical software engineering task involving web scraping, PDF parsing, data structuring, and desktop application packaging. The provided plan is comprehensive and well-structured for implementing such a desktop application in Python3. It covers authentication, data extraction from web pages and PDFs, data organization, Excel export, file management, cross-platform compatibility, error handling, and optional GUI development. All necessary libraries and tools are mentioned, and the steps are logically ordered. Therefore, the plan is correct and sufficient to solve the described problem as a software project, but it is not suitable for a competitive programming context, which usually involves algorithmic challenges with input/output via standard streams.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 2: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Create a Python desktop application that reads multiple local CSV files, merges them based on a common key, performs data cleaning (removing duplicates and handling missing values), and exports the cleaned data to a new Excel file.
+
+# Planning:
+
+1. Use glob to find all CSV files in a directory.
+2. Read each CSV file into a pandas DataFrame.
+3. Merge all DataFrames on a common key using pandas.merge.
+4. Remove duplicate rows and handle missing values.
+5. Export the cleaned DataFrame to an Excel file.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of algorithms and techniques:
+- Web scraping (with authentication)
+- File I/O (PDF reading and saving)
+- Data extraction and structuring
+- Exporting to Excel
+
+The main algorithmic approach is a combination of procedural programming and modular design, with elements of Brute-force (iterating over files/pages), and using libraries for parsing and extraction.
+
+Tutorial:
+1. **Web Scraping with Authentication**: Use requests.Session to maintain login state. After authenticating, fetch pages and parse them using BeautifulSoup or similar libraries. Always respect robots.txt and site policies.
+2. **PDF Extraction**: Use libraries like PyPDF2 or pdfplumber to read and extract text/data from PDFs. Handle exceptions for corrupted or encrypted files.
+3. **Data Structuring**: Use pandas DataFrames to organize extracted data. Clean and format as needed.
+4. **Exporting to Excel**: pandas provides to_excel for easy export. For more advanced formatting, use openpyxl or xlsxwriter.
+5. **File Management**: Use os and shutil to organize and move files into folders.
+
+High-level steps:
+- Authenticate and fetch web content.
+- Download or access local PDFs.
+- Extract and parse relevant data.
+- Structure data in DataFrames.
+- Save structured data to Excel.
+- Organize associated files in folders.
+
+This approach is modular and can be adapted for similar data extraction and organization tasks. Always modularize code for maintainability and scalability.
+
+## Problem to be solved:
+
+Please help me implement a Python program for a cross-platform desktop application that extracts data from authenticated web pages and local PDFs, storing the structured output in an Excel file along with the associated PDF files in separate folders.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+**Planning:**
+
+1. **User Interface:**
+   - Use tkinter or PyQt for a simple GUI to input credentials, select directories, and start the process.
+
+2. **Authentication & Web Scraping:**
+   - Use requests.Session to log in to the website with user-provided credentials.
+   - Navigate to target pages and parse HTML with BeautifulSoup to find PDF links and relevant data.
+
+3. **PDF Download & Management:**
+   - Download PDFs to a temporary or user-specified directory.
+   - Organize PDFs into folders based on extracted metadata (e.g., by category or date).
+
+4. **PDF Data Extraction:**
+   - Use pdfplumber or PyPDF2 to extract text or tables from each PDF.
+   - Parse and clean extracted data as needed.
+
+5. **Data Structuring:**
+   - Store all extracted and scraped data in pandas DataFrames.
+   - Merge data from web pages and PDFs as required.
+
+6. **Data Cleaning:**
+   - Remove duplicates and handle missing values in DataFrames.
+
+7. **Exporting Results:**
+   - Export the cleaned DataFrame to an Excel file using pandas.to_excel.
+   - Save the Excel file in the output directory alongside organized PDF folders.
+
+8. **Error Handling & Logging:**
+   - Implement try-except blocks for network, file, and parsing operations.
+   - Log errors and progress for user feedback.
+
+9. **Cross-Platform Packaging:**
+   - Use PyInstaller or cx_Freeze to package the application for Windows, macOS, and Linux.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program for a cross-platform desktop application that extracts data from authenticated web pages and local PDFs, storing the structured output in an Excel file along with the associated PDF files in separate folders.
+
+# Planning:
+**Planning:**
+
+1. **User Interface:**
+   - Use tkinter or PyQt for a simple GUI to input credentials, select directories, and start the process.
+
+2. **Authentication & Web Scraping:**
+   - Use requests.Session to log in to the website with user-provided credentials.
+   - Navigate to target pages and parse HTML with BeautifulSoup to find PDF links and relevant data.
+
+3. **PDF Download & Management:**
+   - Download PDFs to a temporary or user-specified directory.
+   - Organize PDFs into folders based on extracted metadata (e.g., by category or date).
+
+4. **PDF Data Extraction:**
+   - Use pdfplumber or PyPDF2 to extract text or tables from each PDF.
+   - Parse and clean extracted data as needed.
+
+5. **Data Structuring:**
+   - Store all extracted and scraped data in pandas DataFrames.
+   - Merge data from web pages and PDFs as required.
+
+6. **Data Cleaning:**
+   - Remove duplicates and handle missing values in DataFrames.
+
+7. **Exporting Results:**
+   - Export the cleaned DataFrame to an Excel file using pandas.to_excel.
+   - Save the Excel file in the output directory alongside organized PDF folders.
+
+8. **Error Handling & Logging:**
+   - Implement try-except blocks for network, file, and parsing operations.
+   - Log errors and progress for user feedback.
+
+9. **Cross-Platform Packaging:**
+   - Use PyInstaller or cx_Freeze to package the application for Windows, macOS, and Linux.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a software engineering task involving GUI development, web scraping with authentication, PDF processing, data structuring, and cross-platform packaging. The provided plan is comprehensive and covers all necessary steps to implement the described desktop application in Python3. It addresses user interface, authentication, web scraping, PDF handling, data extraction, structuring, cleaning, exporting, error handling, and packaging. Each step uses appropriate Python libraries and tools. Therefore, the plan is correct and sufficient to solve the described problem, but it is not related to competitive programming, which usually involves algorithmic challenges rather than full application development.\n', 'confidence': 95}
+
+
+________________________
+Input for our problem planning using example: 3: 
+Given a competitive programming problem generate a concrete planning to solve the problem.
+# Problem:
+
+Develop a Python script that scans a directory for PDF files, extracts text from each PDF, searches for specific keywords, and generates a summary report in an Excel file listing the PDF file name, found keywords, and their counts.
+
+# Planning:
+
+1. List all PDF files in the target directory.
+2. For each PDF, extract text using PyPDF2.
+3. Search for specified keywords and count their occurrences.
+4. Store results in a structured format.
+5. Export the summary report to an Excel file.
+
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of algorithms and techniques:
+- Web scraping (with authentication)
+- File I/O (PDF reading and saving)
+- Data extraction and structuring
+- Exporting to Excel
+
+The main algorithmic approach is a combination of procedural programming and modular design, with elements of Brute-force (iterating over files/pages), and using libraries for parsing and extraction.
+
+Tutorial:
+1. **Web Scraping with Authentication**: Use requests.Session to maintain login state. After authenticating, fetch pages and parse them using BeautifulSoup or similar libraries. Always respect robots.txt and site policies.
+2. **PDF Extraction**: Use libraries like PyPDF2 or pdfplumber to read and extract text/data from PDFs. Handle exceptions for corrupted or encrypted files.
+3. **Data Structuring**: Use pandas DataFrames to organize extracted data. Clean and format as needed.
+4. **Exporting to Excel**: pandas provides to_excel for easy export. For more advanced formatting, use openpyxl or xlsxwriter.
+5. **File Management**: Use os and shutil to organize and move files into folders.
+
+High-level steps:
+- Authenticate and fetch web content.
+- Download or access local PDFs.
+- Extract and parse relevant data.
+- Structure data in DataFrames.
+- Save structured data to Excel.
+- Organize associated files in folders.
+
+This approach is modular and can be adapted for similar data extraction and organization tasks. Always modularize code for maintainability and scalability.
+
+## Problem to be solved:
+
+Please help me implement a Python program for a cross-platform desktop application that extracts data from authenticated web pages and local PDFs, storing the structured output in an Excel file along with the associated PDF files in separate folders.
+
+## Sample Test cases: 
+[]
+
+## Planning:
+
+----------------
+Important: You should give only the planning to solve the problem. Do not add extra explanation or words.
+
+
+________________________
+Response from our problem planning: 
+1. Define user inputs: authentication credentials, target URLs, local PDF directory, keywords list, output Excel path.
+2. Implement authentication and session management for web scraping.
+3. Scrape authenticated web pages to identify and download relevant PDF files.
+4. Save downloaded PDFs and organize them into designated folders.
+5. List all local and downloaded PDF files for processing.
+6. For each PDF file:
+    a. Extract text using a robust PDF parser (e.g., PyPDF2 or pdfplumber).
+    b. Search for specified keywords and count their occurrences.
+    c. Store file name, found keywords, and counts in a structured format.
+7. Aggregate all results into a pandas DataFrame.
+8. Export the DataFrame to an Excel file.
+9. Organize all associated PDF files into separate folders as needed.
+10. Implement error handling for authentication, file I/O, and PDF parsing.
+11. Test the application on multiple platforms (Windows, macOS, Linux) for compatibility.
+Input for planning verification: 
+Given a competitive programming problem and a plan to solve the problem in Python3, tell whether the plan is correct to solve this problem.
+
+# Problem:
+
+Please help me implement a Python program for a cross-platform desktop application that extracts data from authenticated web pages and local PDFs, storing the structured output in an Excel file along with the associated PDF files in separate folders.
+
+# Planning:
+1. Define user inputs: authentication credentials, target URLs, local PDF directory, keywords list, output Excel path.
+2. Implement authentication and session management for web scraping.
+3. Scrape authenticated web pages to identify and download relevant PDF files.
+4. Save downloaded PDFs and organize them into designated folders.
+5. List all local and downloaded PDF files for processing.
+6. For each PDF file:
+    a. Extract text using a robust PDF parser (e.g., PyPDF2 or pdfplumber).
+    b. Search for specified keywords and count their occurrences.
+    c. Store file name, found keywords, and counts in a structured format.
+7. Aggregate all results into a pandas DataFrame.
+8. Export the DataFrame to an Excel file.
+9. Organize all associated PDF files into separate folders as needed.
+10. Implement error handling for authentication, file I/O, and PDF parsing.
+11. Test the application on multiple platforms (Windows, macOS, Linux) for compatibility.
+
+----------------
+Important: Your response must follow the following xml format-```
+<root>
+<explanation> Discuss whether the given competitive programming problem is solvable by using the above mentioned planning.</explanation>
+<confidence> Confidence score regarding the solvability of the problem. Must be an integer between 0 and 100. </confidence>
+</root>
+```
+Response from planning verification: 
+{'explanation': '\nThe given problem is not a typical competitive programming problem; instead, it is a software engineering task involving web scraping, PDF parsing, file management, and Excel export in a cross-platform desktop application. The provided plan is comprehensive and logically structured for implementing such an application in Python3. It covers user input, authentication, web scraping, PDF handling, keyword extraction, data aggregation, Excel export, file organization, error handling, and cross-platform testing. Each step is feasible with existing Python libraries (e.g., requests, pdfplumber, pandas, openpyxl, os, shutil). However, the plan assumes access to authenticated web pages and that the PDF parsing libraries can handle all PDF formats encountered, which may not always be the case. Also, GUI aspects of a desktop application are not explicitly addressed, but the plan is sufficient for a command-line or script-based tool. Overall, the plan is correct and should solve the problem as described.\n', 'confidence': 90}
+
+
+________________________
+Input for final code generation: 
+Given a competitive programming problem generate Python3 code to solve the problem.
+## Relevant Algorithm to solve the next problem:
+
+The original problem requires a combination of algorithms and techniques:
+- Web scraping (with authentication)
+- File I/O (PDF reading and saving)
+- Data extraction and structuring
+- Exporting to Excel
+
+The main algorithmic approach is a combination of procedural programming and modular design, with elements of Brute-force (iterating over files/pages), and using libraries for parsing and extraction.
+
+Tutorial:
+1. **Web Scraping with Authentication**: Use requests.Session to maintain login state. After authenticating, fetch pages and parse them using BeautifulSoup or similar libraries. Always respect robots.txt and site policies.
+2. **PDF Extraction**: Use libraries like PyPDF2 or pdfplumber to read and extract text/data from PDFs. Handle exceptions for corrupted or encrypted files.
+3. **Data Structuring**: Use pandas DataFrames to organize extracted data. Clean and format as needed.
+4. **Exporting to Excel**: pandas provides to_excel for easy export. For more advanced formatting, use openpyxl or xlsxwriter.
+5. **File Management**: Use os and shutil to organize and move files into folders.
+
+High-level steps:
+- Authenticate and fetch web content.
+- Download or access local PDFs.
+- Extract and parse relevant data.
+- Structure data in DataFrames.
+- Save structured data to Excel.
+- Organize associated files in folders.
+
+This approach is modular and can be adapted for similar data extraction and organization tasks. Always modularize code for maintainability and scalability.
+
+## Problem to be solved:
+
+Please help me implement a Python program for a cross-platform desktop application that extracts data from authenticated web pages and local PDFs, storing the structured output in an Excel file along with the associated PDF files in separate folders.
+
+## Planning:
+**Planning to Solve the Problem:**
+
+1. **Authentication**
+   - Use `requests.Session` to log in to the website and maintain session state.
+
+2. **Web Page Data Extraction**
+   - Iterate through the list of authenticated web pages.
+   - Fetch each page’s HTML content.
+   - Parse HTML using `BeautifulSoup` to extract required data fields.
+
+3. **PDF Download/Access**
+   - Identify and download PDF files linked on each page, or access local PDFs as specified.
+   - Save PDFs in a temporary or designated folder.
+
+4. **PDF Data Extraction**
+   - Use `pdfplumber` or `PyPDF2` to open each PDF.
+   - Extract relevant text/data from each PDF.
+   - Handle exceptions for corrupted or encrypted files.
+
+5. **Data Structuring**
+   - Organize extracted web and PDF data into a `pandas.DataFrame`.
+   - Clean and format data as needed (e.g., remove duplicates, normalize fields).
+
+6. **Excel Export**
+   - Export the structured DataFrame to an Excel file using `pandas.to_excel`.
+   - Optionally, use `openpyxl` or `xlsxwriter` for advanced formatting.
+
+7. **File Organization**
+   - Create separate folders for each category or data group.
+   - Move associated PDF files into their respective folders.
+
+8. **Cross-Platform Packaging**
+   - Ensure all file paths and operations are OS-independent using `os` and `pathlib`.
+   - Package the application using `PyInstaller` or `cx_Freeze` for cross-platform desktop use.
+
+9. **Error Handling & Logging**
+   - Implement robust error handling for network, file, and parsing operations.
+   - Log progress and errors for debugging and user feedback.
+
+10. **User Interface (Optional)**
+    - Design a simple GUI using `tkinter` or `PyQt` for user interaction (e.g., input credentials, select folders, start extraction).
+## Sample Test cases: 
+[]
+
+## Let's think step by step.
+
+----------------
+Important:
+
+## Your response must contain only the Python3 code to solve this problem. Do not add extra explanation or words.
+
+
+________________________
+Response from final code generation: 
+
+import os
+import sys
+import shutil
+import logging
+import getpass
+from pathlib import Path
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import pdfplumber
+from tkinter import Tk, filedialog, simpledialog, messagebox
+
+# ----------------- CONFIGURATION -----------------
+# Set up logging
+logging.basicConfig(
+    filename='extractor.log',
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s:%(message)s'
+)
+
+# ----------------- UTILITY FUNCTIONS -----------------
+def safe_mkdir(path):
+    Path(path).mkdir(parents=True, exist_ok=True)
+
+def get_filename_from_url(url):
+    return url.split('/')[-1].split('?')[0]
+
+def ask_credentials():
+    root = Tk()
+    root.withdraw()
+    username = simpledialog.askstring("Login", "Enter username:")
+    password = getpass.getpass("Enter password (input hidden): ")
+    root.destroy()
+    return username, password
+
+def ask_folder(title="Select Folder"):
+    root = Tk()
+    root.withdraw()
+    folder = filedialog.askdirectory(title=title)
+    root.destroy()
+    return folder
+
+def ask_saveas(title="Save Excel As"):
+    root = Tk()
+    root.withdraw()
+    file = filedialog.asksaveasfilename(title=title, defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
+    root.destroy()
+    return file
+
+# ----------------- AUTHENTICATION -----------------
+def authenticate(login_url, username, password, extra_payload=None):
+    session = requests.Session()
+    payload = {'username': username, 'password': password}
+    if extra_payload:
+        payload.update(extra_payload)
+    resp = session.post(login_url, data=payload)
+    if resp.ok and "logout" in resp.text.lower():
+        logging.info("Authentication successful.")
+        return session
+    else:
+        logging.error("Authentication failed.")
+        raise Exception("Authentication failed.")
+
+# ----------------- WEB SCRAPING -----------------
+def fetch_and_parse(session, url):
+    resp = session.get(url)
+    resp.raise_for_status()
+    return BeautifulSoup(resp.text, 'html.parser')
+
+def extract_data_from_page(soup, fields):
+    # fields: list of (label, css_selector)
+    data = {}
+    for label, selector in fields:
+        el = soup.select_one(selector)
+        data[label] = el.get_text(strip=True) if el else ""
+    return data
+
+def find_pdf_links(soup, base_url=None):
+    pdf_links = []
+    for a in soup.find_all('a', href=True):
+        href = a['href']
+        if href.lower().endswith('.pdf'):
+            if base_url and not href.startswith('http'):
+                href = requests.compat.urljoin(base_url, href)
+            pdf_links.append(href)
+    return pdf_links
+
+def download_pdf(session, url, dest_folder):
+    filename = get_filename_from_url(url)
+    dest_path = os.path.join(dest_folder, filename)
+    with session.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(dest_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+    return dest_path
+
+# ----------------- PDF EXTRACTION -----------------
+def extract_pdf_text(pdf_path, max_pages=2):
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            text = ""
+            for i, page in enumerate(pdf.pages):
+                if i >= max_pages:
+                    break
+                text += page.extract_text() or ""
+            return text.strip()
+    except Exception as e:
+        logging.error(f"Error reading PDF {pdf_path}: {e}")
+        return ""
+
+# ----------------- MAIN EXTRACTION LOGIC -----------------
+def main():
+    # --- User Inputs ---
+    login_url = simpledialog.askstring("Login URL", "Enter login URL (e.g., https://example.com/login):")
+    page_list_file = filedialog.askopenfilename(title="Select file with list of page URLs (one per line)")
+    pdfs_local_folder = ask_folder("Select folder with local PDFs (optional, cancel to skip)")
+    output_folder = ask_folder("Select output folder for PDFs and Excel")
+    excel_path = ask_saveas("Save Excel File As")
+    username, password = ask_credentials()
+
+    # --- Field Extraction Setup ---
+    # Example: fields = [("Title", "h1.title"), ("Date", ".date"), ...]
+    fields = []
+    more_fields = True
+    while more_fields:
+        label = simpledialog.askstring("Field Label", "Enter field label (e.g., Title):")
+        selector = simpledialog.askstring("CSS Selector", f"Enter CSS selector for '{label}':")
+        fields.append((label, selector))
+        more_fields = messagebox.askyesno("Add More?", "Add another field?")
+
+    # --- Authenticate ---
+    try:
+        session = authenticate(login_url, username, password)
+    except Exception as e:
+        messagebox.showerror("Error", f"Authentication failed: {e}")
+        sys.exit(1)
+
+    # --- Prepare Output Folders ---
+    pdfs_folder = os.path.join(output_folder, "PDFs")
+    safe_mkdir(pdfs_folder)
+
+    # --- Read Page URLs ---
+    with open(page_list_file, 'r') as f:
+        page_urls = [line.strip() for line in f if line.strip()]
+
+    # --- Extraction Loop ---
+    records = []
+    for idx, url in enumerate(page_urls):
+        try:
+            soup = fetch_and_parse(session, url)
+            data = extract_data_from_page(soup, fields)
+            data['Source URL'] = url
+
+            # Download PDFs
+            pdf_links = find_pdf_links(soup, base_url=url)
+            pdf_paths = []
+            for pdf_url in pdf_links:
+                try:
+                    pdf_path = download_pdf(session, pdf_url, pdfs_folder)
+                    pdf_paths.append(pdf_path)
+                except Exception as e:
+                    logging.error(f"Failed to download PDF {pdf_url}: {e}")
+
+            # Extract PDF text
+            pdf_texts = []
+            for pdf_path in pdf_paths:
+                text = extract_pdf_text(pdf_path)
+                pdf_texts.append(text[:500])  # Store first 500 chars for preview
+
+            data['PDF Files'] = "; ".join([os.path.basename(p) for p in pdf_paths])
+            data['PDF Preview'] = "; ".join(pdf_texts)
+            records.append(data)
+            logging.info(f"Processed {url}")
+        except Exception as e:
+            logging.error(f"Error processing {url}: {e}")
+
+    # --- Local PDFs (optional) ---
+    if pdfs_local_folder:
+        for pdf_file in Path(pdfs_local_folder).glob("*.pdf"):
+            try:
+                dest_path = os.path.join(pdfs_folder, pdf_file.name)
+                shutil.copy(pdf_file, dest_path)
+                text = extract_pdf_text(dest_path)
+                records.append({
+                    'Source URL': '',
+                    'PDF Files': pdf_file.name,
+                    'PDF Preview': text[:500]
+                })
+            except Exception as e:
+                logging.error(f"Error processing local PDF {pdf_file}: {e}")
+
+    # --- DataFrame and Excel Export ---
+    df = pd.DataFrame(records)
+    df.to_excel(excel_path, index=False)
+    messagebox.showinfo("Done", f"Extraction complete!\nExcel saved to: {excel_path}")
+
+if __name__ == "__main__":
+    main()
+
+
+
+________________________
+
+
+completed 1/1, Solved: False, number of success = 0/1, acc = 0.0
+
+==================================================
+MAPCODER PERFORMANCE STATISTICS
+==================================================
+Total Time: 73.54 seconds
+Total Tokens: 8,334 (Input: 4,071, Output: 4,263)
+Total API Calls: 8
+
+Per-Stage Breakdown:
+--------------------------------------------------------------------------------
+Stage                     Time(s)    In Tokens    Out Tokens   API Calls 
+--------------------------------------------------------------------------------
+Knowledge_Base_Generation 14.59      312          1,253        1         
+Planning_Generation_1     3.85       514          400          1         
+Planning_Verification_1   30.26      554          167          1         
+Planning_Generation_2     4.42       522          318          1         
+Planning_Verification_2   2.64       472          155          1         
+Planning_Generation_3     3.26       518          203          1         
+Planning_Verification_3   2.66       357          211          1         
+Final_Code_Generation     11.87      822          1,556        1         
+--------------------------------------------------------------------------------
+
+Statistics saved to: ./outputs/ChatGPT-MapCoder-HumanEval-Python3-0-1_stats.json
+#########################
+Running end ChatGPT-MapCoder-HumanEval-Python3-0-1, Time: 2025-12-24 15:03:45.701170
+##########################
+

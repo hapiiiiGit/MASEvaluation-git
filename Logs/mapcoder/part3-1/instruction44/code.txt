@@ -1,0 +1,51 @@
+from flask import Flask, jsonify
+import requests
+from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime, timedelta
+import pytz
+
+app = Flask(__name__)
+
+# Shopify API credentials
+SHOPIFY_API_KEY = 'your_api_key'
+SHOPIFY_PASSWORD = 'your_api_password'
+SHOPIFY_STORE_URL = 'your_store_url.myshopify.com'
+TIMEZONE = 'your_store_timezone'  # e.g., 'America/New_York'
+
+# Global variable to store daily order count
+daily_order_count = 0
+
+def fetch_daily_orders():
+    global daily_order_count
+    today = datetime.now(pytz.timezone(TIMEZONE)).date()
+    url = f"https://{SHOPIFY_API_KEY}:{SHOPIFY_PASSWORD}@{SHOPIFY_STORE_URL}/admin/api/orders.json"
+    params = {
+        'created_at_min': f"{today}T00:00:00{TIMEZONE}",
+        'created_at_max': f"{today}T23:59:59{TIMEZONE}",
+        'status': 'any'
+    }
+    
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        orders = response.json().get('orders', [])
+        daily_order_count = len(orders)
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+
+def reset_order_count():
+    global daily_order_count
+    daily_order_count = 0
+
+@app.route('/daily-orders', methods=['GET'])
+def get_daily_orders():
+    return jsonify({'order_count': daily_order_count})
+
+if __name__ == '__main__':
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(fetch_daily_orders, 'interval', hours=1)  # Fetch orders every hour
+    scheduler.add_job(reset_order_count, 'cron', hour=0, minute=0)  # Reset count at midnight
+    scheduler.start()
+    
+    fetch_daily_orders()  # Initial fetch
+    app.run(host='0.0.0.0', port=5000)

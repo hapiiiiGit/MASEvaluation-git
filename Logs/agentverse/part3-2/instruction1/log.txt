@@ -1,0 +1,1450 @@
+2026-01-13 17:46:02,738 WARNING  No vLLM server running at the specified URL.
+2026-01-13 17:46:02,772 WARNING  BMTools is not installed, tools in the simulation environment cannot be used. To install BMTools, please follow the instruction in the README.md file. If you aren't running a *simulation* case with tool, you can ignore this warning.
+2026-01-13 17:46:04,165 INFO  Loop Round 0
+2026-01-13 17:46:06,325 INFO Role Assignment:
+a mobile app developer experienced in cross-platform development for Android, iOS, and desktop environments using frameworks like Flutter or React Native
+a software engineer specialized in cloud integration, security protocols, OCR technology, and digital signature implementation 
+2026-01-13 17:46:41,996 ERROR list index out of range 
+2026-01-13 17:46:42,000 WARNING  Retrying...
+2026-01-13 17:47:24,550 ERROR list index out of range 
+2026-01-13 17:47:24,550 WARNING  Retrying...
+2026-01-13 17:47:50,363 ERROR list index out of range 
+2026-01-13 17:47:50,364 WARNING  Retrying...
+2026-01-13 17:48:22,259 ERROR list index out of range 
+2026-01-13 17:48:22,259 WARNING  Retrying...
+2026-01-13 17:48:46,443 ERROR list index out of range 
+2026-01-13 17:48:46,443 WARNING  Retrying...
+2026-01-13 17:49:18,295 ERROR list index out of range 
+2026-01-13 17:49:18,295 WARNING  Retrying...
+2026-01-13 17:49:46,253 ERROR list index out of range 
+2026-01-13 17:49:46,253 WARNING  Retrying...
+2026-01-13 17:50:11,351 ERROR list index out of range 
+2026-01-13 17:50:11,351 WARNING  Retrying...
+2026-01-13 17:50:55,758 ERROR list index out of range 
+2026-01-13 17:50:55,760 WARNING  Retrying...
+2026-01-13 17:51:20,049 ERROR list index out of range 
+2026-01-13 17:51:20,049 WARNING  Retrying...
+2026-01-13 17:51:20,049 ERROR a mobile app developer experienced in cross-platform development for Android, iOS, and desktop environments using frameworks like Flutter or React Native failed to generate valid response. 
+2026-01-13 17:51:20,049 INFO Initial Plan:
+ 
+2026-01-13 17:51:39,784 INFO Reviews:
+[a software engineer specialized in cloud integration, security protocols, OCR technology, and digital signature implementation]: ```python
+# Given code and completion:
+"""
+Please help me implement a Python program to create a digital diver’s logbook app for Android, iOS, and Windows/Mac/Linux that includes features such as data digitization, photo uploads, digital signing, validation, OCR integration for journal entries, cloud storage support, dynamic export options, and secure login functionality.
+"""
+
+# The previous completion was:
+"""
+[a mobile app developer experienced in cross-platform development for Android, iOS, and desktop environments using frameworks like Flutter or React Native]:
+"""
+
+# Critique:
+# The previous completion does not provide any Python code or implementation.
+# It only states a role or expertise without any actual code or solution.
+# The user requested a Python program implementing the described app with the listed features.
+# Therefore, the previous completion is incorrect and incomplete.
+
+# Corrected solution:
+# Since the app targets Android, iOS, and desktop platforms, a cross-platform framework is needed.
+# Python is not typically used for mobile app UI development, but Kivy or BeeWare can be used.
+# For demonstration, I will provide a simplified Python backend structure using Flask for API,
+# integrating OCR (using pytesseract), digital signing (using cryptography), cloud storage (AWS S3),
+# and user authentication (using Flask-Login).
+# The UI and mobile app frontend would be separate (e.g., Flutter or React Native),
+# but this Python backend can serve as the core logic and API.
+
+# This code is a simplified backend prototype illustrating the requested features.
+
+import os
+from flask import Flask, request, jsonify, send_file
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.utils import secure_filename
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.exceptions import InvalidSignature
+import pytesseract
+from PIL import Image
+import boto3
+from io import BytesIO
+import json
+
+app = Flask(__name__)
+app.secret_key = 'supersecretkey'  # In production, use environment variable
+
+# User authentication setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# In-memory user store for demo purposes
+users = {'diver1': {'password': 'password123'}}
+
+class User(UserMixin):
+    def __init__(self, id):
+        self.id = id
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id in users:
+        return User(user_id)
+    return None
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    if username in users and users[username]['password'] == password:
+        user = User(username)
+        login_user(user)
+        return jsonify({'message': 'Logged in successfully'}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logged out'}), 200
+
+# Digital signature key generation (for demo, generate once)
+private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+public_key = private_key.public_key()
+
+def sign_data(data: bytes) -> bytes:
+    signature = private_key.sign(
+        data,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+def verify_signature(data: bytes, signature: bytes) -> bool:
+    try:
+        public_key.verify(
+            signature,
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except InvalidSignature:
+        return False
+
+# OCR integration for journal entries
+@app.route('/upload_photo', methods=['POST'])
+@login_required
+def upload_photo():
+    if 'photo' not in request.files:
+        return jsonify({'message': 'No photo part'}), 400
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'message': 'No selected file'}), 400
+    filename = secure_filename(file.filename)
+    image = Image.open(file.stream)
+    # OCR extraction
+    text = pytesseract.image_to_string(image)
+    # For demo, return extracted text
+    return jsonify({'extracted_text': text}), 200
+
+# Cloud storage support (AWS S3 example)
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION')
+)
+S3_BUCKET = 
+2026-01-13 17:52:17,991 ERROR list index out of range 
+2026-01-13 17:52:17,991 WARNING  Retrying...
+2026-01-13 17:52:41,620 INFO Updated Plan:
+# Given code:
+"""
+Please help me implement a Python program to create a digital diver’s logbook app for Android, iOS, and Windows/Mac/Linux that includes features such as data digitization, photo uploads, digital signing, validation, OCR integration for journal entries, cloud storage support, dynamic export options, and secure login functionality.
+"""
+
+# Completion:
+# Since the app targets multiple platforms including mobile and desktop,
+# and Python is not typically used for UI in mobile apps,
+# this Python code will implement a backend API server that supports the required features.
+# The frontend (mobile/desktop UI) would be implemented separately in Flutter or React Native,
+# communicating with this backend via REST API.
+
+import os
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.utils import secure_filename
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.exceptions import InvalidSignature
+import pytesseract
+from PIL import Image
+import boto3
+from io import BytesIO
+import json
+import tempfile
+import datetime
+
+app = Flask(__name__)
+app.secret_key = os.getenv('APP_SECRET_KEY', 'supersecretkey')
+CORS(app)
+
+# Setup Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# In-memory user store (for demo purposes)
+users = {
+    'diver1': {'password': 'password123'}
+}
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id in users:
+        return User(user_id)
+    return None
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    if username in users and users[username]['password'] == password:
+        user = User(username)
+        login_user(user)
+        return jsonify({'message': 'Login successful'}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logged out'}), 200
+
+# Generate RSA keys for digital signing (demo: generate once at startup)
+private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+public_key = private_key.public_key()
+
+def sign_data(data: bytes) -> bytes:
+    signature = private_key.sign(
+        data,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+def verify_signature(data: bytes, signature: bytes) -> bool:
+    try:
+        public_key.verify(
+            signature,
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except InvalidSignature:
+        return False
+
+# Endpoint to upload a photo and extract text via OCR
+@app.route('/upload_photo', methods=['POST'])
+@login_required
+def upload_photo():
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo uploaded'}), 400
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'error': 'Empty filename'}), 400
+    filename = secure_filename(file.filename)
+    image = Image.open(file.stream)
+    extracted_text = pytesseract.image_to_string(image)
+    return jsonify({'extracted_text': extracted_text}), 200
+
+# AWS S3 client setup for cloud storage
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION')
+)
+S3_BUCKET = os.getenv('S3_BUCKET_NAME')
+
+@app.route('/upload_log', methods=['POST'])
+@login_required
+def upload_log():
+    """
+    Upload a diver log entry with optional photo and digital signature.
+    Expected JSON:
+    {
+        "log_data": {...},
+        "photo_base64": "...",  # optional
+        "signature": "base64signature"  # optional
+    }
+    """
+    data = request.json
+    log_data = data.get('log_data')
+    photo_b64 = data.get('photo_base64')
+    signature_b64 = data.get('signature')
+
+    if not log_data:
+        return jsonify({'error': 'log_data is required'}), 400
+
+    # Serialize log_data to JSON bytes
+    log_bytes = json.dumps(log_data, sort_keys=True).encode('utf-8')
+
+    # Verify signature if provided
+    if signature_b64:
+        import base64
+        signature = base64.b64decode(signature_b64)
+        if not verify_signature(log_bytes, signature):
+            return jsonify({'error': 'Invalid signature'}), 400
+
+    # Store log data in S3
+    timestamp = datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    user_folder = f"logs/{current_user.id}"
+    log_filename = f"{user_folder}/log_{timestamp}.json"
+    s3_client.put_object(Bucket=S3_BUCKET, Key=log_filename, Body=log_bytes)
+
+    # Store photo if provided
+    if photo_b64:
+        import base64
+        photo_data = base64.b64decode(photo_b64)
+        photo_filename = f"{user_folder}/photo_{timestamp}.jpg"
+        s3_client.put_object(Bucket=S3_BUCKET, Key=photo_filename, Body=photo_data, ContentType='image/jpeg')
+
+    return jsonify({'message': 'Log uploaded successfully'}), 200
+
+@app.route('/export_logs', methods=['GET'])
+@login_required
+def export_logs():
+    """
+    Export all logs for the current user as a single JSON file.
+    """
+    user_folder = f"logs/{current_user.id}/"
+    # List objects in user's folder
+    response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=user_folder)
+    logs = []
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            key = obj['Key']
+            if key.endswith('.json'):
+                obj_data = s3_client.get_object(Bucket=S3_BUCKET, Key=key)
+                content = obj_data['Body'].read()
+                logs.append(json.loads(content))
+    export_data = json.dumps(logs, indent=2)
+    return app.response_class(
+        export_data,
+        mimetype='application/json',
+        headers={'Content-Disposition': f'attachment;filename=diver_logs_{current_user.id}.json'}
+    )
+
+@app.route('/sign_log', methods=['POST'])
+@login_required
+def sign_log():
+    """
+    Sign a log entry sent in JSON and return the signature.
+    Expected JSON:
+    {
+        "log_data": {...}
+    }
+    """
+    data = request.json
+    log_data = data.get('log_data')
+    if not log_data:
+        return jsonify({'error': 'log_data is required'}), 400
+    log_bytes = json.dumps(log_data, sort_keys=True).encode('utf-8')
+    signature = sign_data(log_bytes)
+    import base64
+    signature_b64 = base64.b64encode(signature).decode('utf-8')
+    return jsonify({'signature': signature_b64}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True)
+ 
+2026-01-13 17:52:56,354 INFO Reviews:
+[a software engineer specialized in cloud integration, security protocols, OCR technology, and digital signature implementation]: ```python
+# Given code:
+"""
+Please help me implement a Python program to create a digital diver’s logbook app for Android, iOS, and Windows/Mac/Linux that includes features such as data digitization, photo uploads, digital signing, validation, OCR integration for journal entries, cloud storage support, dynamic export options, and secure login functionality.
+"""
+
+# Completion:
+"""
+[a mobile app developer experienced in cross-platform development for Android, iOS, and desktop environments using frameworks like Flutter or React Native]: # Given code:
+\"\"\"
+Please help me implement a Python program to create a digital diver’s logbook app for Android, iOS, and Windows/Mac/Linux that includes features such as data digitization, photo uploads, digital signing, validation, OCR integration for journal entries, cloud storage support, dynamic export options, and secure login functionality.
+\"\"\"
+
+# Completion:
+# Since the app targets multiple platforms including mobile and desktop,
+# and Python is not typically used for UI in mobile apps,
+# this Python code will implement a backend API server that supports the required features.
+# The frontend (mobile/desktop UI) would be implemented separately in Flutter or React Native,
+# communicating with this backend via REST API.
+
+import os
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.utils import secure_filename
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.exceptions import InvalidSignature
+import pytesseract
+from PIL import Image
+import boto3
+from io import BytesIO
+import json
+import tempfile
+import datetime
+
+app = Flask(__name__)
+app.secret_key = os.getenv('APP_SECRET_KEY', 'supersecretkey')
+CORS(app)
+
+# Setup Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# In-memory user store (for demo purposes)
+users = {
+    'diver1': {'password': 'password123'}
+}
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id in users:
+        return User(user_id)
+    return None
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    if username in users and users[username]['password'] == password:
+        user = User(username)
+        login_user(user)
+        return jsonify({'message': 'Login successful'}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logged out'}), 200
+
+# Generate RSA keys for digital signing (demo: generate once at startup)
+private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+public_key = private_key.public_key()
+
+def sign_data(data: bytes) -> bytes:
+    signature = private_key.sign(
+        data,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+def verify_signature(data: bytes, signature: bytes) -> bool:
+    try:
+        public_key.verify(
+            signature,
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except InvalidSignature:
+        return False
+
+# Endpoint to upload a photo and extract text via OCR
+@app.route('/upload_photo', methods=['POST'])
+@login_required
+def upload_photo():
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo uploaded'}), 400
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'error': 'Empty filename'}), 400
+    filename = secure_filename(file.filename)
+    image = Image.open(file.stream)
+    extracted_text = pytesseract.image_to_string(image)
+    return jsonify({'extracted_text': extracted_text}), 200
+
+# AWS S3 client setup for cloud storage
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION')
+)
+S3_BUCKET = os.getenv('S3_BUCKET_NAME')
+
+@app.route('/upload_log', methods=['POST'])
+@login_required
+def upload_log():
+    """
+    Upload a diver log entry with optional photo and digital signature.
+    Expected JSON:
+    {
+ 
+2026-01-13 17:53:24,175 INFO Updated Plan:
+# Given code:
+"""
+Please help me implement a Python program to create a digital diver’s logbook app for Android, iOS, and Windows/Mac/Linux that includes features such as data digitization, photo uploads, digital signing, validation, OCR integration for journal entries, cloud storage support, dynamic export options, and secure login functionality.
+"""
+
+# Completion:
+# Since the app targets Android, iOS, and desktop platforms, a cross-platform UI framework like Flutter or React Native is ideal.
+# Python is not typically used for mobile UI, but can be used to build a backend API server.
+# Below is a Python Flask backend implementing key features: secure login, photo upload with OCR, digital signing, cloud storage (AWS S3), and export functionality.
+# The mobile/desktop frontend would interact with this backend via REST API.
+
+import os
+import json
+import base64
+import datetime
+from io import BytesIO
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.utils import secure_filename
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.exceptions import InvalidSignature
+from PIL import Image
+import pytesseract
+import boto3
+
+app = Flask(__name__)
+app.secret_key = os.getenv('APP_SECRET_KEY', 'supersecretkey')
+CORS(app)
+
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# In-memory user store (demo only)
+users = {
+    'diver1': {'password': 'password123'}
+}
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id in users:
+        return User(user_id)
+    return None
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    if username in users and users[username]['password'] == password:
+        user = User(username)
+        login_user(user)
+        return jsonify({'message': 'Login successful'}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logged out'}), 200
+
+# Generate RSA keys for digital signing (demo: generate once at startup)
+private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+public_key = private_key.public_key()
+
+def sign_data(data: bytes) -> bytes:
+    signature = private_key.sign(
+        data,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+def verify_signature(data: bytes, signature: bytes) -> bool:
+    try:
+        public_key.verify(
+            signature,
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except InvalidSignature:
+        return False
+
+# AWS S3 client setup for cloud storage
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION')
+)
+S3_BUCKET = os.getenv('S3_BUCKET_NAME')
+
+@app.route('/upload_photo', methods=['POST'])
+@login_required
+def upload_photo():
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo uploaded'}), 400
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'error': 'Empty filename'}), 400
+    image = Image.open(file.stream)
+    extracted_text = pytesseract.image_to_string(image)
+    return jsonify({'extracted_text': extracted_text}), 200
+
+@app.route('/upload_log', methods=['POST'])
+@login_required
+def upload_log():
+    """
+    Upload a diver log entry with optional photo and digital signature.
+    Expected JSON:
+    {
+        "log_data": {...},
+        "photo_base64": "...",  # optional
+        "signature": "base64signature"  # optional
+    }
+    """
+    data = request.json
+    log_data = data.get('log_data')
+    photo_b64 = data.get('photo_base64')
+    signature_b64 = data.get('signature')
+
+    if not log_data:
+        return jsonify({'error': 'log_data is required'}), 400
+
+    log_bytes = json.dumps(log_data, sort_keys=True).encode('utf-8')
+
+    if signature_b64:
+        signature = base64.b64decode(signature_b64)
+        if not verify_signature(log_bytes, signature):
+            return jsonify({'error': 'Invalid signature'}), 400
+
+    timestamp = datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    user_folder = f"logs/{current_user.id}"
+    log_filename = f"{user_folder}/log_{timestamp}.json"
+    s3_client.put_object(Bucket=S3_BUCKET, Key=log_filename, Body=log_bytes)
+
+    if photo_b64:
+        photo_data = base64.b64decode(photo_b64)
+        photo_filename = f"{user_folder}/photo_{timestamp}.jpg"
+        s3_client.put_object(Bucket=S3_BUCKET, Key=photo_filename, Body=photo_data, ContentType='image/jpeg')
+
+    return jsonify({'message': 'Log uploaded successfully'}), 200
+
+@app.route('/export_logs', methods=['GET'])
+@login_required
+def export_logs():
+    user_folder = f"logs/{current_user.id}/"
+    response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=user_folder)
+    logs = []
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            key = obj['Key']
+            if key.endswith('.json'):
+                obj_data = s3_client.get_object(Bucket=S3_BUCKET, Key=key)
+                content = obj_data['Body'].read()
+                logs.append(json.loads(content))
+    export_data = json.dumps(logs, indent=2)
+    return app.response_class(
+        export_data,
+        mimetype='application/json',
+        headers={'Content-Disposition': f'attachment;filename=diver_logs_{current_user.id}.json'}
+    )
+
+@app.route('/sign_log', methods=['POST'])
+@login_required
+def sign_log():
+    data = request.json
+    log_data = data.get('log_data')
+    if not log_data:
+        return jsonify({'error': 'log_data is required'}), 400
+    log_bytes = json.dumps(log_data, sort_keys=True).encode('utf-8')
+    signature = sign_data(log_bytes)
+    signature_b64 = base64.b64encode(signature).decode('utf-8')
+    return jsonify({'signature': signature_b64}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True)
+ 
+2026-01-13 17:53:35,775 INFO Reviews:
+[a software engineer specialized in cloud integration, security protocols, OCR technology, and digital signature implementation]: ```python
+# Given code:
+"""
+Please help me implement a Python program to create a digital diver’s logbook app for Android, iOS, and Windows/Mac/Linux that includes features such as data digitization, photo uploads, digital signing, validation, OCR integration for journal entries, cloud storage support, dynamic export options, and secure login functionality.
+"""
+
+# Completion:
+# Since the app targets Android, iOS, and desktop platforms, a cross-platform UI framework like Flutter or React Native is ideal.
+# Python is not typically used for mobile UI, but can be used to build a backend API server.
+# Below is a Python Flask backend implementing key features: secure login, photo upload with OCR, digital signing, cloud storage (AWS S3), and export functionality.
+# The mobile/desktop frontend would interact with this backend via REST API.
+
+import os
+import json
+import base64
+import datetime
+from io import BytesIO
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.utils import secure_filename
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.exceptions import InvalidSignature
+from PIL import Image
+import pytesseract
+import boto3
+
+app = Flask(__name__)
+app.secret_key = os.getenv('APP_SECRET_KEY', 'supersecretkey')
+CORS(app)
+
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# In-memory user store (demo only)
+users = {
+    'diver1': {'password': 'password123'}
+}
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id in users:
+        return User(user_id)
+    return None
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    if username in users and users[username]['password'] == password:
+        user = User(username)
+        login_user(user)
+        return jsonify({'message': 'Login successful'}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logged out'}), 200
+
+# Generate RSA keys for digital signing (demo: generate once at startup)
+private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+public_key = private_key.public_key()
+
+def sign_data(data: bytes) -> bytes:
+    signature = private_key.sign(
+        data,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+def verify_signature(data: bytes, signature: bytes) -> bool:
+    try:
+        public_key.verify(
+            signature,
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except InvalidSignature:
+        return False
+
+# AWS S3 client setup for cloud storage
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION')
+)
+S3_BUCKET = os.getenv('S3_BUCKET_NAME')
+
+@app.route('/upload_photo', methods=['POST'])
+@login_required
+def upload_photo():
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo uploaded'}), 400
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'error': 'Empty filename'}), 400
+    image = Image.open(file.stream)
+    extracted_text = pytesseract.image_to_string(image)
+    return jsonify({'extracted_text': extracted_text}), 200
+
+@app.route('/upload_log', methods=['POST'])
+@login_required
+def upload_log():
+    """
+    Upload a diver log entry with optional photo and digital signature.
+    Expected JSON:
+    {
+        "log_data": {...},
+        "photo_base64": "...",  # optional
+        "signature": "base64signature"  # optional
+    }
+    """
+    data = request.json
+    log_data = data.get('log_data')
+    photo_b64 = data.get('photo_base64')
+    signature_b64 = data.get('signature')
+
+    if not log_data:
+        return jsonify({'error': 'log_data is required'}), 400
+
+ 
+2026-01-13 17:54:00,835 INFO Updated Plan:
+# Given code:
+"""
+Please help me implement a Python program to create a digital diver’s logbook app for Android, iOS, and Windows/Mac/Linux that includes features such as data digitization, photo uploads, digital signing, validation, OCR integration for journal entries, cloud storage support, dynamic export options, and secure login functionality.
+"""
+
+# Completion:
+# Since the app targets Android, iOS, and desktop platforms, a cross-platform UI framework like Flutter or React Native is ideal.
+# Python is not typically used for mobile UI, but can be used to build a backend API server.
+# Below is a Python Flask backend implementing key features: secure login, photo upload with OCR, digital signing, cloud storage (AWS S3), and export functionality.
+# The mobile/desktop frontend would interact with this backend via REST API.
+
+import os
+import json
+import base64
+import datetime
+from io import BytesIO
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.utils import secure_filename
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.exceptions import InvalidSignature
+from PIL import Image
+import pytesseract
+import boto3
+
+app = Flask(__name__)
+app.secret_key = os.getenv('APP_SECRET_KEY', 'supersecretkey')
+CORS(app)
+
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# In-memory user store (demo only)
+users = {
+    'diver1': {'password': 'password123'}
+}
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id in users:
+        return User(user_id)
+    return None
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    if username in users and users[username]['password'] == password:
+        user = User(username)
+        login_user(user)
+        return jsonify({'message': 'Login successful'}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logged out'}), 200
+
+# Generate RSA keys for digital signing (demo: generate once at startup)
+private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+public_key = private_key.public_key()
+
+def sign_data(data: bytes) -> bytes:
+    signature = private_key.sign(
+        data,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+def verify_signature(data: bytes, signature: bytes) -> bool:
+    try:
+        public_key.verify(
+            signature,
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except InvalidSignature:
+        return False
+
+# AWS S3 client setup for cloud storage
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION')
+)
+S3_BUCKET = os.getenv('S3_BUCKET_NAME')
+
+@app.route('/upload_photo', methods=['POST'])
+@login_required
+def upload_photo():
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo uploaded'}), 400
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'error': 'Empty filename'}), 400
+    image = Image.open(file.stream)
+    extracted_text = pytesseract.image_to_string(image)
+    return jsonify({'extracted_text': extracted_text}), 200
+
+@app.route('/upload_log', methods=['POST'])
+@login_required
+def upload_log():
+    """
+    Upload a diver log entry with optional photo and digital signature.
+    Expected JSON:
+    {
+        "log_data": {...},
+        "photo_base64": "...",  # optional
+        "signature": "base64signature"  # optional
+    }
+    """
+    data = request.json
+    log_data = data.get('log_data')
+    photo_b64 = data.get('photo_base64')
+    signature_b64 = data.get('signature')
+
+    if not log_data:
+        return jsonify({'error': 'log_data is required'}), 400
+
+    log_bytes = json.dumps(log_data, sort_keys=True).encode('utf-8')
+
+    if signature_b64:
+        signature = base64.b64decode(signature_b64)
+        if not verify_signature(log_bytes, signature):
+            return jsonify({'error': 'Invalid signature'}), 400
+
+    timestamp = datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    user_folder = f"logs/{current_user.id}"
+    log_filename = f"{user_folder}/log_{timestamp}.json"
+    s3_client.put_object(Bucket=S3_BUCKET, Key=log_filename, Body=log_bytes)
+
+    if photo_b64:
+        photo_data = base64.b64decode(photo_b64)
+        photo_filename = f"{user_folder}/photo_{timestamp}.jpg"
+        s3_client.put_object(Bucket=S3_BUCKET, Key=photo_filename, Body=photo_data, ContentType='image/jpeg')
+
+    return jsonify({'message': 'Log uploaded successfully'}), 200
+
+@app.route('/export_logs', methods=['GET'])
+@login_required
+def export_logs():
+    user_folder = f"logs/{current_user.id}/"
+    response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=user_folder)
+    logs = []
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            key = obj['Key']
+            if key.endswith('.json'):
+                obj_data = s3_client.get_object(Bucket=S3_BUCKET, Key=key)
+                content = obj_data['Body'].read()
+                logs.append(json.loads(content))
+    export_data = json.dumps(logs, indent=2)
+    return app.response_class(
+        export_data,
+        mimetype='application/json',
+        headers={'Content-Disposition': f'attachment;filename=diver_logs_{current_user.id}.json'}
+    )
+
+@app.route('/sign_log', methods=['POST'])
+@login_required
+def sign_log():
+    data = request.json
+    log_data = data.get('log_data')
+    if not log_data:
+        return jsonify({'error': 'log_data is required'}), 400
+    log_bytes = json.dumps(log_data, sort_keys=True).encode('utf-8')
+    signature = sign_data(log_bytes)
+    signature_b64 = base64.b64encode(signature).decode('utf-8')
+    return jsonify({'signature': signature_b64}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True)
+ 
+2026-01-13 17:54:00,836 INFO Decision Plan:
+# Given code:
+"""
+Please help me implement a Python program to create a digital diver’s logbook app for Android, iOS, and Windows/Mac/Linux that includes features such as data digitization, photo uploads, digital signing, validation, OCR integration for journal entries, cloud storage support, dynamic export options, and secure login functionality.
+"""
+
+# Completion:
+# Since the app targets Android, iOS, and desktop platforms, a cross-platform UI framework like Flutter or React Native is ideal.
+# Python is not typically used for mobile UI, but can be used to build a backend API server.
+# Below is a Python Flask backend implementing key features: secure login, photo upload with OCR, digital signing, cloud storage (AWS S3), and export functionality.
+# The mobile/desktop frontend would interact with this backend via REST API.
+
+import os
+import json
+import base64
+import datetime
+from io import BytesIO
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.utils import secure_filename
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.exceptions import InvalidSignature
+from PIL import Image
+import pytesseract
+import boto3
+
+app = Flask(__name__)
+app.secret_key = os.getenv('APP_SECRET_KEY', 'supersecretkey')
+CORS(app)
+
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# In-memory user store (demo only)
+users = {
+    'diver1': {'password': 'password123'}
+}
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id in users:
+        return User(user_id)
+    return None
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    if username in users and users[username]['password'] == password:
+        user = User(username)
+        login_user(user)
+        return jsonify({'message': 'Login successful'}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logged out'}), 200
+
+# Generate RSA keys for digital signing (demo: generate once at startup)
+private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+public_key = private_key.public_key()
+
+def sign_data(data: bytes) -> bytes:
+    signature = private_key.sign(
+        data,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+def verify_signature(data: bytes, signature: bytes) -> bool:
+    try:
+        public_key.verify(
+            signature,
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except InvalidSignature:
+        return False
+
+# AWS S3 client setup for cloud storage
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION')
+)
+S3_BUCKET = os.getenv('S3_BUCKET_NAME')
+
+@app.route('/upload_photo', methods=['POST'])
+@login_required
+def upload_photo():
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo uploaded'}), 400
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'error': 'Empty filename'}), 400
+    image = Image.open(file.stream)
+    extracted_text = pytesseract.image_to_string(image)
+    return jsonify({'extracted_text': extracted_text}), 200
+
+@app.route('/upload_log', methods=['POST'])
+@login_required
+def upload_log():
+    """
+    Upload a diver log entry with optional photo and digital signature.
+    Expected JSON:
+    {
+        "log_data": {...},
+        "photo_base64": "...",  # optional
+        "signature": "base64signature"  # optional
+    }
+    """
+    data = request.json
+    log_data = data.get('log_data')
+    photo_b64 = data.get('photo_base64')
+    signature_b64 = data.get('signature')
+
+    if not log_data:
+        return jsonify({'error': 'log_data is required'}), 400
+
+    log_bytes = json.dumps(log_data, sort_keys=True).encode('utf-8')
+
+    if signature_b64:
+        signature = base64.b64decode(signature_b64)
+        if not verify_signature(log_bytes, signature):
+            return jsonify({'error': 'Invalid signature'}), 400
+
+    timestamp = datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    user_folder = f"logs/{current_user.id}"
+    log_filename = f"{user_folder}/log_{timestamp}.json"
+    s3_client.put_object(Bucket=S3_BUCKET, Key=log_filename, Body=log_bytes)
+
+    if photo_b64:
+        photo_data = base64.b64decode(photo_b64)
+        photo_filename = f"{user_folder}/photo_{timestamp}.jpg"
+        s3_client.put_object(Bucket=S3_BUCKET, Key=photo_filename, Body=photo_data, ContentType='image/jpeg')
+
+    return jsonify({'message': 'Log uploaded successfully'}), 200
+
+@app.route('/export_logs', methods=['GET'])
+@login_required
+def export_logs():
+    user_folder = f"logs/{current_user.id}/"
+    response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=user_folder)
+    logs = []
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            key = obj['Key']
+            if key.endswith('.json'):
+                obj_data = s3_client.get_object(Bucket=S3_BUCKET, Key=key)
+                content = obj_data['Body'].read()
+                logs.append(json.loads(content))
+    export_data = json.dumps(logs, indent=2)
+    return app.response_class(
+        export_data,
+        mimetype='application/json',
+        headers={'Content-Disposition': f'attachment;filename=diver_logs_{current_user.id}.json'}
+    )
+
+@app.route('/sign_log', methods=['POST'])
+@login_required
+def sign_log():
+    data = request.json
+    log_data = data.get('log_data')
+    if not log_data:
+        return jsonify({'error': 'log_data is required'}), 400
+    log_bytes = json.dumps(log_data, sort_keys=True).encode('utf-8')
+    signature = sign_data(log_bytes)
+    signature_b64 = base64.b64encode(signature).decode('utf-8')
+    return jsonify({'signature': signature_b64}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True)
+ 
+2026-01-13 17:54:00,836 INFO Execution Result: 
+2026-01-13 17:54:00,836 INFO  
+2026-01-13 17:54:06,277 INFO Evaluation result:
+Score: True
+Advice: The provided Python Flask backend code is a solid foundational implementation that addresses the key requested features: secure login, photo upload with OCR extraction, digital signing and verification, cloud storage integration with AWS S3, and export functionality. It correctly uses Flask-Login for session management, integrates pytesseract for OCR, and uses cryptography for signing. The endpoints logically separate concerns and handle validation and error cases appropriately.
+A few points to consider for improvement or extension:
+- The user store is in-memory and uses plaintext passwords; for production, a persistent user database with hashed passwords (e.g., bcrypt) is recommended.
+- The RSA keys are generated at startup and not persisted, so signatures would become invalid after restart; persisting keys securely or using a dedicated signing service would be better.
+- The OCR integration currently extracts text from uploaded photos but does not store or associate the extracted text with logs; consider extending the data model to save OCR results.
+- The export endpoint returns JSON only; supporting multiple export formats (CSV, PDF) would enhance usability.
+- The frontend is not included; a cross-platform UI framework like Flutter or React Native is needed to consume this backend API.
+- Security best practices such as HTTPS enforcement, rate limiting, and input sanitization should be added.
+For the next round, recruiting experts in mobile app development with experience in Flutter or React Native would be valuable to implement the frontend UI that interacts with this backend. Additionally, a security specialist could help review and harden authentication, key management, and cloud storage security. 
+2026-01-13 17:54:06,277 INFO Good score! Accept! Final Result:
+# Given code:
+"""
+Please help me implement a Python program to create a digital diver’s logbook app for Android, iOS, and Windows/Mac/Linux that includes features such as data digitization, photo uploads, digital signing, validation, OCR integration for journal entries, cloud storage support, dynamic export options, and secure login functionality.
+"""
+
+# Completion:
+# Since the app targets Android, iOS, and desktop platforms, a cross-platform UI framework like Flutter or React Native is ideal.
+# Python is not typically used for mobile UI, but can be used to build a backend API server.
+# Below is a Python Flask backend implementing key features: secure login, photo upload with OCR, digital signing, cloud storage (AWS S3), and export functionality.
+# The mobile/desktop frontend would interact with this backend via REST API.
+
+import os
+import json
+import base64
+import datetime
+from io import BytesIO
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.utils import secure_filename
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.exceptions import InvalidSignature
+from PIL import Image
+import pytesseract
+import boto3
+
+app = Flask(__name__)
+app.secret_key = os.getenv('APP_SECRET_KEY', 'supersecretkey')
+CORS(app)
+
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# In-memory user store (demo only)
+users = {
+    'diver1': {'password': 'password123'}
+}
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id in users:
+        return User(user_id)
+    return None
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    if username in users and users[username]['password'] == password:
+        user = User(username)
+        login_user(user)
+        return jsonify({'message': 'Login successful'}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logged out'}), 200
+
+# Generate RSA keys for digital signing (demo: generate once at startup)
+private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+public_key = private_key.public_key()
+
+def sign_data(data: bytes) -> bytes:
+    signature = private_key.sign(
+        data,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+def verify_signature(data: bytes, signature: bytes) -> bool:
+    try:
+        public_key.verify(
+            signature,
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except InvalidSignature:
+        return False
+
+# AWS S3 client setup for cloud storage
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION')
+)
+S3_BUCKET = os.getenv('S3_BUCKET_NAME')
+
+@app.route('/upload_photo', methods=['POST'])
+@login_required
+def upload_photo():
+    if 'photo' not in request.files:
+        return jsonify({'error': 'No photo uploaded'}), 400
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'error': 'Empty filename'}), 400
+    image = Image.open(file.stream)
+    extracted_text = pytesseract.image_to_string(image)
+    return jsonify({'extracted_text': extracted_text}), 200
+
+@app.route('/upload_log', methods=['POST'])
+@login_required
+def upload_log():
+    """
+    Upload a diver log entry with optional photo and digital signature.
+    Expected JSON:
+    {
+        "log_data": {...},
+        "photo_base64": "...",  # optional
+        "signature": "base64signature"  # optional
+    }
+    """
+    data = request.json
+    log_data = data.get('log_data')
+    photo_b64 = data.get('photo_base64')
+    signature_b64 = data.get('signature')
+
+    if not log_data:
+        return jsonify({'error': 'log_data is required'}), 400
+
+    log_bytes = json.dumps(log_data, sort_keys=True).encode('utf-8')
+
+    if signature_b64:
+        signature = base64.b64decode(signature_b64)
+        if not verify_signature(log_bytes, signature):
+            return jsonify({'error': 'Invalid signature'}), 400
+
+    timestamp = datetime.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    user_folder = f"logs/{current_user.id}"
+    log_filename = f"{user_folder}/log_{timestamp}.json"
+    s3_client.put_object(Bucket=S3_BUCKET, Key=log_filename, Body=log_bytes)
+
+    if photo_b64:
+        photo_data = base64.b64decode(photo_b64)
+        photo_filename = f"{user_folder}/photo_{timestamp}.jpg"
+        s3_client.put_object(Bucket=S3_BUCKET, Key=photo_filename, Body=photo_data, ContentType='image/jpeg')
+
+    return jsonify({'message': 'Log uploaded successfully'}), 200
+
+@app.route('/export_logs', methods=['GET'])
+@login_required
+def export_logs():
+    user_folder = f"logs/{current_user.id}/"
+    response = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=user_folder)
+    logs = []
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            key = obj['Key']
+            if key.endswith('.json'):
+                obj_data = s3_client.get_object(Bucket=S3_BUCKET, Key=key)
+                content = obj_data['Body'].read()
+                logs.append(json.loads(content))
+    export_data = json.dumps(logs, indent=2)
+    return app.response_class(
+        export_data,
+        mimetype='application/json',
+        headers={'Content-Disposition': f'attachment;filename=diver_logs_{current_user.id}.json'}
+    )
+
+@app.route('/sign_log', methods=['POST'])
+@login_required
+def sign_log():
+    data = request.json
+    log_data = data.get('log_data')
+    if not log_data:
+        return jsonify({'error': 'log_data is required'}), 400
+    log_bytes = json.dumps(log_data, sort_keys=True).encode('utf-8')
+    signature = sign_data(log_bytes)
+    signature_b64 = base64.b64encode(signature).decode('utf-8')
+    return jsonify({'signature': signature_b64}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True)
+ 
+2026-01-13 17:54:06,279 INFO Agent spend: 
+2026-01-13 17:54:06,279 INFO Agent (Role: AGENT_TYPES.ROLE_ASSIGNMENT) role assigner: $0.000181 
+2026-01-13 17:54:06,280 INFO Agent (Role: AGENT_TYPES.SOLVER) a mobile app developer experienced in cross-platform development for Android, iOS, and desktop environments using frameworks like Flutter or React Native: $0.05 
+2026-01-13 17:54:06,280 INFO Agent (Role: AGENT_TYPES.CRITIC) a software engineer specialized in cloud integration, security protocols, OCR technology, and digital signature implementation: $0.01 
+2026-01-13 17:54:06,280 INFO Agent (Role: AGENT_TYPES.EXECUTION) Executor: $0.000000 
+2026-01-13 17:54:06,280 INFO Agent (Role: AGENT_TYPES.EVALUATION) Evaluator: $0.001361 
+2026-01-13 17:54:06,280 INFO Agent (Role: AGENT_TYPES.MANAGER) Manager: $0.000000 
+2026-01-13 17:54:06,280 INFO Total spent: $0.058242 

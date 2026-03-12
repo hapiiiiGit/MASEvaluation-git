@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Admin Consent List Panel -->
+    <template id="admin_consent_list" name="Admin Consent List">
+        <t t-call="website.layout">
+            <div class="o_admin_consent_list container">
+                <h2>Customer Consents</h2>
+                <table class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Consent Status</th>
+                            <th>Terms Version</th>
+                            <th>Jurisdiction</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="consents" t-as="consent">
+                            <tr>
+                                <td><t t-esc="consent.user_id.name"/></td>
+                                <td><t t-esc="consent.user_id.email"/></td>
+                                <td>
+                                    <span t-if="consent.consent_given" class="badge badge-success">Accepted</span>
+                                    <span t-if="not consent.consent_given" class="badge badge-danger">Not Accepted</span>
+                                </td>
+                                <td><t t-esc="consent.terms_version"/></td>
+                                <td><t t-esc="consent.jurisdiction"/></td>
+                                <td><t t-esc="consent.consent_date"/></td>
+                                <td>
+                                    <a href="/admin/consent/<t t-esc="consent.id"/>" class="btn btn-sm btn-info">View</a>
+                                </td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <!-- Admin Consent Detail Panel -->
+    <template id="admin_consent_detail" name="Admin Consent Detail">
+        <t t-call="website.layout">
+            <div class="o_admin_consent_detail container">
+                <h2>Consent Detail</h2>
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title"><t t-esc="consent.user_id.name"/></h5>
+                        <p class="card-text"><strong>Email:</strong> <t t-esc="consent.user_id.email"/></p>
+                        <p class="card-text">
+                            <strong>Consent Status:</strong>
+                            <span t-if="consent.consent_given" class="badge badge-success">Accepted</span>
+                            <span t-if="not consent.consent_given" class="badge badge-danger">Not Accepted</span>
+                        </p>
+                        <p class="card-text"><strong>Terms Version:</strong> <t t-esc="consent.terms_version"/></p>
+                        <p class="card-text"><strong>Jurisdiction:</strong> <t t-esc="consent.jurisdiction"/></p>
+                        <p class="card-text"><strong>Date:</strong> <t t-esc="consent.consent_date"/></p>
+                        <div class="form-group mt-3">
+                            <label for="update_consent_checkbox">Update Consent Status:</label>
+                            <input type="checkbox" id="update_consent_checkbox" t-att-checked="consent.consent_given and 'checked' or None"/>
+                            <button type="button" class="btn btn-primary btn-sm ml-2" t-att-data-consent_id="consent.id" onclick="updateConsentStatus(this)">
+                                Update
+                            </button>
+                            <span id="update_consent_message" class="ml-2"></span>
+                        </div>
+                    </div>
+                </div>
+                <h3>Audit Log</h3>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Timestamp</th>
+                            <th>Performed By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="audit_logs" t-as="log">
+                            <tr>
+                                <td><t t-esc="log.action"/></td>
+                                <td><t t-esc="log.timestamp"/></td>
+                                <td><t t-esc="log.performed_by.name"/></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </div>
+            <script type="text/javascript">
+                function updateConsentStatus(btn) {
+                    var consentId = btn.getAttribute('data-consent_id');
+                    var consentGiven = document.getElementById('update_consent_checkbox').checked;
+                    var messageSpan = document.getElementById('update_consent_message');
+                    messageSpan.innerText = '';
+                    $.ajax({
+                        url: '/admin/update_consent',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            consent_id: parseInt(consentId),
+                            consent_given: consentGiven
+                        }),
+                        success: function(response) {
+                            if (response.success) {
+                                messageSpan.innerText = response.message;
+                                messageSpan.className = 'text-success ml-2';
+                                setTimeout(function(){ location.reload(); }, 1000);
+                            } else {
+                                messageSpan.innerText = 'Update failed.';
+                                messageSpan.className = 'text-danger ml-2';
+                            }
+                        },
+                        error: function() {
+                            messageSpan.innerText = 'Error updating consent.';
+                            messageSpan.className = 'text-danger ml-2';
+                        }
+                    });
+                }
+            </script>
+        </t>
+    </template>
+</odoo>
